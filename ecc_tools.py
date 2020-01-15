@@ -8,9 +8,7 @@ pdb_parser = Bio.PDB.PDBParser()
 from scipy.spatial import distance_matrix
 from Bio import BiopythonWarning
 warnings.simplefilter('ignore', BiopythonWarning)
-
 import numpy as np
-
 
 def contact_map(pdb,ipdb,cols_removed):
     pdb_id = pdb[ipdb,5]
@@ -34,8 +32,7 @@ def contact_map(pdb,ipdb,cols_removed):
 
     return ct
 
-#==========================================================================================
-def roc_curve(ct,di,ct_thres):    
+def roc_curve(ct,di,ct_thres):
     ct1 = ct.copy()
     
     ct_pos = ct1 < ct_thres           
