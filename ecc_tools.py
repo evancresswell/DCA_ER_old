@@ -33,3 +33,50 @@ def contact_map(pdb,ipdb,cols_removed):
     ct = distance_matrix(coords_remain,coords_remain)
 
     return ct
+
+#==========================================================================================
+def roc_curve(ct,di,ct_thres):    
+    ct1 = ct.copy()
+    
+    ct_pos = ct1 < ct_thres           
+    ct1[ct_pos] = 1
+    ct1[~ct_pos] = 0
+
+    mask = np.triu(np.ones(di.shape[0],dtype=bool), k=1)
+    order = di[mask].argsort()[::-1]
+
+    ct_flat = ct1[mask][order]
+
+    tp = np.cumsum(ct_flat, dtype=float)
+    fp = np.cumsum(~ct_flat.astype(int), dtype=float)
+
+    if tp[-1] !=0:
+        tp /= tp[-1]
+        fp /= fp[-1]
+    
+    # bining (to reduce the size of tp,fp and make fp having the same values for every pfam)
+    nbin = 101
+    pbin = np.linspace(0,1,nbin, endpoint=True)
+
+    #print(pbin)
+
+    fp_size = fp.shape[0]
+
+    fpbin = np.ones(nbin)
+    tpbin = np.ones(nbin)
+    for ibin in range(nbin-1):
+        # find value in a range
+        t1 = [(fp[t] > pbin[ibin] and fp[t] <= pbin[ibin+1]) for t in range(fp_size)]
+
+        if len(t1)>0 :            
+            fpbin[ibin] = fp[t1].mean()
+            tpbin[ibin] = tp[t1].mean()
+        else:
+            #print(i)
+            tpbin[ibin] = tpbin[ibin-1] 
+
+    #print(fp,tp)
+    #return fp,tp,pbin,fpbin,tpbin
+    return pbin,tpbin,fpbin
+
+
