@@ -29,7 +29,7 @@ def fit(x,y_onehot,niter_max,l2):
         cost = np.full(niter_max,100.)
         for iloop in range(niter_max):
             h = h0 + x.dot(w)
-            y1_model = np.tanh(h/2.)    
+            y1_model = np.tanh(h/2.) # Expectation of y1 aka sol
 
             # stopping criterion
             #p = 1/(1+np.exp(-h))
@@ -45,6 +45,7 @@ def fit(x,y_onehot,niter_max,l2):
             #cost[iloop] = ((p_test-y_test)**2).mean()
 
             if iloop > 0 and cost[iloop] >= cost[iloop-1] : break
+	    # if you're getting worse, you can assume you have found a min
                         
             # update local field
             t = h!=0    
