@@ -40,6 +40,7 @@ def roc_curve(ct,di,ct_thres):
     ct1[~ct_pos] = 0
 
     mask = np.triu(np.ones(di.shape[0],dtype=bool), k=1)
+    # argsort sorts from low to high. [::-1] reverses 
     order = di[mask].argsort()[::-1]
 
     ct_flat = ct1[mask][order]
