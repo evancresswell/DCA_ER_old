@@ -226,28 +226,39 @@ def min_res(s):
 def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8):
 #def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
 
+    printing = True
+
     # read parse_pfam data:
     #print('read original aligned pfam data')
     #s = np.load('../%s/msa.npy'%pfam_id).T
     s = np.load('%s/%s/msa.npy'%(data_path,pfam_id)).T
-    #print(s.shape)
+    if printing:
+    	print("shape of s (import from msa.npy):\n",s.shape)
     
     # convert bytes to str
     s = np.array([s[t,i].decode('UTF-8') for t in range(s.shape[0]) \
          for i in range(s.shape[1])]).reshape(s.shape[0],s.shape[1])
+    if printing:
+    	print("shape of s (after UTF-8 decode):\n",s.shape)
 
     #print('select only column presenting as uppercase at PDB sequence')
     #pdb = np.load('../%s/pdb_refs.npy'%pfam_id)
     pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
+    if printing:
+    	print("pdb:\n",pdb)
     #ipdb = 0
 
     # convert bytes to str (python 2 to python 3)
     pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
          for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
+    if printing:
+    	print("pdb (after UTF-8 decode, removing 'b'):\n",pdb)
 
     tpdb = int(pdb[ipdb,1])
+    #tpdb is the sequence #
     #print(tpdb)
 
+    print("s[tpdb] = \n",s[tpdb])
     gap_pdb = s[tpdb] =='-'
     s = s[:,~gap_pdb]    
 
