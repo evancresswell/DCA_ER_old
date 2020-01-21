@@ -12,7 +12,7 @@ import numpy as np
 from IPython.display import HTML
 import random
 
-def contact_map(pdb,ipdb,cols_removed):
+def contact_map(pdb,ipdb,cols_removed,s_index):
     pdb_id = pdb[ipdb,5]
     pdb_chain = pdb[ipdb,6]
     pdb_start,pdb_end = int(pdb[ipdb,7]),int(pdb[ipdb,8])
@@ -29,7 +29,7 @@ def contact_map(pdb,ipdb,cols_removed):
 
     coords_remain = np.delete(coords,cols_removed,axis=0)
     #print(coords_remain.shape)
-
+    
     ct = distance_matrix(coords_remain,coords_remain)
 
     return ct

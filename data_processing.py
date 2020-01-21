@@ -227,12 +227,14 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
     print("removing gaps...")
     s = s[:,~gap_pdb] # removes gaps  
+    s_index = np.arange(s.shape[1])
 
     if printing:
     	print("s[tpdb] shape is ",s[tpdb].shape)
     	print("s = \n",s)
     	print("though s still has gaps, s[%d] does not:\n"%(tpdb),s[tpdb])
     	print("s shape is ",s.shape)
+    	print("Saving indices of reference sequence s[%d](length=%d):\n"%(tpdb,s_index.shape[0]),s_index)
     	print("#--------------------------------------------------------------#\n\n")
   
 
@@ -240,25 +242,24 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #print(s)
 
     lower_cols = np.array([i for i in range(s.shape[1]) if s[tpdb,i].islower()])
-    print("lower_cols: ",lower_cols)
-
-    #print(lower_cols)
+    #print("lower_cols: ",lower_cols)
     
     #upper = np.array([x.isupper() for x in s[tpdb]])
 
     #print('select only column presenting as uppercase at the first row')
     #upper = np.array([x.isupper() for x in s[0]])
     #s = s[:,upper]
-    print(s.shape)
+    if printing:
+    	print(s.shape)
 
     print('remove sequences containing too many gaps')
     s = remove_bad_seqs(s,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
-    print(s.shape)
+    if printing:
+    	print(s.shape)
 
-    print('remove bad cols')
     bad_cols = find_bad_cols(s,gap_cols)
-    print('bad_cols :=',bad_cols)
-    print(s.shape)
+    if printing:
+    	print('found bad columns :=',bad_cols)
 
     # 2018.12.24:
     # replace 'Z' by 'Q' or 'E' with prob
@@ -276,29 +277,28 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     s = find_and_replace(s,'X',amino_acids)
 
     # remove conserved cols
-    #print('remove conserved columns')
     conserved_cols = find_conserved_cols(s,conserved_cols)
     if printing:
-    	print("conserved cols:\n",conserved_cols)
+    	print("found conserved columns (80% repetition):\n",conserved_cols)
 
     #print(s.shape)
     #print('number of conserved columns removed:',conserved_cols.shape[0])
 
     removed_cols = np.array(list(set(bad_cols) | set(conserved_cols)))
-    if printing:
-    	print("removed cols:\n",removed_cols)
 
     removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
     if printing:
-    	print("removed cols:\n",removed_cols)
+    	print("We remove conserved and bad columns with, at the following indices:\n",removed_cols)
 
     # 2019.09.17: excluse conserved cols
     #removed_cols = np.array(list(set(bad_cols) | set(lower_cols)))
 
     s = np.delete(s,removed_cols,axis=1)
+    s_index = np.delete(s_index,removed_cols)
     if printing:
     	print("Removed Columns...")
-    	print(s.shape)
+    	print("s now has shape: ",s.shape)
+    	print("s_index (length=%d) = \n"%s_index.shape[0],s_index)
 
     #print('replace gap(-) by other aminoacids')
     #s = find_and_replace(s,'-',amino_acids)
@@ -328,6 +328,6 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #mi = number_residues(s)
     #print(mi.mean())
 
-    return s,removed_cols
+    return s,removed_cols,s_index
 #=========================================================================================
 

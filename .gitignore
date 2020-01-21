@@ -1,3 +1,4 @@
 *.pyc
 zd/ 
 .ipynb_checkpoints/
+*.npy
