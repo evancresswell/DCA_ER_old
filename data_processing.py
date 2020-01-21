@@ -55,45 +55,6 @@ def remove_bad_cols(s,fg=0.3,fc=0.9):
     return np.delete(s,cols_remove,axis=1),cols_remove
 
 #------------------------------
-def set_z_as_q_or_e(s):
-    # set z as q or e
-    qe = ['Q','E']
-    z_pos = (s == 'Z')
-    s[z_pos] = np.random.choice(qe,size=z_pos.sum())
-    
-    return s
-
-#------------------------------
-def set_b_as_n_or_d(s):
-    # set b as Asparagine (N) or Aspartic (D)
-    nd = ['N','D']
-    b_pos = (s == 'B')
-    s[b_pos] = np.random.choice(nd,size=b_pos.sum())
-    
-    return s
-
-#------------------------------
-def set_x_as_random(s):
-    # set x as a random amino acids
-    amino_acids = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S',\
-    'T','V','W','Y']
-    
-    x_pos = (s == 'X')
-    s[x_pos] = np.random.choice(amino_acids,size=x_pos.sum())
-    
-    return s
-
-#------------------------------
-def set_gap_as_random(s):
-    # set gap as a random amino acids
-    amino_acids = ['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S',\
-    'T','V','W','Y']
-    gap_pos = (s == '-')
-    s[gap_pos] = np.random.choice(amino_acids,size=gap_pos.sum())
-    
-    return s
-
-#------------------------------
 def find_bad_cols(s,fg=0.2):
 # remove positions having a fraction fg of gaps
     l,n = s.shape
@@ -258,14 +219,28 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #tpdb is the sequence #
     #print(tpdb)
 
-    print("s[tpdb] = \n",s[tpdb])
-    gap_pdb = s[tpdb] =='-'
-    s = s[:,~gap_pdb]    
+    if printing:
+    	print("#\n\n-------------------------Remove Gaps--------------------------#")
+    	print("s[tpdb] shape is ",s[tpdb].shape)
+    	print("s = \n",s)
+
+    gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
+    print("removing gaps...")
+    s = s[:,~gap_pdb] # removes gaps  
+
+    if printing:
+    	print("s[tpdb] shape is ",s[tpdb].shape)
+    	print("s = \n",s)
+    	print("though s still has gaps, s[%d] does not:\n"%(tpdb),s[tpdb])
+    	print("s shape is ",s.shape)
+    	print("#--------------------------------------------------------------#\n\n")
+  
 
     #print(s.shape)
     #print(s)
 
     lower_cols = np.array([i for i in range(s.shape[1]) if s[tpdb,i].islower()])
+    print("lower_cols: ",lower_cols)
 
     #print(lower_cols)
     
@@ -274,16 +249,16 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #print('select only column presenting as uppercase at the first row')
     #upper = np.array([x.isupper() for x in s[0]])
     #s = s[:,upper]
-    #print(s.shape)
+    print(s.shape)
 
-    #print('remove sequences containing too many gaps')
-    s = remove_bad_seqs(s,gap_seqs)
-    #print(s.shape)
+    print('remove sequences containing too many gaps')
+    s = remove_bad_seqs(s,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
+    print(s.shape)
 
-    #print('remove bad cols')
+    print('remove bad cols')
     bad_cols = find_bad_cols(s,gap_cols)
-    #print('number of bad columns removed:',gap_cols.shape[0])
-    #print(s.shape)
+    print('bad_cols :=',bad_cols)
+    print(s.shape)
 
     # 2018.12.24:
     # replace 'Z' by 'Q' or 'E' with prob
@@ -303,16 +278,27 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     # remove conserved cols
     #print('remove conserved columns')
     conserved_cols = find_conserved_cols(s,conserved_cols)
+    if printing:
+    	print("conserved cols:\n",conserved_cols)
+
     #print(s.shape)
     #print('number of conserved columns removed:',conserved_cols.shape[0])
 
     removed_cols = np.array(list(set(bad_cols) | set(conserved_cols)))
+    if printing:
+    	print("removed cols:\n",removed_cols)
+
     removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
+    if printing:
+    	print("removed cols:\n",removed_cols)
 
     # 2019.09.17: excluse conserved cols
     #removed_cols = np.array(list(set(bad_cols) | set(lower_cols)))
 
     s = np.delete(s,removed_cols,axis=1)
+    if printing:
+    	print("Removed Columns...")
+    	print(s.shape)
 
     #print('replace gap(-) by other aminoacids')
     #s = find_and_replace(s,'-',amino_acids)
