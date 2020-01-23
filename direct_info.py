@@ -97,3 +97,17 @@ def direct_info(s0,w):
     di = direct_info_value(w,fi,q,i1i2)
     
     return di
+#=========================================================================================
+def distance_restr(di,s_index):
+    # Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
+    di_distal = np.zeros(di.shape)
+    for i in range(di.shape[0]):
+    	for j in range(di.shape[1]):
+    		if(abs(s_index[i]-s_index[j])<5):
+    			di_distal[i][j]=0.
+    		else:
+    			di_distal[i][j] = di[i][j]
+
+    
+    
+    return di_distal

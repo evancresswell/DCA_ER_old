@@ -187,7 +187,7 @@ def min_res(s):
 def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8):
 #def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
 
-    printing = True
+    printing = False
 
     # read parse_pfam data:
     #print('read original aligned pfam data')
@@ -225,7 +225,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     	print("s = \n",s)
 
     gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
-    print("removing gaps...")
+    #print("removing gaps...")
     s = s[:,~gap_pdb] # removes gaps  
     s_index = np.arange(s.shape[1])
 
@@ -252,7 +252,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     if printing:
     	print(s.shape)
 
-    print('remove sequences containing too many gaps')
+    #print('remove sequences containing too many gaps')
     s = remove_bad_seqs(s,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
     if printing:
     	print(s.shape)
