@@ -96,6 +96,15 @@ def covert_letter2number(s):
 
     l,n = s.shape
     return np.array([letter2number[s[t,i]] for t in range(l) for i in range(n)]).reshape(l,n)
+#------------------------------
+def convert_number2letter(s):
+
+    number2letter = {0:'A', 1:'C', 2:'D', 3:'E', 4:'F', 5:'G', 6:'H', 7:'I', 8:'K', 9:'L',\
+	 				10:'M', 11:'N', 12:'P', 13:'Q', 14:'R', 15:'S', 16:'T', 17:'V', 18:'W', 19:'Y', 20:'-'} 
+    l,n = s.shape
+    return np.array([number2letter[s[t,i]] for t in range(l) for i in range(n)]).reshape(l,n)
+
+
 
 #=========================================================================================
 #2018.12.24: replace value at a column with probility of elements in that column
@@ -162,6 +171,41 @@ def replace_lower_by_higher_prob(s,p0=0.3):
                 s[iia] = value_with_prob(apmax,pmax)
             
     return s
+#--------------------------------------
+
+#--------------------------------------
+def write_FASTA(msa,pfam_id,pdb,ipdb):
+	# Processed MSA to file in FASTA format
+	msa_outfile = 'MSA_'+pfam_id+'.fa'
+	msa_letters = convert_number2letter(msa)
+	
+	# Reference sequence to file in FASTA format
+	ref_outfile = 'ref_'+pfam_id+'.fa'
+	ref_seq = int(pdb[ipdb,1])
+	ref_letters = msa_letters[ref_seq]
+	print("Reference Sequence number: ",ref_seq)
+	print("Reference Sequence:\n",ref_letters)
+
+	print("Writing processed MSA to FASTA files:\n",msa_letters)
+
+	# First save reference sequence to FASTA file
+	ref_str = ''
+	ref_list = ref_letters.tolist()
+	ref_str = ref_str.join(ref_list)
+	with open(ref_outfile, 'w') as fh:
+		fh.write('>{}\n{}\n'.format('REFERENCE',ref_str ))
+
+	# Next save MSA to FAST file
+	for seq in msa_letters:
+		msa_list = seq.tolist()
+		msa_str = ''
+		msa_str = msa_str.join(msa_list)
+		with open(msa_outfile, 'w') as fh:
+				fh.write('>{}\n{}\n'.format(pfam_id,msa_str ))
+
+	# Return MSA and Reference FASTA file names
+	return msa_outfile, ref_outfile
+#--------------------------------------
 
 #--------------------------------------
 def min_res(s):
@@ -195,7 +239,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     s = np.load('%s/%s/msa.npy'%(data_path,pfam_id)).T
     if printing:
     	print("shape of s (import from msa.npy):\n",s.shape)
-    
+   
     # convert bytes to str
     s = np.array([s[t,i].decode('UTF-8') for t in range(s.shape[0]) \
          for i in range(s.shape[1])]).reshape(s.shape[0],s.shape[1])
@@ -305,8 +349,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     # convert letter to number:
     s = covert_letter2number(s)
-    #print(s.shape)
-
+    #print(s.shape) 
     # replace lower probs by higher probs 
     #print('replace lower probs by higher probs')
     for i in range(s.shape[1]):
