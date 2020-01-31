@@ -174,10 +174,13 @@ def replace_lower_by_higher_prob(s,p0=0.3):
 #--------------------------------------
 
 #--------------------------------------
-def write_FASTA(msa,pfam_id,pdb,ipdb):
+def write_FASTA(msa,pfam_id,pdb,ipdb,number_form=True):
 	# Processed MSA to file in FASTA format
 	msa_outfile = 'MSA_'+pfam_id+'.fa'
-	msa_letters = convert_number2letter(msa)
+	if number_form:
+		msa_letters = convert_number2letter(msa)
+	else: 
+		msa_letters = msa
 	
 	# Reference sequence to file in FASTA format
 	ref_outfile = 'ref_'+pfam_id+'.fa'
@@ -217,7 +220,46 @@ def min_res(s):
         
     return minfreq
 #=========================================================================================    
-    
+def create_unprocessed_FASTA(data_path,pfam_id,ipdb=0):
+
+	printing = False
+
+	# read parse_pfam data:
+	s = np.load('%s/%s/msa.npy'%(data_path,pfam_id)).T
+	if printing:
+		print("shape of s (import from msa.npy):\n",s.shape)
+
+	# convert bytes to str
+	s = np.array([s[t,i].decode('UTF-8') for t in range(s.shape[0]) \
+		for i in range(s.shape[1])]).reshape(s.shape[0],s.shape[1])
+	if printing:
+		print("shape of s (after UTF-8 decode):\n",s.shape)
+
+	pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
+	if printing:
+		print("pdb:\n",pdb)
+
+	# convert bytes to str (python 2 to python 3)
+	pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
+		 for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
+	if printing:
+		print("pdb (after UTF-8 decode, removing 'b'):\n",pdb)
+
+	#tpdb is the sequence #
+	tpdb = int(pdb[ipdb,1])
+
+	gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
+
+	s = s[:,~gap_pdb] # removes gaps  
+
+	# write unprocessed MSA to FASTA	
+	msa_outfile, ref_outfile = write_FASTA(s,pfam_id,pdb,ipdb,number_form = False)
+
+	return msa_outfile, ref_outfile
+
+
+   
+#=========================================================================================    
 #s = read_seq_file(seq_file)
 #print(s.shape)
 
