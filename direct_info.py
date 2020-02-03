@@ -84,7 +84,7 @@ def direct_info_value(w2d,fi,q,i1i2):
     return di
 #=========================================================================================
 def direct_info(s0,w):
-    #w = (w+w.T)/2
+    w = (w+w.T)/2
 
     l,n = s0.shape
     mx = np.array([len(np.unique(s0[:,i])) for i in range(n)])
