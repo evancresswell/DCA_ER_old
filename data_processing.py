@@ -28,14 +28,20 @@ def read_seq_file(seq_file):
     return seq
 """
 #=========================================================================================
-def remove_bad_seqs(s,fgs=0.3):
+def remove_bad_seqs(s,tpdb,fgs=0.3):
     # remove bad sequences having a gap fraction of fgs  
     l,n = s.shape
     
     frequency = [(s[t,:] == '-').sum()/float(n) for t in range(l)]
     bad_seq = [t for t in range(l) if frequency[t] > fgs]
+    new_s = np.delete(s,bad_seq,axis=0)
+	# Find new sequence index of Reference sequence tpdb
+    seq_index = np.arange(s.shape[0])
+    seq_index = np.delete(seq_index,bad_seq)
+    new_tpdb = np.where(seq_index==tpdb)
+    print("tpdb is now ",new_tpdb[0][0])
     
-    return np.delete(s,bad_seq,axis=0)
+    return new_s, new_tpdb[0][0]
 
 #------------------------------
 def remove_bad_cols(s,fg=0.3,fc=0.9):
@@ -174,37 +180,54 @@ def replace_lower_by_higher_prob(s,p0=0.3):
 #--------------------------------------
 
 #--------------------------------------
-def write_FASTA(msa,pfam_id,pdb,ipdb,number_form=True):
+def write_FASTA(msa,pfam_id,s_ipdb,number_form=True,processed = True):
 	# Processed MSA to file in FASTA format
 	msa_outfile = 'MSA_'+pfam_id+'.fa'
-	if number_form:
-		msa_letters = convert_number2letter(msa)
-	else: 
-		msa_letters = msa
 	
 	# Reference sequence to file in FASTA format
 	ref_outfile = 'ref_'+pfam_id+'.fa'
-	ref_seq = int(pdb[ipdb,1])
-	ref_letters = msa_letters[ref_seq]
-	print("Reference Sequence number: ",ref_seq)
-	print("Reference Sequence:\n",ref_letters)
+	ref_seq = s_ipdb 
 
-	print("Writing processed MSA to FASTA files:\n",msa_letters)
+	#print("Reference Sequence (shape=",msa[ref_seq].shape,"):\n",msa[ref_seq])
+
+	if number_form:
+		msa_letters = convert_number2letter(msa)
+		ref_array = msa_letters[ref_seq]
+		if not processed:
+			gap_ref = ref_array == '-' # remove gaps from reference array
+			ref_letters = msa_letters[ref_seq][~gap_ref]
+		else:
+			ref_letters = msa_letters[ref_seq]
+	else: 
+		msa_letters = msa
+		ref_array = msa[ref_seq]
+		gap_ref = ref_array == '-' # remove gaps from reference array
+		ref_letters = ref_array[~gap_ref]
+
+
+	print("Reference Sequence number: ",ref_seq)
+	print("Reference Sequence (shape=",ref_letters.shape,"):\n",ref_letters)
+
+	print("Writing processed MSA (shape=",msa_letters.shape,") to FASTA files:\n",msa_letters)
 
 	# First save reference sequence to FASTA file
 	ref_str = ''
 	ref_list = ref_letters.tolist()
 	ref_str = ref_str.join(ref_list)
 	with open(ref_outfile, 'w') as fh:
-		fh.write('>{}\n{}\n'.format('REFERENCE',ref_str ))
+		fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
 
 	# Next save MSA to FAST file
-	for seq in msa_letters:
+	for seq_num,seq in enumerate(msa_letters):
 		msa_list = seq.tolist()
 		msa_str = ''
 		msa_str = msa_str.join(msa_list)
+		if seq_num == ref_seq:
+			fasta_header = pfam_id+' | REFERENCE'
+		else: 
+			fasta_header = pfam_id 
 		with open(msa_outfile, 'w') as fh:
-				fh.write('>{}\n{}\n'.format(pfam_id,msa_str ))
+				fh.write('>{}\n{}\n'.format(fasta_header,msa_str ))
 
 	# Return MSA and Reference FASTA file names
 	return msa_outfile, ref_outfile
@@ -220,9 +243,9 @@ def min_res(s):
         
     return minfreq
 #=========================================================================================    
-def create_unprocessed_FASTA(data_path,pfam_id,ipdb=0):
+def create_unprocessed_FASTA(pdb,data_path,pfam_id,ipdb=0):
 
-	printing = False
+	printing = True
 
 	# read parse_pfam data:
 	s = np.load('%s/%s/msa.npy'%(data_path,pfam_id)).T
@@ -235,25 +258,21 @@ def create_unprocessed_FASTA(data_path,pfam_id,ipdb=0):
 	if printing:
 		print("shape of s (after UTF-8 decode):\n",s.shape)
 
-	pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
-	if printing:
-		print("pdb:\n",pdb)
+	#pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
+	#if printing:
+	#	print("pdb:\n",pdb)
 
 	# convert bytes to str (python 2 to python 3)
-	pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
-		 for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
-	if printing:
-		print("pdb (after UTF-8 decode, removing 'b'):\n",pdb)
+	#pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
+  	#	for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
+	#if printing:
+	#	print("pdb (after UTF-8 decode, removing 'b'):\n",pdb)
 
 	#tpdb is the sequence #
 	tpdb = int(pdb[ipdb,1])
 
-	gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
-
-	s = s[:,~gap_pdb] # removes gaps  
-
 	# write unprocessed MSA to FASTA	
-	msa_outfile, ref_outfile = write_FASTA(s,pfam_id,pdb,ipdb,number_form = False)
+	msa_outfile, ref_outfile = write_FASTA(s,pfam_id,ipdb,number_form = False)
 
 	return msa_outfile, ref_outfile
 
@@ -307,7 +326,6 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     if printing:
     	print("#\n\n-------------------------Remove Gaps--------------------------#")
-    	print("s[tpdb] shape is ",s[tpdb].shape)
     	print("s = \n",s)
 
     gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
@@ -338,10 +356,13 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     if printing:
     	print(s.shape)
 
+    if printing:
+        print("In Data Processing Reference Sequence (shape=",s[tpdb].shape,"): \n",s[tpdb])
     #print('remove sequences containing too many gaps')
-    s = remove_bad_seqs(s,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
+    s, tpdb = remove_bad_seqs(s,tpdb,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
     if printing:
     	print(s.shape)
+
 
     bad_cols = find_bad_cols(s,gap_cols)
     if printing:
@@ -389,6 +410,9 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #print('replace gap(-) by other aminoacids')
     #s = find_and_replace(s,'-',amino_acids)
 
+    if printing:
+        print("In Data Processing Reference Sequence (shape=",s[tpdb].shape,"): \n",s[tpdb])
+
     # convert letter to number:
     s = covert_letter2number(s)
     #print(s.shape) 
@@ -396,7 +420,8 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #print('replace lower probs by higher probs')
     for i in range(s.shape[1]):
         s[:,i] = replace_lower_by_higher_prob(s[:,i],prob_low)
-
+	
+    #print("s[tpdb] (shape=",s[tpdb].shape,"):\n",s[tpdb])
     #min_res = min_res(s)
     #print(min_res)
 
@@ -413,6 +438,6 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #mi = number_residues(s)
     #print(mi.mean())
 
-    return s,removed_cols,s_index
+    return s,removed_cols,s_index, tpdb
 #=========================================================================================
 
