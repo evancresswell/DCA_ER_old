@@ -218,16 +218,18 @@ def write_FASTA(msa,pfam_id,s_ipdb,number_form=True,processed = True):
 		fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
 
 	# Next save MSA to FAST file
-	for seq_num,seq in enumerate(msa_letters):
-		msa_list = seq.tolist()
-		msa_str = ''
-		msa_str = msa_str.join(msa_list)
-		if seq_num == ref_seq:
-			fasta_header = pfam_id+' | REFERENCE'
-		else: 
-			fasta_header = pfam_id 
-		with open(msa_outfile, 'w') as fh:
-				fh.write('>{}\n{}\n'.format(fasta_header,msa_str ))
+
+	with open(msa_outfile, 'w') as fh:
+		for seq_num,seq in enumerate(msa_letters):
+			msa_list = seq.tolist()
+			msa_str = ''
+			msa_str = msa_str.join(msa_list)
+			if seq_num == ref_seq:
+				fasta_header = pfam_id+' | REFERENCE'
+			else: 
+				fasta_header = pfam_id 
+			print(msa_str)
+			fh.write('>{}\n{}\n'.format(fasta_header,msa_str))
 
 	# Return MSA and Reference FASTA file names
 	return msa_outfile, ref_outfile

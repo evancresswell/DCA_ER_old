@@ -98,3 +98,14 @@ def direct_info(s0,w):
     
     return di
 
+def sort_di(di):
+	"""
+	Returns array of sorted DI values
+	"""
+	ind = np.unravel_index(np.argsort(di,axis=None),di.shape)	
+	tuple_list = [((indices[0],indices[1]),di[indices[0],indices[1]]) for i,indices in enumerate(np.transpose(ind))]	
+	tuple_list = tuple_list[::-1]
+	return tuple_list
+
+
+
