@@ -2,3 +2,7 @@
 zd/ 
 .ipynb_checkpoints/
 *.npy
+*.txt
+*.fa
+*.pdb
+*.pickle

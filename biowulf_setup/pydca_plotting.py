@@ -11,6 +11,7 @@ import pickle
 
 data_path = '../../Pfam-A.full'
 pfam_id = 'PF00011'
+pfam_id = 'PF00186'
 ref_outfile = 'pfam_ecc/ref_'+pfam_id+'.fa'
 
 sorted_DI_mf = pickle.load(open('DI/MF/mf_DI_%s.pickle'%(pfam_id), 'rb' ) )
@@ -34,13 +35,7 @@ pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
 ipdb = 0
 print('seq:',int(pdb[ipdb,1]))
 
-erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
-    refseq_file = ref_outfile,
-    sorted_dca_scores = sorted_DI_er,
-    linear_dist = 4,
-    contact_dist = 8.0,
-)
-
+"""
 mfdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
     refseq_file = ref_outfile,
     sorted_dca_scores = sorted_DI_mf,
@@ -54,11 +49,19 @@ plmdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb
     linear_dist = 4,
     contact_dist = 8.0,
 )
+"""
 
-er_contact_map_data = erdca_visualizer.plot_contact_map()
-mf_contact_map_data = mfdca_visualizer.plot_contact_map()
-plm_contact_map_data = plmdca_visualizer.plot_contact_map()
+erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
+    refseq_file = ref_outfile,
+    sorted_dca_scores = sorted_DI_er,
+    linear_dist = 4,
+    contact_dist = 8.0,
+)
+
+#er_contact_map_data = erdca_visualizer.plot_contact_map()
+#mf_contact_map_data = mfdca_visualizer.plot_contact_map()
+#plm_contact_map_data = plmdca_visualizer.plot_contact_map()
 
 er_tp_rate_data = erdca_visualizer.plot_true_positive_rates()
-mf_tp_rate_data = mfdca_visualizer.plot_true_positive_rates()
-plm_tp_rate_data = plmdca_visualizer.plot_true_positive_rates()
+#mf_tp_rate_data = mfdca_visualizer.plot_true_positive_rates()
+#plm_tp_rate_data = plmdca_visualizer.plot_true_positive_rates()

@@ -5,6 +5,7 @@ from scipy import linalg
 from sklearn.preprocessing import OneHotEncoder
 import expectation_reflection as ER
 from direct_info import direct_info
+from direct_info import sort_di
 from joblib import Parallel, delayed
 #========================================================================================
 np.random.seed(1)
@@ -61,6 +62,8 @@ for i0 in range(n_var):
 w = (w + w.T)/2.
 di = direct_info(s0,w)
 
+sorted_DI_er = sort_di(di)
+
 with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(di, f)
+    pickle.dump(sorted_DI_er, f)
 

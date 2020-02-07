@@ -10,8 +10,7 @@ def frequency(s0,q,i1i2,theta=0.2,pseudo_weight=0.5):
     ma_inv = 1/(1+(dst < theta).sum(axis=1).astype(float))
     meff = ma_inv.sum() 
 
-    #onehot_encoder = OneHotEncoder(sparse=False,categories='auto')
-    onehot_encoder = OneHotEncoder(sparse=False)
+    onehot_encoder = OneHotEncoder(sparse=False,categories='auto')
     s = onehot_encoder.fit_transform(s0)
 
     # fi_true:
@@ -98,4 +97,15 @@ def direct_info(s0,w):
     di = direct_info_value(w,fi,q,i1i2)
     
     return di
+
+def sort_di(di):
+	"""
+	Returns array of sorted DI values
+	"""
+	ind = np.unravel_index(np.argsort(di,axis=None),di.shape)	
+	tuple_list = [((indices[0],indices[1]),di[indices[0],indices[1]]) for i,indices in enumerate(np.transpose(ind))]	
+	tuple_list = tuple_list[::-1]
+	return tuple_list
+
+
 
