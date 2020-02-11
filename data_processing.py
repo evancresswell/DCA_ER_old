@@ -280,8 +280,15 @@ def create_unprocessed_FASTA(pdb,data_path,pfam_id,ipdb=0):
 
 	return msa_outfile, ref_outfile
 
-
-   
+def delete_sorted_DI_duplicates(sorted_DI):
+	temp1 = []
+	temp2 = []
+	for (a,b),score in sorted_DI:
+		if (a,b) not in temp1 and (b,a) not in temp1: #to check for the duplicate tuples
+			temp1.append(((a,b)))
+			temp2.append(((a,b),score))
+	temp2.sort(key=lambda x:x[1],reverse=True) 
+	return temp2 
 #=========================================================================================    
 #s = read_seq_file(seq_file)
 #print(s.shape)
