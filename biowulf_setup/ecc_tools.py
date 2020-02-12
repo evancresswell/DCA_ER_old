@@ -25,9 +25,12 @@ def contact_map(pdb,ipdb,cols_removed,s_index):
     coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
     coords = coords_all[pdb_start-1:pdb_end]
     #print('original pdb:')
+    #print(coords_all.shape)
     #print(coords.shape)
+    #print(s_index.shape)
 
     coords_remain = np.delete(coords,cols_removed,axis=0)
+    print(coords_remain.shape)
     #print(coords_remain.shape)
     
     ct = distance_matrix(coords_remain,coords_remain)
@@ -46,7 +49,8 @@ def roc_curve(ct,di,ct_thres):
     order = di[mask].argsort()[::-1]
 
     ct_flat = ct1[mask][order]
-
+    #print(di[mask][order][:15])
+    #print(ct1[mask][order][:15])
     tp = np.cumsum(ct_flat, dtype=float)
     fp = np.cumsum(~ct_flat.astype(int), dtype=float)
 
@@ -115,8 +119,21 @@ def hide_toggle(for_next=False):
     return HTML(html)
 
 #=========================================================================================
+def distance_restr_sortedDI(sorted_DI_in):
+	sorted_DI = sorted_DI_in.copy()
+	count = 0
+	for site_pair, score in sorted_DI_in:
+		if abs(site_pair[0] - site_pair[1])<5:
+			sorted_DI[count] = site_pair,0
+		count += 1
+	sorted_DI.sort(key=lambda x:x[1],reverse=True)  
+	return sorted_DI
+#=========================================================================================
 def distance_restr(di,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
+	if di.shape[0] != s_index.shape[0]:
+		print("Distance restraint cannot be imposed, bad input")
+		sys.exit()
 	di_distal = np.zeros(di.shape)
 	for i in range(di.shape[0]):
 		for j in range(di.shape[1]):
