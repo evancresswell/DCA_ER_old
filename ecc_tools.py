@@ -119,6 +119,16 @@ def hide_toggle(for_next=False):
     return HTML(html)
 
 #=========================================================================================
+def distance_restr_sortedDI(sorted_DI_in):
+	sorted_DI = sorted_DI_in.copy()
+	count = 0
+	for site_pair, score in sorted_DI_in:
+		if abs(site_pair[0] - site_pair[1])<5:
+			sorted_DI[count] = site_pair,0
+		count += 1
+	sorted_DI.sort(key=lambda x:x[1],reverse=True)  
+	return sorted_DI
+#=========================================================================================
 def distance_restr(di,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
 	if di.shape[0] != s_index.shape[0]:

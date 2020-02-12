@@ -13,6 +13,8 @@ np.random.seed(1)
 pfam_id = sys.argv[1]
 
 s0 = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id))
+print(s0.shape)
+
 n_var = s0.shape[1]
 mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
 mx_cumsum = np.insert(mx.cumsum(),0,0)
