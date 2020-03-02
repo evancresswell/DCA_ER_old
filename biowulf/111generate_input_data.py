@@ -2,6 +2,7 @@ import os
 import numpy as np
 import pandas as pd
 import data_processing as dp
+from joblib import Parallel, delayed
 #--------------------------------------------------------------#
 # create pfam folder
 os.system('mkdir pfam_ecc/')
@@ -11,14 +12,17 @@ os.system('mkdir DI/ER')
 os.system('mkdir DI/PLM')
 
 #s = np.loadtxt('pfam_10_20k.txt',dtype='str')
-s = np.loadtxt('pfam_ecc.txt',dtype='str')
+#s = np.loadtxt('pfam_ecc.txt',dtype='str')
+#s = np.loadtxt('pfam_full_list.txt',dtype='str')
+s = np.loadtxt('pfam_list_591-1000.txt',dtype='str')
 
 n = s.shape[0]
-pfam_list = s[:,0]
+#pfam_list = s[:,0]
+pfam_list = s
 print("Generating Data for Proteins:\n",pfam_list)
 
 def generate_pfam_data(pfam_id):
-    data_path = '../../Pfam-A.full'
+    	data_path = '../../hoangd2_data/Pfam-A.full'
 	pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
 
 	# Pre-Process Structure Data
@@ -39,7 +43,7 @@ def generate_pfam_data(pfam_id):
 	ipdb = 0
 	print('seq:',int(pdb[ipdb,1]))
 
-    # data processing
+	# data processing
 	s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
 					gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
 	# Save processed data
@@ -47,13 +51,13 @@ def generate_pfam_data(pfam_id):
 
 	np.savetxt('pfam_ecc/%s_s0.txt'%(pfam_id),s0)	
 	np.savetxt('pfam_ecc/%s_s_index.txt'%(pfam_id),s_index)	
-    return
+    	return
 
 #-------------------------------
 # parallel
-res = Parallel(n_jobs = 32)(delayed(generate_pfam_data)\
+res = Parallel(n_jobs = 16)(delayed(generate_pfam_data)\
         (pfam_id)\
-        for pfam_id in range(pfamlist))
+        for pfam_id in pfam_list)
 
 """
 for pfam_id in pfam_list:

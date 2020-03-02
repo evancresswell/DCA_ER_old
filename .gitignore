@@ -7,6 +7,9 @@ zd/
 *.pdb
 *.pickle
 *.simg
+*.swarm
+swarm_output/
+swarm_output_generate_data/
 by/
 or/
 zd/
