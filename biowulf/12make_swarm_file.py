@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from subtract_lists import subtract_lists
 
 #pfam_list = np.loadtxt('pfam_list.txt',dtype='str')
 #s1 = np.loadtxt('pfam_10_20k.txt',dtype='str')
@@ -10,39 +11,40 @@ import numpy as np
 #s = np.vstack([s,s3])
 
 #s = np.loadtxt('pfam_10_20k.txt',dtype='str')
-s = np.loadtxt('pfam_list_0-590.txt',dtype='str')
+s_er = np.loadtxt('er_swarm.txt',dtype='str')
+s_plm = np.loadtxt('plm_swarm.txt',dtype='str')
+s_mf = np.loadtxt('mf_swarm.txt',dtype='str')
 
 #n = s.shape[0]
 #pfam_list = s[:,0]
-pfam_list = s
 
 
 #--------------------------------------------------------------#
 #--------------------------------------------------------------#
 # create swarmfiles for each method
 
-f = open('swarm_ER.txt','w')
-for pfam in pfam_list:
+f = open('er.swarm','w')
+for pfam in s_er:
     #f.write('python 1main_DCA.py %s\n'%(pfam))
     f.write('module load singularity; ')    
-    f.write('singularity exec -B /data/cresswellclayec/biowulf_setup/ /data/cresswellclayec/biowulf_setup/dca_er.simg python 1main_ER.py %s\n'%(pfam))    
+    f.write('singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/dca_er.simg python 1main_ER.py %s\n'%(pfam))    
     #f.write('python 1main_ERM.py %s\n'%(pfam))
 f.close()
 
-f = open('swarm_PLM.txt','w')
-for pfam in pfam_list:
+f = open('plm.swarm','w')
+for pfam in s_plm:
     #f.write('python 1main_DCA.py %s\n'%(pfam))
     #f.write('python 1main_PLM.py %s\n'%(pfam))    
     f.write('module load singularity; ')    
-    f.write('singularity exec -B /data/cresswellclayec/biowulf_setup/ /data/cresswellclayec/biowulf_setup/dca_er.simg python 1main_PLM.py %s\n'%(pfam))    
+    f.write('singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/dca_er.simg python 1main_PLM.py %s\n'%(pfam))    
     #f.write('python 1main_ERM.py %s\n'%(pfam))
 f.close()
 
-f = open('swarm_MF.txt','w')
-for pfam in pfam_list:
+f = open('mf.swarm','w')
+for pfam in s_mf:
     #f.write('python 1main_DCA.py %s\n'%(pfam))    
     f.write('module load singularity; ')    
-    f.write('singularity exec -B /data/cresswellclayec/biowulf_setup/ /data/cresswellclayec/biowulf_setup/dca_er.simg python 1main_DCA.py %s\n'%(pfam))    
+    f.write('singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/dca_er.simg python 1main_DCA.py %s\n'%(pfam))    
 f.close()
 #--------------------------------------------------------------#
 

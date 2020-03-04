@@ -15,14 +15,15 @@ def subtract_lists(list1_name, list2_name):
 		s3 = s3[s3!=pfam_id]	
 	return s3
 #------------------------------------------------------#
+if __name__ == "__main__":
+	list1_name = sys.argv[1]
+	list2_name = sys.argv[2]
+	out_list = sys.argv[3]
 
-list1_name = sys.argv[1]
-list2_name = sys.argv[2]
+	output_list = subtract_lists(list1_name, list2_name)
 
-output_list = subtract_lists(list1_name, list2_name)
-
-# Write resulting list
-f = open('subtracted_list.txt','w')
-for pfam_id in output_list:
-	f.write('%s\n'%pfam_id)
-f.close()
+	# Write resulting list
+	f = open(out_list,'w')
+	for pfam_id in output_list:
+		f.write('%s\n'%pfam_id)
+	f.close()
