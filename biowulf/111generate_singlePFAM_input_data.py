@@ -16,7 +16,7 @@ os.system('mkdir DI/PLM')
 print("Generating Data for Protein:\n",pfam_id)
 
 # Create list file for missing pdb structures
-if os.path.exists('missing_PDB.txt'):
+if not os.path.exists('missing_PDB.txt'):
 	file_missing_pdb = open("missing_PDB.txt",'w')
 	file_missing_pdb.close()
 

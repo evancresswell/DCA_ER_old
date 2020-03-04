@@ -45,7 +45,7 @@ def predict_w(s,i0,i1i2,niter_max,l2):
 
 #-------------------------------
 # parallel
-res = Parallel(n_jobs = 32)(delayed(predict_w)\
+res = Parallel(n_jobs = 16)(delayed(predict_w)\
         (s,i0,i1i2,niter_max=10,l2=100.0)\
         for i0 in range(n_var))
 

@@ -1,5 +1,5 @@
 #!/bin/bash
 
-swarm -f er.swarm -t 32 -g 150.0 --time=2-00:00:00 --partition norm  #  quick # norm
+swarm -f er.swarm -t 32 -g 650.0 --time=0-10:00:00 --partition norm  #  quick # norm
 swarm -f plm.swarm -t 32 -g 150.0 --time=2-00:00:00 --partition norm  #  quick # norm
-swarm -f mf.swarm -t 32 -g 150.0 --time=2-00:00:00 --partition norm  #  quick # norm
+swarm -f mf.swarm -t 32 -g 150.0 --time=1-0:00:00 --partition norm  -b 100 #  quick # norm
