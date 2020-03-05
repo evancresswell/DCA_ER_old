@@ -306,11 +306,13 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     	print("shape of s (import from msa.npy):\n",s.shape)
    
     # convert bytes to str
-    s = np.array([s[t,i].decode('UTF-8') for t in range(s.shape[0]) \
-         for i in range(s.shape[1])]).reshape(s.shape[0],s.shape[1])
-    if printing:
-    	print("shape of s (after UTF-8 decode):\n",s.shape)
-
+    try:
+        s = np.array([s[t,i].decode('UTF-8') for t in range(s.shape[0]) \
+             for i in range(s.shape[1])]).reshape(s.shape[0],s.shape[1])
+        if printing:
+    	    print("shape of s (after UTF-8 decode):\n",s.shape)
+    except:
+        print("UTF not decoded, pfam_id: %s \n "%pfam_id,s.shape)
     #print('select only column presenting as uppercase at PDB sequence')
     #pdb = np.load('../%s/pdb_refs.npy'%pfam_id)
     pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
@@ -441,7 +443,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     #mi = number_residues(s)
     #print(mi.mean())
-
+    np.save("%s_removed_cols.npy"%pfam_id,removed_cols)
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
 
