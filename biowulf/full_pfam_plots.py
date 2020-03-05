@@ -22,6 +22,7 @@ from pydca.contact_visualizer import contact_visualizer
 from pydca.dca_utilities import dca_utilities
 
 data_path = '../../Pfam-A.full'
+data_path = '../../hoangd2_data/Pfam-A.full'
 directory = './DI/ER/'
 
 s_test = np.loadtxt('test_list.txt',dtype='str')
@@ -43,40 +44,35 @@ for pfam_id in s_test:
 			# Load PDB structure 
 			pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
 	
-			# Pre-Process Structure Data
+			#---------- Pre-Process Structure Data ----------------#
 			# delete 'b' in front of letters (python 2 --> python 3)
 			pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
          		for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
 			
-			# data processing
+			# data processing THESE SHOULD BE CREATED DURING DATA GENERATION
 			ipdb = 0
-			#cols_removed = np.load('DI/rem_cols/%s_removed_cols.npy'%pfam_id)
-			#s_index = np.loadtxt('pfam_ecc/%s_index.txt'%pfam_id)
 			s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
 							gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
-
+			
+			# number of positions
+			n_var = s0.shape[1]
+			
 			# Save processed data
 			msa_outfile, ref_outfile = dp.write_FASTA(s0,pfam_id,s_ipdb)
+			#-------------------------------------------------------#
+
+
 			# Plot Contact Map
 			ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
+			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
 
 
 
 			#---------------------- Load DI -------------------------------------#
-			#print(w[:10,-10:])
-			with open('%ser_DI_%s.pickle'%(directory,pfam_id), 'rb') as f:
-				u = pickle._Unpickler(f)
-				u.encoding = 'latin1'
-				di_er = u.load()
-			#di_er = pickle.load(open("%ser_DI_%s.pickle"%(directory,pfam_id),"rb"))
-			#sorted_DI_er = sorted_DI_er[::2]
-			sorted_DI_ER_redundant = sort_di(di_er)
-			print("Print top 10 pairs")
-			for x in sorted_DI_ER_redundant[:10]:
-				print(x)
+			print("Unpickling %ser_DI_%s.pickle"%(directory,pfam_id))
+			sorted_DI_er = pickle.load(open("%ser_DI_%s.pickle"%(directory,pfam_id),"rb"))
 
-			sorted_DI_er = dp.delete_sorted_DI_duplicates(sorted_DI_ER_redundant)
-			sorted_DI_er_dr = tools.distance_restr_sortedDI(sorted_DI_er)
+			#sorted_DI_er = dp.delete_sorted_DI_duplicates(sorted_DI_ER_redundant)
 
 			print("\nPrint top 10 Non-Redundant pairs")
 			for x in sorted_DI_er[:10]:
@@ -97,11 +93,8 @@ for pfam_id in s_test:
 			#--------------------------------------------------------------------#
 
 			#--------------------- Plot DI Color Map ----------------------------#
-			distance_enforced = True
+			distance_enforced = False
 			if distance_enforced:
-				#di_er_dr = tools.distance_restr(di_er,s_index,make_large=False)
-				#di_mf_dr = tools.distance_restr(di_mf,s_index,make_large=False)
-				#di_plm_dr = tools.distance_restr(di_plm,s_index,make_large=False)
 				for coupling in sorted_DI_er_dr:
 					di_er_dr[coupling[0][0],coupling[0][1]] = coupling[1]
 					di_er_dr[coupling[0][1],coupling[0][0]] = coupling[1]
@@ -111,31 +104,27 @@ for pfam_id in s_test:
 				for coupling in sorted_DI_plm_dr:
 					di_plm_dr[coupling[0][0],coupling[0][1]] = coupling[1]
 					di_plm_dr[coupling[0][1],coupling[0][0]] = coupling[1]
-        
 
-			plt.subplot2grid((1,3),(0,0))
-			plt.title('(ER)')
-			plt.imshow(di_er_dr,cmap='rainbow',origin='lower')
-			plt.xlabel('i')
-			plt.ylabel('j')
-			plt.clim(0,0.01)
-			"""
-			plt.colorbar(fraction=0.045, pad=0.05)
-			plt.subplot2grid((1,3),(0,1))
-			plt.title('(MF)')
-			plt.imshow(di_mf_dr,cmap='rainbow',origin='lower')
-			plt.xlabel('i')
-			plt.ylabel('j')
-			plt.clim(0,0.01)
-			plt.colorbar(fraction=0.045, pad=0.05)
-			plt.subplot2grid((1,3),(0,2))
-			plt.title('(PLM)')
-			plt.imshow(di_plm_dr,cmap='rainbow',origin='lower')
-			plt.xlabel('i')
-			plt.ylabel('j')
-			plt.clim(0,0.01)
-			plt.colorbar(fraction=0.045, pad=0.05)
-			"""
+				plt.subplot2grid((1,3),(0,0))
+				plt.title('(ER)')
+				plt.imshow(di_er_dr,cmap='rainbow',origin='lower')
+				plt.xlabel('i')
+				plt.ylabel('j')
+				plt.clim(0,0.01)
+			else:
+				n_seq = max([coupling[0][0] for coupling in sorted_DI_er]) 
+				di_er = np.zeros((n_var,n_var))
+				for coupling in sorted_DI_er:
+					#print(coupling[1])
+					di_er[coupling[0][0],coupling[0][1]] = coupling[1]
+					di_er[coupling[0][1],coupling[0][0]] = coupling[1]
+				plt.subplot2grid((1,3),(0,0))
+				plt.title('(ER)')
+				plt.imshow(di_er,cmap='rainbow',origin='lower')
+				plt.xlabel('i')
+				plt.ylabel('j')
+				plt.clim(0,0.01)
+
 			pdf.attach_note("DI Map")  # you can add a pdf note to
 			pdf.savefig()  # saves the current figure into a pdf page
 			plt.close()
@@ -154,34 +143,36 @@ for pfam_id in s_test:
 			auc_plm = np.zeros(n)
 
 			for i in range(n):
-				p,tp,fp = tools.roc_curve(ct_distal,di_mf_dr,ct_thres[i])
-				auc_mf[i] = tp.sum()/tp.shape[0]
+				#p,tp,fp = tools.roc_curve(ct_distal,di_mf_dr,ct_thres[i])
+				#auc_mf[i] = tp.sum()/tp.shape[0]
 				
-				p,tp,fp = tools.roc_curve(ct_distal,di_er_dr,ct_thres[i])
+				################################3 need to update singularity container p,tp,fp = tools.roc_curve(ct_distal,di_er_dr,ct_thres[i])
+				p,tp,fp = tools.roc_curve(ct_distal,di_er,ct_thres[i])
 				auc_er[i] = tp.sum()/tp.shape[0]
 				
-				p,tp,fp = tools.roc_curve(ct_distal,di_plm,ct_thres[i])
-				auc_plm[i] = tp.sum()/tp.shape[0]
+				#p,tp,fp = tools.roc_curve(ct_distal,di_plm,ct_thres[i])
+				#auc_plm[i] = tp.sum()/tp.shape[0]
     
-			i0_mf = np.argmax(auc_mf)
+			#i0_mf = np.argmax(auc_mf)
 			i0_er = np.argmax(auc_er)
-			i0_plm = np.argmax(auc_plm)
+			#i0_plm = np.argmax(auc_plm)
 
 
-			p0_mf,tp0_mf,fp0_mf = tools.roc_curve(ct_distal,di_mf_dr,ct_thres[i0_mf])
-			p0_er,tp0_er,fp0_er = tools.roc_curve(ct_distal,di_er_dr,ct_thres[i0_er])
-			p0_plm,tp0_plm,fp0_plm = tools.roc_curve(ct_distal,di_plm,ct_thres[i0_plm])
+			#p0_mf,tp0_mf,fp0_mf = tools.roc_curve(ct_distal,di_mf_dr,ct_thres[i0_mf])
+			##################################### need to update singularity container   p0_er,tp0_er,fp0_er = tools.roc_curve(ct_distal,di_er_dr,ct_thres[i0_er])
+			p0_er,tp0_er,fp0_er = tools.roc_curve(ct_distal,di_er,ct_thres[i0_er])
+			#p0_plm,tp0_plm,fp0_plm = tools.roc_curve(ct_distal,di_plm,ct_thres[i0_plm])
 
 			#------------------ Plot ROC for optimal DCA vs optimal ER ------------------#
-			print("Optimal Contact threshold for (mf, er, plm) = (%f, %f, %f)"%(ct_thres[i0_mf],ct_thres[i0_er],ct_thres[i0_plm]))
-			print("Maximal AUC for (mf, er, plm) = (%f, %f, %f)"%(auc_mf[i0_mf], auc_er[i0_er], auc_plm[i0_plm]))
+			#print("Optimal Contact threshold for (mf, er, plm) = (%f, %f, %f)"%(ct_thres[i0_mf],ct_thres[i0_er],ct_thres[i0_plm]))
+			#print("Maximal AUC for (mf, er, plm) = (%f, %f, %f)"%(auc_mf[i0_mf], auc_er[i0_er], auc_plm[i0_plm]))
 
 
 			plt.subplot2grid((1,3),(0,0))
 			plt.title('ROC ')
 			plt.plot(fp0_er,tp0_er,'b-',label="er")
-			plt.plot(fp0_mf,tp0_mf,'r-',label="mf")
-			plt.plot(fp0_plm,tp0_plm,'g-',label="plm")
+			#plt.plot(fp0_mf,tp0_mf,'r-',label="mf")
+			#plt.plot(fp0_plm,tp0_plm,'g-',label="plm")
 			plt.plot([0,1],[0,1],'k--')
 			plt.xlim([0,1])
 			plt.ylim([0,1])

@@ -68,4 +68,4 @@ sorted_DI_er = sort_di(di)
 
 with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(sorted_DI_er, f)
-
+f.close()
