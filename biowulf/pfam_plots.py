@@ -34,16 +34,11 @@ s_test = np.loadtxt('test_list.txt',dtype='str')
 num_files = len([name for name in os.listdir(er_directory) if name.endswith(".pickle")])
 print("Plotting analysis for %d Proteins"% num_files)
 
-# Create the PdfPages object to which we will save the pages:
-# The with statement makes sure that the PdfPages object is closed properly at
-# the end of the block, even if an Exception occurs.
-	#for filename in os.listdir(directory):
-	#	if filename.endswith(".pickle"):
-	#		pfam_id = filename.strip('er_DI.pickle')
-with PdfPages('multipage_pdf.pdf') as pdf:
+with PdfPages('Pfam_Analysis.pdf') as pdf:
 	for pfam_id in s_test:
+
+
 		print ('Plotting Protein Famility ', pfam_id)
-	
 		# Load PDB structure 
 		pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
 
@@ -236,17 +231,18 @@ with PdfPages('multipage_pdf.pdf') as pdf:
 			contact_dist = 8.0,
 		)
 
+		fig = plt.figure()
 		#"""
 		er_contact_map_data, er_contact_ax = erdca_visualizer.plot_contact_map()
 		pdf.attach_note("ER Contact Map")  # you can add a pdf note to
-		pdf.savefig()  # saves the current figure into a pdf page
-		plt.close
 		mf_contact_map_data, mf_contact_ax = mfdca_visualizer.plot_contact_map()
 		pdf.attach_note("MF Contact Map")  # you can add a pdf note to
-		pdf.savefig()  # saves the current figure into a pdf page
-		plt.close
 		plm_contact_map_data, plm_contact_ax = plmdca_visualizer.plot_contact_map()
 		pdf.attach_note("PLM Contact Map")  # you can add a pdf note to
+		fig.add_axes(er_contact_ax)
+		fig.add_axes(mf_contact_ax)
+		fig.add_axes(plm_contact_ax)
+		plt.show()
 		pdf.savefig()  # saves the current figure into a pdf page
 		plt.close
 
