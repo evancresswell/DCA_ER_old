@@ -27,4 +27,5 @@ sorted_DI_mf = mfdca_inst.compute_sorted_DI()
 
 with open('DI/MF/mf_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(sorted_DI_mf, f)
+f.close()
 
