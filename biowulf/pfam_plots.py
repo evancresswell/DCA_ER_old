@@ -174,9 +174,9 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		plt.title('AUC')
 		plt.plot([ct_thres.min(),ct_thres.max()],[0.5,0.5],'k--')
 		plt.plot(ct_thres,auc_er,'b-',label="er")
-		# Need mf and plm first              plt.plot(ct_thres,auc_mf,'r-',label="mf")
-		#plt.plot(ct_thres,auc_plm,'g-',label="plm")
-		#plt.ylim([min(auc_er.min(),auc_mf.min(),auc_plm.min())-0.05,max(auc_er.max(),auc_mf.max(),auc_plm.max())+0.05])
+		plt.plot(ct_thres,auc_mf,'r-',label="mf")
+		plt.plot(ct_thres,auc_plm,'g-',label="plm")
+		plt.ylim([min(auc_er.min(),auc_mf.min(),auc_plm.min())-0.05,max(auc_er.max(),auc_mf.max(),auc_plm.max())+0.05])
 		plt.xlim([ct_thres.min(),ct_thres.max()])
 		plt.xlabel('distance threshold')
 		plt.ylabel('AUC')
@@ -186,17 +186,16 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		plt.subplot2grid((1,3),(0,2))
 		plt.title('Precision')
 		plt.plot( p0_er,tp0_er / (tp0_er + fp0_er),'b-',label='er')
-		# NEED PLM AND MF FIRST                plt.plot( p0_mf,tp0_mf / (tp0_mf + fp0_mf),'r-',label='mf')
-		#plt.plot( p0_plm,tp0_plm / (tp0_plm + fp0_plm),'g-',label='plm')
-		plt.plot([0,1],[0,1],'k--')
+		plt.plot( p0_mf,tp0_mf / (tp0_mf + fp0_mf),'r-',label='mf')
+		plt.plot( p0_plm,tp0_plm / (tp0_plm + fp0_plm),'g-',label='plm')
 		plt.xlim([0,1])
-		#plt.ylim([0,1])
+		plt.ylim([0,1])
 		plt.ylim([.4,.8])
 		plt.xlabel('Recall (Sensitivity - P)')
 		plt.ylabel('Precision (PPV)')
 		plt.legend()
 
-		plt.tight_layout(h_pad=1, w_pad=1.5)
+		plt.tight_layout(h_pad=.25, w_pad=.1)
 		pdf.attach_note("ROC")  # you can add a pdf note to
 		pdf.savefig()  # saves the current figure into a pdf page
 		plt.close()
@@ -231,20 +230,21 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 			contact_dist = 8.0,
 		)
 
-		fig = plt.figure()
 		#"""
-		er_contact_map_data, er_contact_ax = erdca_visualizer.plot_contact_map()
-		pdf.attach_note("ER Contact Map")  # you can add a pdf note to
-		mf_contact_map_data, mf_contact_ax = mfdca_visualizer.plot_contact_map()
-		pdf.attach_note("MF Contact Map")  # you can add a pdf note to
-		plm_contact_map_data, plm_contact_ax = plmdca_visualizer.plot_contact_map()
-		pdf.attach_note("PLM Contact Map")  # you can add a pdf note to
-		fig.add_axes(er_contact_ax)
-		fig.add_axes(mf_contact_ax)
-		fig.add_axes(plm_contact_ax)
-		plt.show()
+		# Define a list of contact visualizers to plot 3 methods
+		slick_contact_maps = [ erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
+		slick_titles = [ 'ER', 'MF', 'PLM']
+	
+		# Create subplots
+		fig, axes = plt.subplots(nrows=1,ncols=len(slick_contact_maps), sharex='all',figsize=(15,5))
+
+		# Plot
+		for i,slick_map in enumerate(slick_contact_maps):
+			contact_map_data = slick_map.plot_contact_map(axes[i])
+			axes[i].set_title(slick_titles[i])
+
 		pdf.savefig()  # saves the current figure into a pdf page
-		plt.close
+		plt.close()
 
 		#er_tp_rate_data, er_tp_ax = erdca_visualizer.plot_true_positive_rates()
 		#mf_tp_rate_data, mf_tp_ax = mfdca_visualizer.plot_true_positive_rates()
