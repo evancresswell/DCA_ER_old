@@ -50,9 +50,15 @@ def generate_pfam_data(pfam_id):
 						gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
 		# Save processed data
 		msa_outfile, ref_outfile = dp.write_FASTA(s0,pfam_id,s_ipdb,path='pfam_ecc/')	
+		pf_dict = {}
+		pf_dict['s0'] = s0
+		pf_dict['s_index'] = s_index
+		pf_dict['s_ipdb'] = s_ipdb
+		pf_dict['cols_removed'] = cols_removed
 
-		np.savetxt('pfam_ecc/%s_s0.txt'%(pfam_id),s0)	
-		np.savetxt('pfam_ecc/%s_s_index.txt'%(pfam_id),s_index)	
+		with open('pfam_ecc/%s_DP.pickle'%(pfam_id), 'wb') as f:
+			pickle.dump(pf_dict, f)
+		f.close
 		return
 
 #-------------------------------
