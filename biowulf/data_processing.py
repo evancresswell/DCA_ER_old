@@ -1,6 +1,6 @@
 ## 2018.12.24: replace 'Z', 'X', and gap by elements in the same columns and with probability
 ## 2018.12.26: separate remove gaps (first) and remove conserved positions (last)
-    
+import os    
 import numpy as np
 from scipy.stats import itemfreq
 
@@ -313,6 +313,16 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     	    print("shape of s (after UTF-8 decode):\n",s.shape)
     except:
         print("UTF not decoded, pfam_id: %s \n "%pfam_id,s.shape)
+        # Create list file for missing pdb structures
+        if not os.path.exists('missing_MSA.txt'):
+            file_missing_msa = open("missing_MSA.txt",'w')
+            file_missing_msa.write("%s\n"% pfam_id)
+            file_missing_msa.close()
+        else:
+            file_missing_msa = open("missing_MSA.txt",'a')
+            file_missing_msa.write("%s\n"% pfam_id)
+            file_missing_msa.close()
+        return
     #print('select only column presenting as uppercase at PDB sequence')
     #pdb = np.load('../%s/pdb_refs.npy'%pfam_id)
     pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
@@ -337,6 +347,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
     #print("removing gaps...")
     s = s[:,~gap_pdb] # removes gaps  
+    print(s.shape)
     s_index = np.arange(s.shape[1])
 
     if printing:
