@@ -2,6 +2,7 @@ import os,sys
 import numpy as np
 import pandas as pd
 import data_processing as dp
+import pickle
 #--------------------------------------------------------------#
 
 pfam_id = sys.argv[1]
@@ -22,6 +23,7 @@ if not os.path.exists('missing_PDB.txt'):
 
 def generate_pfam_data(pfam_id):
 	data_path = '../../hoangd2_data/Pfam-A.full'
+	data_path = '../../Pfam-A.full'
 	pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
 
 	# Pre-Process Structure Data
@@ -44,23 +46,36 @@ def generate_pfam_data(pfam_id):
 
 		ipdb = 0
 		print('seq:',int(pdb[ipdb,1]))
+		
+		try:
+			# data processing
+			s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
+							gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
 
-		# data processing
-		s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
-						gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
-		# Save processed data
-		msa_outfile, ref_outfile = dp.write_FASTA(s0,pfam_id,s_ipdb,path='pfam_ecc/')	
-		pf_dict = {}
-		pf_dict['s0'] = s0
-		pf_dict['s_index'] = s_index
-		pf_dict['s_ipdb'] = s_ipdb
-		pf_dict['cols_removed'] = cols_removed
+			# Save processed data
+			msa_outfile, ref_outfile = dp.write_FASTA(s0,pfam_id,s_ipdb,path='pfam_ecc/')	
+			pf_dict = {}
+			pf_dict['s0'] = s0
+			pf_dict['s_index'] = s_index
+			pf_dict['s_ipdb'] = s_ipdb
+			pf_dict['cols_removed'] = cols_removed
 
-		with open('pfam_ecc/%s_DP.pickle'%(pfam_id), 'wb') as f:
-			pickle.dump(pf_dict, f)
-		f.close
+			with open('pfam_ecc/%s_DP.pickle'%(pfam_id), 'wb') as f:
+				pickle.dump(pf_dict, f)
+			f.close
+
+		except:
+			print("Could not generate data for %s: "%(pfam_id),sys.exc_info())
+
+			if not os.path.exists('data_not_generated.txt'):
+				data_fail = open("data_not_generated.txt",'w')
+				data_fail.write("%s\n"% pfam_id)
+				data_fail.close()
+			else:
+				data_fail = open("data_not_generated.txt",'a')
+				data_fail.write("%s\n"% pfam_id)
+				data_fail.close()
 		return
-
 #-------------------------------
 
 
