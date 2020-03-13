@@ -13,6 +13,10 @@ import data_processing as dp
 # import inference_dca for mfDCA
 from inference_dca import direct_info_dca
 
+"""
+NOTES:
+PYDCA was altered for these plots. These alterations are local to hurricane
+"""
 # import pydca for plmDCA
 from pydca.plmdca import plmdca
 from pydca.meanfield_dca import meanfield_dca
@@ -49,9 +53,17 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		
 		# data processing THESE SHOULD BE CREATED DURING DATA GENERATION
 		ipdb = 0
-		s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
-						gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
-		
+		input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
+		with open(input_data_file,"rb") as f:
+			pfam_dict = pickle.load(f)
+		f.close()
+		#s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
+		#				gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
+		s0 = pfam_dict['s0']	
+		s_index = pfam_dict['s_index']	
+		s_ipdb = pfam_dict['s_ipdb']	
+		cols_removed = pfam_dict['cols_removed']
+
 		# number of positions
 		n_var = s0.shape[1]
 		
@@ -68,11 +80,27 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 
 		#---------------------- Load DI -------------------------------------#
 		print("Unpickling DI pickle files for %s"%(pfam_id))
-		sorted_DI_er = pickle.load(open("%ser_DI_%s.pickle"%(er_directory,pfam_id),"rb"))
-		sorted_DI_mf = pickle.load(open("%smf_DI_%s.pickle"%(mf_directory,pfam_id),"rb"))
-		sorted_DI_plm = pickle.load(open("%splm_DI_%s.pickle"%(plm_directory,pfam_id),"rb"))
+		with open("%ser_DI_%s.pickle"%(er_directory,pfam_id),"rb") as f:
+			DI_er = pickle.load(f)
+		f.close()
+		with open("%splm_DI_%s.pickle"%(plm_directory,pfam_id),"rb") as f:
+			DI_plm = pickle.load(f)
+		f.close()
+		with open("%smf_DI_%s.pickle"%(mf_directory,pfam_id),"rb") as f:
+			DI_mf = pickle.load(f)
+		f.close()
 
-		#sorted_DI_er = dp.delete_sorted_DI_duplicates(sorted_DI_ER_redundant)
+		#DI_er = pickle.load(open("%ser_DI_%s.pickle"%(er_directory,pfam_id),"rb"))
+		#DI_mf = pickle.load(open("%smf_DI_%s.pickle"%(mf_directory,pfam_id),"rb"))
+		#DI_plm = pickle.load(open("%splm_DI_%s.pickle"%(plm_directory,pfam_id),"rb"))
+
+		DI_er_dup = dp.delete_sorted_DI_duplicates(DI_er)	
+		DI_plm_dup = dp.delete_sorted_DI_duplicates(DI_plm)	
+		DI_mf_dup = dp.delete_sorted_DI_duplicates(DI_mf)	
+
+		sorted_DI_er = tools.distance_restr_sortedDI(DI_er_dup)
+		sorted_DI_plm = tools.distance_restr_sortedDI(DI_plm_dup)
+		sorted_DI_mf = tools.distance_restr_sortedDI(DI_mf_dup)
 
 		print("\nPrint top 10 Non-Redundant pairs")
 		for x in sorted_DI_er[:10]:
@@ -86,6 +114,7 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		plt.imshow(ct_distal,cmap='rainbow_r',origin='lower')
 		plt.xlabel('i')
 		plt.ylabel('j')
+		plt.title(pfam_id)
 		plt.colorbar(fraction=0.045, pad=0.05)
 		pdf.attach_note("Contact Map")  # you can add a pdf note to
 		pdf.savefig()  # saves the current figure into a pdf page
@@ -95,13 +124,13 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		#--------------------- Plot DI Color Map ----------------------------#
 		distance_enforced = False
 		if distance_enforced:
-			for coupling in sorted_DI_er:
+			for coupling in DI_er_dup:
 				di_er[coupling[0][0],coupling[0][1]] = coupling[1]
 				di_er[coupling[0][1],coupling[0][0]] = coupling[1]
-			for coupling in sorted_DI_mf:
+			for coupling in DI_mf_dup:
 				di_mf[coupling[0][0],coupling[0][1]] = coupling[1]
 				di_mf[coupling[0][1],coupling[0][0]] = coupling[1]
-			for coupling in sorted_DI_plm:
+			for coupling in DI_plm_dup:
 				di_plm[coupling[0][0],coupling[0][1]] = coupling[1]
 				di_plm[coupling[0][1],coupling[0][0]] = coupling[1]
 		else:
@@ -109,14 +138,14 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 			di_er = np.zeros((n_var,n_var))
 			di_mf = np.zeros((n_var,n_var))
 			di_plm = np.zeros((n_var,n_var))
-			for coupling in sorted_DI_er:
+			for coupling in DI_er_dup:
 				#print(coupling[1])
 				di_er[coupling[0][0],coupling[0][1]] = coupling[1]
 				di_er[coupling[0][1],coupling[0][0]] = coupling[1]
-			for coupling in sorted_DI_mf:
+			for coupling in DI_mf_dup:
 				di_mf[coupling[0][0],coupling[0][1]] = coupling[1]
 				di_mf[coupling[0][1],coupling[0][0]] = coupling[1]
-			for coupling in sorted_DI_plm:
+			for coupling in DI_plm_dup:
 				di_plm[coupling[0][0],coupling[0][1]] = coupling[1]
 				di_plm[coupling[0][1],coupling[0][0]] = coupling[1]
 
@@ -176,6 +205,9 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		plt.plot(ct_thres,auc_er,'b-',label="er")
 		plt.plot(ct_thres,auc_mf,'r-',label="mf")
 		plt.plot(ct_thres,auc_plm,'g-',label="plm")
+		print(auc_er)
+		print(auc_mf)
+		print(auc_plm)
 		plt.ylim([min(auc_er.min(),auc_mf.min(),auc_plm.min())-0.05,max(auc_er.max(),auc_mf.max(),auc_plm.max())+0.05])
 		plt.xlim([ct_thres.min(),ct_thres.max()])
 		plt.xlabel('distance threshold')
@@ -241,7 +273,7 @@ with PdfPages('Pfam_Analysis.pdf') as pdf:
 		# Plot
 		for i,slick_map in enumerate(slick_contact_maps):
 			contact_map_data = slick_map.plot_contact_map(axes[i])
-			axes[i].set_title(slick_titles[i])
+			axes[i].set_title(slick_titles[i]+'\n'+axes[i].get_title())
 
 		pdf.savefig()  # saves the current figure into a pdf page
 		plt.close()
