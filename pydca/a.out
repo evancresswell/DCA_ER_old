@@ -1,0 +1,68 @@
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:77:    num_threads_optional = '--num_threads'
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:78:    num_threads_help = "Number of threads from plmDCA computation"
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:105:        max_iterations = None, num_threads=None, verbose=False):
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:131:        num_threads = num_threads, verbose=verbose,
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:139:    num_threads = None, ranked_by = None, linear_dist=None, num_site_pairs=None):
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:174:        num_threads = num_threads, verbose = verbose
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:268:        '--num_threads <nt> --apc --verbose, where <biomolecule> takes rna or protein ' 
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:281:    parser_compute_fn.add_argument(CmdArgs.num_threads_optional, help=CmdArgs.num_threads_help, type=int)
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:299:    parser_compute_di.add_argument(CmdArgs.num_threads_optional, help=CmdArgs.num_threads_help, type=int)
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:309:        'plmdca compute_params <biomolecule> <msa_file> --max_iterations <ni> --num_threads ' 
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:320:    parser_compute_params.add_argument(CmdArgs.num_threads_optional, help=CmdArgs.num_threads_help, type=int)
+build/lib.linux-x86_64-3.7/pydca/plmdca_main.py:340:        num_threads = args_dict.get('num_threads'),
+build/lib.linux-x86_64-3.7/pydca/plmdca/plmdca.py:48:            lambda_J = None, max_iterations = None, num_threads = None, 
+build/lib.linux-x86_64-3.7/pydca/plmdca/plmdca.py:73:        self.__num_threads = 1 if num_threads is None else num_threads
+build/lib.linux-x86_64-3.7/pydca/plmdca/plmdca.py:101:            self.__num_threads,
+build/lib.linux-x86_64-3.7/pydca/plmdca/plmdca.py:219:            self.__num_threads, self.__verbose
+Binary file build/lib.linux-x86_64-3.7/pydca/plmdca/_plmdcaBackend.cpython-37m-x86_64-linux-gnu.so matches
+Binary file build/temp.linux-x86_64-3.7/pydca/plmdca/plmdca_numerics.o matches
+Binary file build/temp.linux-x86_64-3.7/pydca/plmdca/plmdcaBackend.o matches
+examples/pydca_demo.py:23:    num_threads=6, 
+examples/.ipynb_checkpoints/pydca_demo-checkpoint.ipynb:93:    "    num_threads = 10,\n",
+examples/.ipynb_checkpoints/pydca_demo-checkpoint.ipynb:105:    "In the above, we created a PlmDCA instance `plmdca_inst`  for RNA. Notice that we used the trimmed MSA data we obtained before.  We also set the values of optional parameters. The optional parameters `num_threads` is set to 10. If `pydca` is installed without OpenMP support, we cannot set the number of threads more than one. Finally we computed the DCA scores from the Frobenius norm of the couplings by calling the `compute_sorted_FN_APC()` method on `plmdca_inst`. This action returns the average product corrected (APC) DCA scores. Let us print the top five site pairs and their DCA scores."
+examples/pydca_demo.ipynb:76:    "    num_threads = 10,\n",
+examples/pydca_demo.ipynb:88:    "In the above, we created a PlmDCA instance `plmdca_inst`  for RNA. Notice that we used the trimmed MSA data we obtained before.  We also set the values of optional parameters. The optional parameters `num_threads` is set to 10. If `pydca` is installed without OpenMP support, we cannot set the number of threads more than one. Finally we computed the DCA scores from the Frobenius norm of the couplings by calling the `compute_sorted_FN_APC()` method on `plmdca_inst`. This action returns the average product corrected (APC) DCA scores. Let us print the top five site pairs and their DCA scores."
+pydca/plmdca/include/plmdca.h:23:                float m_lambda_J, unsigned int num_threads
+pydca/plmdca/include/plmdca.h:82:            unsigned int  num_threads;
+pydca/plmdca/plmdca.py:48:            lambda_J = None, max_iterations = None, num_threads = None, 
+pydca/plmdca/plmdca.py:73:        self.__num_threads = 1 if num_threads is None else num_threads
+pydca/plmdca/plmdca.py:101:            self.__num_threads,
+pydca/plmdca/plmdca.py:219:            self.__num_threads, self.__verbose
+pydca/plmdca/plmdcaBackend.cpp:15:    const unsigned int num_threads, bool verbose )
+pydca/plmdca/plmdcaBackend.cpp:29:        num_threads     : Number of threads for PlmDCA (when OpenMP is supported).
+pydca/plmdca/plmdcaBackend.cpp:41:        if(num_threads > 1){
+pydca/plmdca/plmdcaBackend.cpp:48:    static PlmDCA plmdca_inst(msa_file, biomolecule, seqs_len, num_site_states, seqid, lambda_h, lambda_J, num_threads);
+pydca/plmdca/plmdca_numerics.cpp:20:    float m_lambda_J, unsigned int m_num_threads
+pydca/plmdca/plmdca_numerics.cpp:23:    lambda_J(m_lambda_J), num_threads(m_num_threads)
+pydca/plmdca/plmdca_numerics.cpp:36:            m_num_threads       : Number of threads (when OpenMP is supported)
+pydca/plmdca/plmdca_numerics.cpp:107:    #pragma omp parallel for num_threads(this->num_threads)
+pydca/plmdca/plmdca_numerics.cpp:490:    #pragma omp parallel for num_threads(this->num_threads)
+pydca/plmdca/plmdca_numerics.cpp:633:        #pragma omp parallel for num_threads(this->num_threads)
+pydca/plmdca_main.py:77:    num_threads_optional = '--num_threads'
+pydca/plmdca_main.py:78:    num_threads_help = "Number of threads from plmDCA computation"
+pydca/plmdca_main.py:105:        max_iterations = None, num_threads=None, verbose=False):
+pydca/plmdca_main.py:131:        num_threads = num_threads, verbose=verbose,
+pydca/plmdca_main.py:139:    num_threads = None, ranked_by = None, linear_dist=None, num_site_pairs=None):
+pydca/plmdca_main.py:174:        num_threads = num_threads, verbose = verbose
+pydca/plmdca_main.py:268:        '--num_threads <nt> --apc --verbose, where <biomolecule> takes rna or protein ' 
+pydca/plmdca_main.py:281:    parser_compute_fn.add_argument(CmdArgs.num_threads_optional, help=CmdArgs.num_threads_help, type=int)
+pydca/plmdca_main.py:299:    parser_compute_di.add_argument(CmdArgs.num_threads_optional, help=CmdArgs.num_threads_help, type=int)
+pydca/plmdca_main.py:309:        'plmdca compute_params <biomolecule> <msa_file> --max_iterations <ni> --num_threads ' 
+pydca/plmdca_main.py:320:    parser_compute_params.add_argument(CmdArgs.num_threads_optional, help=CmdArgs.num_threads_help, type=int)
+pydca/plmdca_main.py:340:        num_threads = args_dict.get('num_threads'),
+pydca/erdca/plmdcaBackend.cpp:15:    const unsigned int num_threads, bool verbose )
+pydca/erdca/plmdcaBackend.cpp:29:        num_threads     : Number of threads for PlmDCA (when OpenMP is supported).
+pydca/erdca/plmdcaBackend.cpp:41:        if(num_threads > 1){
+pydca/erdca/plmdcaBackend.cpp:48:    static PlmDCA plmdca_inst(msa_file, biomolecule, seqs_len, num_site_states, seqid, lambda_h, lambda_J, num_threads);
+pydca/erdca/plmdca_numerics.cpp:20:    float m_lambda_J, unsigned int m_num_threads
+pydca/erdca/plmdca_numerics.cpp:23:    lambda_J(m_lambda_J), num_threads(m_num_threads)
+pydca/erdca/plmdca_numerics.cpp:36:            m_num_threads       : Number of threads (when OpenMP is supported)
+pydca/erdca/plmdca_numerics.cpp:107:    #pragma omp parallel for num_threads(this->num_threads)
+pydca/erdca/plmdca_numerics.cpp:490:    #pragma omp parallel for num_threads(this->num_threads)
+pydca/erdca/plmdca_numerics.cpp:633:        #pragma omp parallel for num_threads(this->num_threads)
+pydca/erdca/erdca.py:31:    def __init__(self, msa_file, biomolecule, seqid = None, max_iterations = None, num_threads = None, 
+pydca/erdca/erdca.py:48:        self.__num_threads = 1 if num_threads is None else num_threads
+pydca/erdca/erdca.py:78:            self.__num_threads,
+pydca/erdca/erdca.py:184:            self.__num_threads, self.__verbose
+pydca.egg-info/PKG-INFO:53:        $ plmdca compute_fn <biomolecule> <alignment.fa> --max_iterations 500 --num_threads 6 --apc --verbose 
+README.md:44:$ plmdca compute_fn <biomolecule> <alignment.fa> --max_iterations 500 --num_threads 6 --apc --verbose 
