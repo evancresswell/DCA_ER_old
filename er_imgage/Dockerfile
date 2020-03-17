@@ -21,7 +21,8 @@ RUN apt-get install build-essential
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 # Clone our private GitHub Repository
 WORKDIR /home
-RUN git clone https://4de5804a0bb1014bfacfc2466187741403f41b6c:x-oauth-basic@github.com/evancresswell/DCA_ER.git 
+#RUN git clone https://4de5804a0bb1014bfacfc2466187741403f41b6c:x-oauth-basic@github.com/evancresswell/DCA_ER.git 
+RUN git clone https://github.com/evancresswell/DCA_ER.git
 
 RUN TINI_VERSION=`curl https://github.com/krallin/tini/releases/latest | grep -o "/v.*\"" | sed 's:^..\(.*\).$:\1:'` && \
     curl -L "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}.deb" > tini.deb && \
@@ -51,6 +52,7 @@ RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-5.3.0-Linux-x86_64.
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
+RUN conda install biopython joblib
 RUN apt-get update
 RUN apt-get install -y curl grep sed dpkg 
 RUN apt-get install -y libzmq3-dev python3-pip
