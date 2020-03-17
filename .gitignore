@@ -4,7 +4,7 @@ nl/
 zd/ 
 .ipynb_checkpoints/
 *.npy
-*.txt
+.txt
 *.fa
 *.pdb
 *.pickle

@@ -62,7 +62,7 @@ RUN jupyter serverextension enable --py jupyterlab --sys-prefix
 
 WORKDIR /home/DCA_ER/
 COPY --from=intermediate /home/DCA_ER /home/DCA_ER 
-RUN pip install /home/DCA_ER/pydca
+RUN pip install --no-dependencies /home/DCA_ER/pydca/
 
 RUN TINI_VERSION=`curl https://github.com/krallin/tini/releases/latest | grep -o "/v.*\"" | sed 's:^..\(.*\).$:\1:'` && \
     curl -L "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}.deb" > tini.deb && \
