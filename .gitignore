@@ -1,5 +1,7 @@
 *.pyc
 DI/
+*.sif
+*.simg
 nl/
 zd/ 
 .ipynb_checkpoints/

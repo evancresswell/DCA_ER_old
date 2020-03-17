@@ -52,7 +52,6 @@ RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-5.3.0-Linux-x86_64.
     echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
     echo "conda activate base" >> ~/.bashrc
 
-RUN conda install biopython joblib
 RUN apt-get update
 RUN apt-get install -y curl grep sed dpkg 
 RUN apt-get install -y libzmq3-dev python3-pip
@@ -65,6 +64,7 @@ RUN jupyter serverextension enable --py jupyterlab --sys-prefix
 WORKDIR /home/DCA_ER/
 COPY --from=intermediate /home/DCA_ER /home/DCA_ER 
 RUN pip install --no-dependencies /home/DCA_ER/pydca/
+RUN conda install biopython joblib
 
 RUN TINI_VERSION=`curl https://github.com/krallin/tini/releases/latest | grep -o "/v.*\"" | sed 's:^..\(.*\).$:\1:'` && \
     curl -L "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}.deb" > tini.deb && \
