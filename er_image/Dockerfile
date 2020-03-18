@@ -60,11 +60,11 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN pip install --upgrade pip
 RUN pip install -U jupyter jupyterlab
 RUN jupyter serverextension enable --py jupyterlab --sys-prefix
+RUN conda install biopython joblib scipy scikit-learn numba
 
 WORKDIR /home/DCA_ER/
 COPY --from=intermediate /home/DCA_ER /home/DCA_ER 
 RUN pip install --no-dependencies /home/DCA_ER/pydca/
-RUN conda install biopython joblib
 
 RUN TINI_VERSION=`curl https://github.com/krallin/tini/releases/latest | grep -o "/v.*\"" | sed 's:^..\(.*\).$:\1:'` && \
     curl -L "https://github.com/krallin/tini/releases/download/v${TINI_VERSION}/tini_${TINI_VERSION}.deb" > tini.deb && \
