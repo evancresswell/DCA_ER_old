@@ -22,8 +22,8 @@ if not os.path.exists('missing_PDB.txt'):
 	file_missing_pdb.close()
 
 def generate_pfam_data(pfam_id):
-	data_path = '../../hoangd2_data/Pfam-A.full'
 	data_path = '../../Pfam-A.full'
+	data_path = '../../hoangd2_data/Pfam-A.full'
 	pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
 
 	# Pre-Process Structure Data

@@ -1,12 +1,12 @@
 import os
 import timeit
 pfam_id = 'PF04542'
-pfam_id = 'PF00011'
 pfam_id = 'PF00005'
 pfam_id = 'PF00186'
+pfam_id = 'PF00011'
 
 
-on_pc = True
+on_pc = False
 if on_pc:
 	start_time = timeit.default_timer()
 	os.system('sudo singularity exec -B ~/DCA_ER/biowulf/ ~/DCA_ER/dca_er-DCA.simg python 1main_PLM.py '+pfam_id)

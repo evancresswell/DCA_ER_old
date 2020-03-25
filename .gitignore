@@ -1,5 +1,6 @@
 *.pyc
 DI/
+pfam_ecc/
 *.sif
 *.simg
 nl/
