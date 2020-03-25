@@ -21,7 +21,7 @@ plmdca_inst = plmdca.PlmDCA(
     seqid = 0.8,
     lambda_h = 1.0,
     lambda_J = 20.0,
-    num_threads = 10,
+    num_threads = 16,
     max_iterations = 500,
 )
 
