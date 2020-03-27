@@ -1,6 +1,3 @@
-# Import data_processing module from local directory 
-from data_processing import data_processing
-
 # Import Bio data processing features 
 import Bio.PDB, warnings
 pdb_list = Bio.PDB.PDBList()
