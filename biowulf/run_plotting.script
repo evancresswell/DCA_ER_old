@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sbatch --mem=100g  --cpus-per-task=12 --time=2-0:00:00 run_pfam_plotting
+

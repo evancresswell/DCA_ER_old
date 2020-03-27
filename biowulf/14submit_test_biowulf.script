@@ -1,5 +1,0 @@
-#!/bin/bash
-
-swarm -f test_ER.swarm -t 26 -g 600.0 --time=0-10:00:00 --partition largemem --module singularity --logdir swarm_output #  quick # norm
-swarm -f test_PLM.swarm -t 16 -g 150.0 --time=2-00:00:00 --partition norm --module singularity --logdir swarm_output  #  quick # norm
-swarm -f test_MF.swarm -t 10 --time=1-0:00:00 --partition norm --module singularity --logdir swarm_output -b 5 #  quick # norm

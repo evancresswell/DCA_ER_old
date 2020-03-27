@@ -2,7 +2,7 @@
 # github token: 4de5804a0bb1014bfacfc2466187741403f41b6c
 
 #------------------------------------------------------#
-#----- Genreate Singularity Container to Run Code -----#
+#----- Generate Singularity Container to Run Code -----#
 ### In DCA_ER/er_images/ (location of Dockerfile)
 # 	$ sudo docker build -t ubuntu-er .
 

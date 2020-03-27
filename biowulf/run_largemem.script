@@ -1,4 +1,4 @@
 #!/bin/bash
 
-sbatch -f run_pf00005 --mem 1000g --cpus-per-task 20 --partition largemem --time 1-0:00:00 --logdir swarm_output
+sbatch --mem=2000g  --cpus-per-task=20 --partition=largemem --time=2-0:00:00 run_pf00005
 
