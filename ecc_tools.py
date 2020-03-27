@@ -1,12 +1,10 @@
-# Import data_processing module from local directory 
-from data_processing import data_processing
-
 # Import Bio data processing features 
 import Bio.PDB, warnings
 pdb_list = Bio.PDB.PDBList()
 pdb_parser = Bio.PDB.PDBParser()
 from scipy.spatial import distance_matrix
 from Bio import BiopythonWarning
+warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
 import numpy as np
 from IPython.display import HTML
@@ -73,12 +71,19 @@ def roc_curve(ct,di,ct_thres):
         t1 = [(fp[t] > pbin[ibin] and fp[t] <= pbin[ibin+1]) for t in range(fp_size)]
 
         if len(t1)>0 :            
-            fpbin[ibin] = fp[t1].mean()
-            tpbin[ibin] = tp[t1].mean()
+            try:
+                 fpbin[ibin] = fp[t1].mean()
+            except RuntimeWarning:
+                 #print("Empty mean slice")
+                 fpbin[ibin] = 0
+            try:
+                 tpbin[ibin] = tp[t1].mean()
+            except RuntimeWarning:
+                 #print("Empty mean slice")
+                 tpbin[ibin] = 0
         else:
             #print(i)
             tpbin[ibin] = tpbin[ibin-1] 
-
     #print(fp,tp)
     #return fp,tp,pbin,fpbin,tpbin
     return pbin,tpbin,fpbin
