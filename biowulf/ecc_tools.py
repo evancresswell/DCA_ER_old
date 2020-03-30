@@ -7,7 +7,8 @@ from Bio import BiopythonWarning
 warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
 import numpy as np
-from IPython.display import HTML
+
+
 import random
 
 def contact_map(pdb,ipdb,cols_removed,s_index):
@@ -89,39 +90,42 @@ def roc_curve(ct,di,ct_thres):
     return pbin,tpbin,fpbin
 
 
-def hide_toggle(for_next=False):
-    this_cell = """$('div.cell.code_cell.rendered.selected')"""
-    next_cell = this_cell + '.next()'
+on_pc = False
+if on_pc:
+	from IPython.display import HTML
+	def hide_toggle(for_next=False):
+	    this_cell = """$('div.cell.code_cell.rendered.selected')"""
+	    next_cell = this_cell + '.next()'
 
-    toggle_text = 'Toggle show/hide'  # text shown on toggle link
-    target_cell = this_cell  # target cell to control with toggle
-    js_hide_current = ''  # bit of JS to permanently hide code in current cell (only when toggling next cell)
+	    toggle_text = 'Toggle show/hide'  # text shown on toggle link
+	    target_cell = this_cell  # target cell to control with toggle
+	    js_hide_current = ''  # bit of JS to permanently hide code in current cell (only when toggling next cell)
 
-    if for_next:
-        target_cell = next_cell
-        toggle_text += ' next cell'
-        js_hide_current = this_cell + '.find("div.input").hide();'
+	    if for_next:
+	        target_cell = next_cell
+	        toggle_text += ' next cell'
+	        js_hide_current = this_cell + '.find("div.input").hide();'
 
-    js_f_name = 'code_toggle_{}'.format(str(random.randint(1,2**64)))
+	    js_f_name = 'code_toggle_{}'.format(str(random.randint(1,2**64)))
 
-    html = """
-        <script>
-            function {f_name}() {{
-                {cell_selector}.find('div.input').toggle();
-            }}
+	    html = """
+		<script>
+		    function {f_name}() {{
+			{cell_selector}.find('div.input').toggle();
+		    }}
 
-            {js_hide_current}
-        </script>
+		    {js_hide_current}
+		</script>
 
-        <a href="javascript:{f_name}()">{toggle_text}</a>
-    """.format(
-        f_name=js_f_name,
-        cell_selector=target_cell,
-        js_hide_current=js_hide_current, 
-        toggle_text=toggle_text
-    )
+		<a href="javascript:{f_name}()">{toggle_text}</a>
+	    """.format(
+		f_name=js_f_name,
+		cell_selector=target_cell,
+		js_hide_current=js_hide_current, 
+		toggle_text=toggle_text
+	    )
 
-    return HTML(html)
+	    return HTML(html)
 
 #=========================================================================================
 def distance_restr_sortedDI(sorted_DI_in):

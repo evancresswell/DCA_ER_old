@@ -1,7 +1,7 @@
 ## 2018.12.24: replace 'Z', 'X', and gap by elements in the same columns and with probability
 ## 2018.12.26: separate remove gaps (first) and remove conserved positions (last)
 import numpy as np
-from scipy.stats import itemfreq
+#from scipy.stats import itemfreq
 import os
 
 """
@@ -239,14 +239,14 @@ def write_FASTA(msa,pfam_id,s_ipdb,number_form=True,processed = True,path = './'
 #--------------------------------------
 
 #--------------------------------------
-def min_res(s):
-    n = s.shape[1]
-    minfreq = np.zeros(n)
-    for i in range(n):
-        f = itemfreq(s[:,i])
-        minfreq[i] = np.min(f[:,1])  
-        
-    return minfreq
+#def min_res(s):
+#    n = s.shape[1]
+#    minfreq = np.zeros(n)
+#    for i in range(n):
+#        f = itemfreq(s[:,i])
+#        minfreq[i] = np.min(f[:,1])  
+#        
+#    return minfreq
 #=========================================================================================    
 def create_unprocessed_FASTA(pdb,data_path,pfam_id,ipdb=0):
 
@@ -462,7 +462,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     #mi = number_residues(s)
     #print(mi.mean())
-    np.save("%s_removed_cols.npy"%pfam_id,removed_cols)
+    np.save("pfam_ecc/%s_removed_cols.npy"%pfam_id,removed_cols)
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
 
