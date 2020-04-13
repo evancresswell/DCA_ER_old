@@ -5,46 +5,17 @@ import ecc_tools as tools
 import numpy as np
 import data_processing as dp
 from multiprocessing import Pool
-
-#------------------------------- Create Pandas DataFrame ---------------------------#
-filepath = sys.argv[1]
-#file_out = sys.argv[2]
-#if os.path.exists(filepath[:-4]+'.pkl'):
-#	df = pd.read_pickle(filepath[:-4]+'.pkl')
-#	print(df)
-#else:
-# Read in DataFrame
-df = pd.read_csv(filepath, sep='\s+', engine='python',header=0)
-print(df)
-
-# Polish MemReq Column
-df.MemReq = df.MemReq.str.extract(r'(\d+\.+\d+)(GB/node)' ,expand=False) 
-df['MemReq'] =pd.to_numeric(df['MemReq'],downcast='float')
-df = df.rename(columns={'MemReq': 'GB/node'})
-
-# Polish MemReq Column
-df.MemUsed = df.MemUsed.str.extract(r'(\d+\.+\d+)(GB)' ,expand=False) 
-df['MemUsed'] =pd.to_numeric(df['MemUsed'],downcast='float')
-
-#print(df)
-
-# Iterate Through Jobs and add to DataFrame
-jobs = df.Jobid
-for i,job_id in enumerate(jobs):
-	#print(job_id)
-	with open("swarm_%s.o"%(job_id)) as f:
-		families = re.findall(r'PF+\d+',f.read())
-	df = df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
-	df.loc[df.Jobid == job_id,'Pfam'] = families
-print(df)
-
-#-----------------------------------------------------------------------------------#
-
 #------------------------------- Create ROC Curves ---------------------------------#
 def add_ROC(df):
 	data_path = '../../../hoangd2_data/Pfam-A.full'
 
-
+	Ps = []
+	TPs = []
+	FPs = []
+	AUCs = []
+	I0s =[]
+	DIs = []
+	ODs = []
 	for i,row in df.iterrows():
 		pfam_id = row['Pfam'] 
 
@@ -70,11 +41,17 @@ def add_ROC(df):
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		
 		# Load Contact Map
-		ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
-		ct_distal = tools.distance_restr(ct,s_index,make_large=True)
+		try:
+			ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
+			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
+		except  (FileNotFoundError):
+			print("PDB File not found by BioPython")
+			pass
+
+			
 
 		#---------------------- Load DI -------------------------------------#
-		print("Unpickling DI pickle files for %s"%(pfam_id))
+		#print("Unpickling DI pickle files for %s"%(pfam_id))
 		if filepath[3:5] =="ER":
 			with open("../DI/ER/er_DI_%s.pickle"%(pfam_id),"rb") as f:
 				DI = pickle.load(f)
@@ -115,36 +92,98 @@ def add_ROC(df):
 			p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
 			auc[i] = tp.sum()/tp.shape[0]
 		i0 = np.argmax(auc)
-		print("%s auc = %f"%(pfam_id,auc[i0]))
 		
 		# set true positivies, false positives and predictions for optimal distance
 		p0,tp0,fp0 = tools.roc_curve(ct_distal,di,ct_thres[i0])
 
+		
+		Ps.append(p0)	
+		TPs.append(tp0)	
+		FPs.append(fp0)	
+		AUCs.append(auc[i0])	
+		DIs.append(sorted_DI)
+		ODs.append(ct_thres[i0])
 		# Fill Data Frame with relavent info
+		#print("adding TP =",tp0)
+		#df.loc[i,'TP'] = tp0.tolist()
+		#print("df[i, TP] = ",df['TP'])
+		#df.loc[i,'FP'] = fp0.tolist()
+		#df.loc[i,'AUC'] = np.argmax(auc)
+		#df.loc[i,'DI'] = sorted_DI 
+		#df.loc[i,'OptiDist'] = ct_thres[i]  
+		#print("here")
+	#print("df: ",len(df))
+	#print("P vec: ",len(Ps))
+	df = df.assign(P = Ps)
+	df = df.assign(TP = TPs)
+	df = df.assign(FP = FPs)
+	df = df.assign(DI = DIs)
+	df = df.assign(AUC = AUCs)
+	df = df.assign(OptiDist = ODs)
+	#print(df)
+	return df.copy()
+#-----------------------------------------------------------------------------------#
 
-		print(df[df.Pfam== pfam_id] )
-		df.loc[i,'P'] = p0.tolist()
-		df.loc[i,'TP'] = tp0.tolist()
-		df.loc[i,'FP'] = fp0.tolist()
-		df.loc[i,'AUC'] = np.argmax(auc)
-		df.loc[i,'DI'] = sorted_DI 
-		df.loc[i,'OptiDist'] = ct_thres[i]  
-		print(df)
-		break
-	#-----------------------------------------------------------------------------------#
-
+#-------------------------- Parallelize Data Frame Generation ----------------------#
 def parallelize_dataframe(df, func, n_cores=60):
     df_split = np.array_split(df, n_cores)
     pool = Pool(n_cores)
-    df = pd.concat(pool.map(func, df_split))
+    df = pd.concat(pool.map(func, df_split),sort=False)
     pool.close()
     pool.join()
     return df
+#-----------------------------------------------------------------------------------#
 
+
+
+
+#-----------------------------------------------------------------------------------#
+#------------------------------- Create Pandas DataFrame ---------------------------#
+#-----------------------------------------------------------------------------------#
+
+# Jobload info from text file 
+filepath = sys.argv[1]
+#file_out = sys.argv[2]
+
+#if os.path.exists(filepath[:-4]+'.pkl'):
+#	df = pd.read_pickle(filepath[:-4]+'.pkl')
+#	print(df)
+#else:
+# Read in DataFrame
+df = pd.read_csv(filepath, sep='\s+', engine='python',header=0)
+#print(df)
+
+# Polish MemReq Column
+df.MemReq = df.MemReq.str.extract(r'(\d+\.+\d+)(GB/node)' ,expand=False) 
+df['MemReq'] =pd.to_numeric(df['MemReq'],downcast='float')
+df = df.rename(columns={'MemReq': 'GB/node'})
+
+# Polish MemReq Column
+df.MemUsed = df.MemUsed.str.extract(r'(\d+\.+\d+)(GB)' ,expand=False) 
+df['MemUsed'] =pd.to_numeric(df['MemUsed'],downcast='float')
+
+#print(df)
+
+# Iterate Through Jobs and add to DataFrame
+jobs = df.Jobid
+for i,job_id in enumerate(jobs):
+	#print(job_id)
+	with open("swarm_%s.o"%(job_id)) as f:
+		families = re.findall(r'PF+\d+',f.read())
+	df = df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
+	df.loc[df.Jobid == job_id,'Pfam'] = families
+#print("Generating ROC curves for %d Pfams"%(len(df)))
+
+# Genreate ROC / AUC / Precisoin / DI Dataframe
 df_roc = parallelize_dataframe(df, add_ROC)
-print(df_roc)
+#print(df_roc)
 roc_filename = filepath[:-4]+'_roc.pkl' 
 df_roc.to_pickle(roc_filename)
 print ('saving file: ' + roc_filename)
+
+
+#-----------------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------------#
+#-----------------------------------------------------------------------------------#
 
 

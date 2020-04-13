@@ -1,0 +1,4 @@
+#!/bin/bash
+
+swarm -f pfam_plotting.swarm -t 10 -g 10.0 --module singularity --time=0-01:00:00 --partition norm --logdir swarm_pfam_plotting_output -b 20 #  quick # norm
+#swarm -f test_plotting.swarm -t 20 -g 10.0 --module singularity --time=0-20:00:00 --partition norm --logdir swarm_pfam_plotting_output -b 100 #  quick # norm

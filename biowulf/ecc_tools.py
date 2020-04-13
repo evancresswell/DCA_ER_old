@@ -1,4 +1,5 @@
 # Import Bio data processing features 
+import sys,os,errno
 import Bio.PDB, warnings
 pdb_list = Bio.PDB.PDBList()
 pdb_parser = Bio.PDB.PDBParser()
@@ -6,6 +7,7 @@ from scipy.spatial import distance_matrix
 from Bio import BiopythonWarning
 warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
+warnings.simplefilter('ignore', DeprecationWarning)
 import numpy as np
 
 
@@ -142,7 +144,7 @@ def distance_restr(di,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
 	if di.shape[0] != s_index.shape[0]:
 		print("Distance restraint cannot be imposed, bad input")
-		sys.exit()
+		raise( FileNotFoundError( errno.ENONENT, os.sterror(errno.ENOENT), 'S and DI do not match') ) 
 	di_distal = np.zeros(di.shape)
 	for i in range(di.shape[0]):
 		for j in range(di.shape[1]):
