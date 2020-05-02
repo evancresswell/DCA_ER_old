@@ -7,7 +7,7 @@ nl/
 zd/ 
 .ipynb_checkpoints/
 *.npy
-.txt
+*.txt
 *.fa
 *.pdb
 *.pickle
@@ -15,6 +15,9 @@ zd/
 *.swarm
 swarm_output/
 swarm_output_generate_data/
-by/
-or/
-zd/
+biowulf/*/*
+*.pkl
+*.pdf
+*.out
+*.o
+*.e

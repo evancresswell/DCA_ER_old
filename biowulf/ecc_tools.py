@@ -13,6 +13,15 @@ import numpy as np
 
 import random
 
+
+def gen_DI_matrix(DI):
+    n_seq = max([coupling[0][0] for coupling in DI]) 
+    di = np.zeros((n_var,n_var))
+    for coupling in DI:
+        di[coupling[0][0],coupling[0][1]] = coupling[1]
+        di[coupling[0][1],coupling[0][0]] = coupling[1]
+    return di
+
 def contact_map(pdb,ipdb,cols_removed,s_index):
     pdb_id = pdb[ipdb,5]
     pdb_chain = pdb[ipdb,6]
@@ -144,7 +153,7 @@ def distance_restr(di,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
 	if di.shape[0] != s_index.shape[0]:
 		print("Distance restraint cannot be imposed, bad input")
-		raise( FileNotFoundError( errno.ENONENT, os.sterror(errno.ENOENT), 'S and DI do not match') ) 
+		raise( FileNotFoundError( errno.ENOENT, os.strerror(errno.ENOENT), 'S and DI do not match') ) 
 	di_distal = np.zeros(di.shape)
 	for i in range(di.shape[0]):
 		for j in range(di.shape[1]):

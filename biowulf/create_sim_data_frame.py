@@ -26,7 +26,10 @@ def add_ROC(df):
 		# delete 'b' in front of letters (python 2 --> python 3)
 		pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
 		for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
+
+		# ONLY CONSIDERING FIRST PDB-ID IN PFAM (FOR NOW)
 		ipdb = 0
+
 		input_data_file = "../pfam_ecc/%s_DP.pickle"%(pfam_id)
 		with open(input_data_file,"rb") as f:
 			pfam_dict = pickle.load(f)
@@ -44,74 +47,91 @@ def add_ROC(df):
 		try:
 			ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
 			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
-		except  (FileNotFoundError):
-			print("PDB File not found by BioPython")
-			pass
+			#---------------------- Load DI -------------------------------------#
+			#print("Unpickling DI pickle files for %s"%(pfam_id))
+			if filepath[3:5] =="ER":
+				with open("../DI/ER/er_DI_%s.pickle"%(pfam_id),"rb") as f:
+					DI = pickle.load(f)
+				f.close()
+			elif filepath[3:6] =="PLM":
+				with open("../DI/PLM/plm_DI_%s.pickle"%(pfam_id),"rb") as f:
+					DI = pickle.load(f)
+				f.close()
+			elif filepath[3:5] == "MF":
+				with open("../DI/MF/mf_DI_%s.pickle"%(pfam_id),"rb") as f:
+					DI = pickle.load(f)
+				f.close()
+			else:
+				print("File Method-Prefix %s not recognized"%(filepath[3:6]))
+				sys.exit()
 
+			DI_dup = dp.delete_sorted_DI_duplicates(DI)	
+			sorted_DI = tools.distance_restr_sortedDI(DI_dup)
+			#--------------------------------------------------------------------#
+			
+			#--------------------- Generate DI Matrix ---------------------------#
+			n_seq = max([coupling[0][0] for coupling in sorted_DI]) 
+			di = np.zeros((n_var,n_var))
+			for coupling in sorted_DI:
+				#print(coupling[1])
+				di[coupling[0][0],coupling[0][1]] = coupling[1]
+				di[coupling[0][1],coupling[0][0]] = coupling[1]
+			#--------------------------------------------------------------------#
+			
+			#----------------- Generate Optimal ROC Curve -----------------------#
+			# find optimal threshold of distance for both DCA and ER
+			ct_thres = np.linspace(1.5,10.,18,endpoint=True)
+			n = ct_thres.shape[0]
+			
+			auc = np.zeros(n)
+			
+			for i in range(n):
+				p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
+				auc[i] = tp.sum()/tp.shape[0]
+			i0 = np.argmax(auc)
+			
+			# set true positivies, false positives and predictions for optimal distance
+			p0,tp0,fp0 = tools.roc_curve(ct_distal,di,ct_thres[i0])
+			
+			
+			Ps.append(p0)	
+			TPs.append(tp0)	
+			FPs.append(fp0)	
+			AUCs.append(auc[i0])	
+			DIs.append(sorted_DI)
+			ODs.append(ct_thres[i0])
+			# Fill Data Frame with relavent info
+			#print("adding TP =",tp0)
+			#df.loc[i,'TP'] = tp0.tolist()
+			#print("df[i, TP] = ",df['TP'])
+			#df.loc[i,'FP'] = fp0.tolist()
+			#df.loc[i,'AUC'] = np.argmax(auc)
+			#df.loc[i,'DI'] = sorted_DI 
+			#df.loc[i,'OptiDist'] = ct_thres[i]  
+			#print("here")
+		except  FileNotFoundError as e:
+			print("ERROR!!\n Prediction: PDB File not found by BioPython")
+			print(str(e))
+			print("\n\nAdding empty row\n\n")
+			Ps.append([])	
+			TPs.append([])	
+			FPs.append([])	
+			AUCs.append(-1)	
+			DIs.append([])
+			ODs.append(-1)
+			pass
+		except  ValueError as e:
+			print("ERROR!!\n Prediction:max() arg is an empty sequence")
+			print(str(e))
+			Ps.append([])	
+			TPs.append([])	
+			FPs.append([])	
+			AUCs.append(-1)	
+			DIs.append([])
+			ODs.append(-1)
+			print("\n\nAdding empty row\n\n")
 			
 
-		#---------------------- Load DI -------------------------------------#
-		#print("Unpickling DI pickle files for %s"%(pfam_id))
-		if filepath[3:5] =="ER":
-			with open("../DI/ER/er_DI_%s.pickle"%(pfam_id),"rb") as f:
-				DI = pickle.load(f)
-			f.close()
-		elif filepath[3:6] =="PLM":
-			with open("../DI/PLM/plm_DI_%s.pickle"%(pfam_id),"rb") as f:
-				DI = pickle.load(f)
-			f.close()
-		elif filepath[3:5] == "MF":
-			with open("../DI/MF/mf_DI_%s.pickle"%(pfam_id),"rb") as f:
-				DI = pickle.load(f)
-			f.close()
-		else:
-			print("File Method-Prefix %s not recognized"%(filepath[3:6]))
-			sys.exit()
-
-		DI_dup = dp.delete_sorted_DI_duplicates(DI)	
-		sorted_DI = tools.distance_restr_sortedDI(DI_dup)
-		#--------------------------------------------------------------------#
-		
-		#--------------------- Generate DI Matrix ---------------------------#
-		n_seq = max([coupling[0][0] for coupling in sorted_DI]) 
-		di = np.zeros((n_var,n_var))
-		for coupling in sorted_DI:
-			#print(coupling[1])
-			di[coupling[0][0],coupling[0][1]] = coupling[1]
-			di[coupling[0][1],coupling[0][0]] = coupling[1]
-		#--------------------------------------------------------------------#
-
-		#----------------- Generate Optimal ROC Curve -----------------------#
-		# find optimal threshold of distance for both DCA and ER
-		ct_thres = np.linspace(1.5,10.,18,endpoint=True)
-		n = ct_thres.shape[0]
-
-		auc = np.zeros(n)
-
-		for i in range(n):
-			p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
-			auc[i] = tp.sum()/tp.shape[0]
-		i0 = np.argmax(auc)
-		
-		# set true positivies, false positives and predictions for optimal distance
-		p0,tp0,fp0 = tools.roc_curve(ct_distal,di,ct_thres[i0])
-
-		
-		Ps.append(p0)	
-		TPs.append(tp0)	
-		FPs.append(fp0)	
-		AUCs.append(auc[i0])	
-		DIs.append(sorted_DI)
-		ODs.append(ct_thres[i0])
-		# Fill Data Frame with relavent info
-		#print("adding TP =",tp0)
-		#df.loc[i,'TP'] = tp0.tolist()
-		#print("df[i, TP] = ",df['TP'])
-		#df.loc[i,'FP'] = fp0.tolist()
-		#df.loc[i,'AUC'] = np.argmax(auc)
-		#df.loc[i,'DI'] = sorted_DI 
-		#df.loc[i,'OptiDist'] = ct_thres[i]  
-		#print("here")
 	#print("df: ",len(df))
 	#print("P vec: ",len(Ps))
 	df = df.assign(P = Ps)
@@ -172,6 +192,8 @@ for i,job_id in enumerate(jobs):
 		families = re.findall(r'PF+\d+',f.read())
 	df = df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
 	df.loc[df.Jobid == job_id,'Pfam'] = families
+
+print(df)
 #print("Generating ROC curves for %d Pfams"%(len(df)))
 
 # Genreate ROC / AUC / Precisoin / DI Dataframe

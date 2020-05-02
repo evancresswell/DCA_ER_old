@@ -1,0 +1,5 @@
+#! /bin/bash
+
+module load singularity
+#singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python pfam_plots.py 
+singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python pfam_plots.py
