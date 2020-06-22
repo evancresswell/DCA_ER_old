@@ -9,6 +9,9 @@ warnings.simplefilter('ignore', BiopythonWarning)
 import numpy as np
 from IPython.display import HTML
 import random
+from numba import prange as parallel_range
+import sys
+
 
 def contact_map(pdb,ipdb,cols_removed,s_index):
     pdb_id = pdb[ipdb,5]
@@ -151,3 +154,345 @@ def distance_restr(di,s_index,make_large=False):
 				di_distal[i][j] = di[i][j]
 
 	return di_distal
+
+# ER coupling setup 6/20/2020
+def compute_sequences_weight(alignment_data=None, seqid=None):
+    """Computes weight of sequences. The weights are calculated by lumping
+    together sequences whose identity is greater that a particular threshold.
+    For example, if there are m similar sequences, each of them will be assigned
+    a weight of 1/m. Note that the effective number of sequences is the sum of
+    these weights.
+
+    Parameters
+    ----------
+        alignmnet_data : np.array()
+            Numpy 2d array of the alignment data, after the alignment is put in
+            integer representation
+        seqid : float
+            Value at which beyond this sequences are considered similar. Typical
+            values could be 0.7, 0.8, 0.9 and so on
+
+    Returns
+    -------
+        seqs_weight : np.array()
+            A 1d numpy array containing computed weights. This array has a size
+            of the number of sequences in the alignment data.
+    """
+    alignment_shape = alignment_data.shape
+    num_seqs = alignment_shape[0]
+    seqs_len = alignment_shape[1]
+    seqs_weight = np.zeros((num_seqs,), dtype=np.float64)
+    #count similar sequences
+    for i in parallel_range(num_seqs):
+        seq_i = alignment_data[i]
+        for j in range(num_seqs):
+            seq_j = alignment_data[j]
+            iid = np.sum(seq_i==seq_j)
+            if np.float64(iid)/np.float64(seqs_len) > seqid:
+                seqs_weight[i] += 1
+    #compute the weight of each sequence in the alignment
+    for i in range(num_seqs): seqs_weight[i] = 1.0/float(seqs_weight[i])
+    return seqs_weight
+
+
+
+
+def compute_single_site_freqs(alignment_data=None, seqs_weight=None,mx = None ):
+    """Computes single site frequency counts for a particular aligmnet data.
+
+    Parameters
+    ----------
+        alignment_data : np.array()
+            A 2d numpy array of alignment data represented in integer form.
+
+        num_site_states : int
+            An integer value fo the number of states a sequence site can have
+            including a gap state. Typical value is 5 for RNAs and 21 for
+            proteins.
+
+        seqs_weight : np.array()
+            A 1d numpy array of sequences weight
+
+    Returns
+    -------
+        single_site_freqs : np.array()
+            A 2d numpy array of of data type float64. The shape of this array is
+            (seqs_len, num_site_states) where seqs_len is the length of sequences
+            in the alignment data.
+    """
+    alignment_shape = alignment_data.shape
+    #num_seqs = alignment_shape[0]
+    seqs_len = alignment_shape[1]
+    if seqs_len != len(mx):
+        print('sequence length = %d and mx length = %d'%(seqs_len,len(mx)))
+    m_eff = np.sum(seqs_weight)
+    #single_site_freqs = np.zeros(shape = (seqs_len, num_site_states),dtype = np.float64)
+    single_site_freqs = [] # list form so its easier to handle varied num_site_states
+    for i in range(seqs_len):
+        #for a in range(1, num_site_states + 1):#we need gap states single site freqs too
+        single_site_freqs.append([])
+        num_site_states = mx[i] 
+        print('seq position %d has %d states'%(i,num_site_states))
+        column_i = alignment_data[:,i]
+        for a in np.unique(column_i):#we use varying site states (unique vals in col)
+            print('	a = ',a)
+            #print(np.unique(column_i)) # what values are in column_i?
+            freq_ia = np.sum((column_i==a)*seqs_weight)
+            single_site_freqs[-1].append(freq_ia/m_eff)
+    return single_site_freqs
+
+def get_reg_single_site_freqs(single_site_freqs = None, seqs_len = None,
+        mx = None, pseudocount = None):
+    """Regularizes single site frequencies.
+
+    Parameters
+    ----------
+        single_site_freqs : np.array()
+            A 2d numpy array of single site frequencies of shape
+            (seqs_len, num_site_states). Note that gap state frequencies are
+            included in this data.
+        seqs_len : int
+            The length of sequences in the alignment data
+        num_site_states : int
+            Total number of states that a site in a sequence can accommodate. It
+            includes gap states.
+        pseudocount : float
+            This is the value of the relative pseudo count of type float.
+            theta = lambda/(meff + lambda), where meff is the effective number of
+            sequences and lambda is the real pseudo count.
+
+    Returns
+    -------
+        reg_single_site_freqs : np.array()
+            A 2d numpy array of shape (seqs_len, num_site_states) of single site
+            frequencies after they are regularized.
+    """
+    reg_single_site_freqs = single_site_freqs
+    for i in range(seqs_len):
+        num_site_states = mx[i]
+        theta_by_q = np.float64(pseudocount)/np.float64(num_site_states)
+        for a in range(num_site_states):
+            reg_single_site_freqs[i][ a] = theta_by_q + (1.0 - pseudocount)*reg_single_site_freqs[i][ a]
+    return reg_single_site_freqs
+
+
+
+# This function is replaced by the parallelized version below
+def compute_pair_site_freqs_serial(alignment_data=None, mx=None,
+        seqs_weight=None):
+    
+    """Computes pair site frequencies for an alignmnet data.
+
+    Parameters
+    ----------
+        alignment_data : np.array()
+            A 2d numpy array conatining alignment data. The residues in the
+            alignment are in integer representation.
+        num_site_states : int
+            The number of possible states including gap state that sequence
+            sites can accomodate. It must be an integer
+        seqs_weight:
+            A 1d numpy array of sequences weight
+
+    Returns
+    -------
+        pair_site_freqs : np.array()
+            A 3d numpy array of shape
+            (num_pairs, num_site_states, num_site_states) where num_pairs is
+            the number of unique pairs we can form from sequence sites. The
+            pairs are assumed to in the order (0, 1), (0, 2) (0, 3), ...(0, L-1),
+            ... (L-1, L). This ordering is critical and any change must be
+            documented.
+    """
+    alignment_shape = alignment_data.shape
+    num_seqs = alignment_shape[0]
+    seqs_len = alignment_shape[1]
+    num_site_pairs = (seqs_len -1)*seqs_len/2
+    num_site_pairs = np.int64(num_site_pairs)
+    m_eff = np.sum(seqs_weight)
+    #pair_site_freqs = np.zeros(
+    #    shape=(num_site_pairs, num_site_states - 1, num_site_states - 1),
+    #    dtype = np.float64)
+    pair_site_freqs = [] # list form so its easier to handle varied num_site_states 
+    pair_counter = 0
+    for i in range(seqs_len-1):
+        column_i = alignment_data[:, i]
+        i_site_states = mx[i] 
+        if len(np.unique(column_i))!=i_site_states:
+            print('unique vals doesn\'match site states')
+            sys.exit()
+
+        for j in range(i+1, seqs_len):
+            column_j = alignment_data[:, j]
+            j_site_states = mx[j] 
+            if len(np.unique(column_j))!=j_site_states:
+                print('unique vals doesn\'match site states')
+                sys.exit()
+            pair_site_freqs.append([])
+
+            for a in np.unique(column_i):
+                pair_site_freqs[-1].append([])
+                count_ai = column_i==a
+
+                for b in np.unique(column_j):
+                    count_bj = column_j==b
+                    count_ai_bj = count_ai * count_bj
+                    freq_ia_jb = np.sum(count_ai_bj*seqs_weight)
+                    #pair_site_freqs[pair_counter, a-1, b-1] = freq_ia_jb/m_eff
+                    pair_site_freqs[-1][-1].append(freq_ia_jb/m_eff)
+            #move to the next site pair (i, j)
+            pair_counter += 1
+    if len(pair_site_freqs) != num_site_pairs:
+        print('Not enough site pairs generated')
+        sys.exit()
+    return pair_site_freqs
+
+
+
+
+
+# I think this is wahte msa_numerics uses to initialize weights..
+# maybe we can use this to initialize our weights (w i think)
+# what is w and what is its purpose!?!?!?!
+def construct_corr_mat(reg_fi = None, reg_fij = None, seqs_len = None,
+        mx = None):
+    """Constructs correlation matrix from regularized frequency counts.
+
+    Parameters
+    ----------
+        reg_fi : np.array()
+            A 2d numpy array of shape (seqs_len, num_site_states) of regularized
+            single site frequncies. Note that only fi[:, 0:num_site_states-1] are
+            used for construction of the correlation matrix, since values
+            corresponding to fi[:, num_site_states]  are the frequncies of gap
+            states.
+        reg_fij : np.array()
+            A 3d numpy array of shape (num_unique_pairs, num_site_states -1,
+            num_site_states - 1), where num_unique_pairs is the total number of
+            unique site pairs execluding self-pairings.
+        seqs_len : int
+            The length of sequences in the alignment
+        num_site_states : int
+            Total number of states a site in a sequence can accommodate.
+
+    Returns
+    -------
+        corr_mat : np.array()
+            A 2d numpy array of shape (N, N)
+            where N = seqs_len * num_site_states -1
+    """
+    #corr_mat_len = seqs_len * (num_site_states - 1)
+    corr_mat_len = mx.cumsum()[-1]
+    print('Generating NxN correlation matrix with N=',corr_mat_len)
+    corr_mat = np.zeros((corr_mat_len, corr_mat_len), dtype=np.float64)
+    pair_counter = 0
+    for i in range(seqs_len-1):
+        if i == 0 :
+            site_i = 0
+        else:
+            site_i = mx.cumsum()[i-1]
+        for j in range(i+1, seqs_len):
+            site_j = mx.cumsum()[j-1]
+            for a in range(mx[i]):
+                row = site_i + a
+                for b in range(mx[j]):
+                    col = site_j + b
+                    if i==j:
+                        print('Iteration through non-symmetric reg_fij list is not working ')
+                        sys.exit()
+                    else:
+                        try:
+                            corr_ij_ab = reg_fij[pair_counter][ a][ b] - reg_fi[i][ a] * reg_fi[j][ b]
+                        except IndexError:
+                            print('pair %d: (%d,%d)'%(pair_counter,i,j))
+                            print('Indices: ', mx.cumsum())
+                            print('Site Counts: ', mx)
+                            print('Index out of bound')
+                            print('par ranges: a= [%d,%d],b= [%d,%d]'%(site_i,site_i+range(mx[i])[-1],site_j,site_j+range(mx[j])[-1]))
+                            print('pair_counter = %d of %d (%d)'%(pair_counter,len(reg_fij),len(reg_fij)))
+                            print('i site state = %d of %d (%d)'%(a,mx[i],len(reg_fij[pair_counter])))
+                            print(b)
+                            sys.exit()
+                    #print(corr_mat)
+                    #print(corr_ij_ab)
+                    try:
+                        corr_mat[row, col] = corr_ij_ab
+                        corr_mat[col, row] = corr_ij_ab
+                    except IndexError:
+                        print('ERROR: \n	row = %d of %d'%(row,mx.cumsum()[-1]) )
+                        print('       \n	col = %d of %d'%(col,mx.cumsum()[-1]) )
+                        sys.exit()
+
+            if i != j: pair_counter += 1
+    # fill in diagonal block
+    for ii,site_block in enumerate(mx):
+        if ii==0:
+            site_block_start = 0
+        else:
+            site_block_start = mx.cumsum()[ii-1]
+        for a in range(site_block):
+            for b in range(a,site_block):
+                row = site_block_start + a
+                col = site_block_start + b
+                #print('combo (%d,%d)'%(row,col))
+                fia, fib = reg_fi[ii][ a], reg_fi[ii][ b]
+                corr_ij_ab = fia*(1.0 - fia) if a == b else -1.0*fia*fib
+                corr_mat[row, col] = corr_ij_ab
+                corr_mat[col, row] = corr_ij_ab
+
+
+    return corr_mat
+def compute_couplings(corr_mat = None):
+    """Computes the couplings by inverting the correlation matrix
+
+    Parameters
+    ----------
+        corr_mat : np.array()
+            A numpy array of shape (N, N) where N = seqs_len *(num_site_states -1)
+            where seqs_len  is the length of sequences in the alignment data and
+            num_site_states is the total number of states a site in a sequence
+            can accommodate, including gapped states.
+
+    Returns
+    -------
+        couplings : np.array()
+            A 2d numpy array of the same shape as the correlation matrix. Note
+            that the couplings are the negative of the inverse of the
+            correlation matrix.
+    """
+    couplings = np.linalg.inv(corr_mat)
+    couplings = -1.0*couplings
+    return couplings
+def slice_couplings(couplings = None, site_pair = None, mx=None):
+    """Returns couplings corresponding to site pair (i, j). Note that the
+    the couplings involving gaps are included, but they are set to zero.
+
+    Parameters
+    ----------
+        couplings : np.array
+            A 2d numpy array of couplings. It has a shape of (L(q-1), L(q-1))
+            where L and q are the length of sequences in alignment data and total
+            number of standard residues plus gap.
+        site_pair : tuple
+            A tuple of site pairs. Example (0, 1), (0, L-1), ..., (L-2, L-1).
+        num_site_states : int
+            The value of q.
+
+    Returns
+    -------
+        couplings_ij : np.array
+            A2d numpy array of shape (q, q) containing the couplings. Note that
+            couplings_ij[q, :] and couplings[:, q] are set to zero.
+    """
+    qi = mx[site_pair[0]] 
+    qj = mx[site_pair[1]] 
+    couplings_ij = np.zeros((qi, qj), dtype = np.float64)
+    row_begin = mx.cumsum()[site_pair[0]-1] 
+    row_end = row_begin + qi 
+    column_begin = mx.cumsum()[site_pair[1] -1]
+    column_end = column_begin + qj
+    couplings_ij[:qi-1, :qj-1] = couplings[row_begin:row_end, column_begin:column_end]
+    return couplings_ij
+
+
+
