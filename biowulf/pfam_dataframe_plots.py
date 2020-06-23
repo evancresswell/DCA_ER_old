@@ -7,7 +7,8 @@ import numpy as np
 from itertools import permutations
 
 
-df_AUC = pd.read_pickle("AUC_df.pkl")
+#df_AUC = pd.read_pickle("AUC_df.pkl")
+df_AUC = pd.read_pickle("AUC_df_summary.pkl")
 print(df_AUC.shape)
 df_diff = df_AUC.copy()
 
@@ -28,7 +29,7 @@ df_plot = df_diff[x_columns]
 df_sum = df_plot[df_plot > 0 ].sum(numeric_only=True)
 
 df_sum.plot.bar()
-plt.savefig("agg_AUC_bar.pdf")
+plt.savefig("agg_AUC_bar_summary.pdf")
 plt.show()
 plt.close()
 
@@ -39,5 +40,5 @@ df_std = df_plot[df_plot > 0].std(numeric_only=True)
 
 fig, ax = plt.subplots()
 plot = df_mean.plot(kind='bar',yerr=df_std,ax=ax)
-plt.savefig("mean_AUC_bar.pdf")
+plt.savefig("mean_AUC_bar_summary.pdf")
 plt.show()

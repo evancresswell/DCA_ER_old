@@ -16,8 +16,12 @@ def add_ROC(df):
 	I0s =[]
 	DIs = []
 	ODs = []
+	pfams =[]
+	seq_lens = []
+	num_seqs = []
 	for i,row in df.iterrows():
 		pfam_id = row['Pfam'] 
+		pfams.append(pfam_id)
 
 		# Load or generate structural information
 			# data processing THESE SHOULD BE CREATED DURING DATA GENERATION
@@ -39,7 +43,8 @@ def add_ROC(df):
 		s_ipdb = pfam_dict['s_ipdb']	
 		cols_removed = pfam_dict['cols_removed']
 		n_var = s0.shape[1]
-   		 
+		seq_lens.append(n_var)
+		num_seqs.append(s0.shape[0]) 
 		pdb_id = pdb[ipdb,5]
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		
@@ -70,7 +75,7 @@ def add_ROC(df):
 			#--------------------------------------------------------------------#
 			
 			#--------------------- Generate DI Matrix ---------------------------#
-			n_seq = max([coupling[0][0] for coupling in sorted_DI]) 
+			n_amino = max([coupling[0][0] for coupling in sorted_DI]) 
 			di = np.zeros((n_var,n_var))
 			for coupling in sorted_DI:
 				#print(coupling[1])
@@ -140,12 +145,14 @@ def add_ROC(df):
 	df = df.assign(DI = DIs)
 	df = df.assign(AUC = AUCs)
 	df = df.assign(OptiDist = ODs)
+	df = df.assign(seq_len = seq_lens)
+	df = df.assign(num_seq = num_seqs)
 	#print(df)
 	return df.copy()
 #-----------------------------------------------------------------------------------#
 
 #-------------------------- Parallelize Data Frame Generation ----------------------#
-def parallelize_dataframe(df, func, n_cores=60):
+def parallelize_dataframe(df, func, n_cores=50):
     df_split = np.array_split(df, n_cores)
     pool = Pool(n_cores)
     df = pd.concat(pool.map(func, df_split),sort=False)
@@ -194,14 +201,20 @@ for i,job_id in enumerate(jobs):
 	df.loc[df.Jobid == job_id,'Pfam'] = families
 
 print(df)
+
+# Re index with PFAM ID
+df_pfam = df.copy()
+df_pfam.set_index('Pfam')
+
 #print("Generating ROC curves for %d Pfams"%(len(df)))
 
 # Genreate ROC / AUC / Precisoin / DI Dataframe
-df_roc = parallelize_dataframe(df, add_ROC)
+df_sum = parallelize_dataframe(df_pfam, add_ROC)
+
 #print(df_roc)
-roc_filename = filepath[:-4]+'_roc.pkl' 
-df_roc.to_pickle(roc_filename)
-print ('saving file: ' + roc_filename)
+sum_filename = filepath[:-4]+'_summary.pkl' 
+df_sum.to_pickle(sum_filename)
+print ('saving file: ' + sum_filename)
 
 
 #-----------------------------------------------------------------------------------#

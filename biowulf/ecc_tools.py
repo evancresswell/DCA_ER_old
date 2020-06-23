@@ -8,10 +8,64 @@ from Bio import BiopythonWarning
 warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
 warnings.simplefilter('ignore', DeprecationWarning)
+from matplotlib import colors as mpl_colors
 import numpy as np
+import pandas as pd
 
 
 import random
+
+def get_score_df(df_diff_full):
+	# pass dataframes generated in gen_method_column_df.py
+	# creates Dataframe for each method
+	# creates rgba list for 3 methods
+	printing = False
+	df_ER = df_diff_full.loc[df_diff_full['method']=='ER']
+	df_MF = df_diff_full.loc[df_diff_full['method']=='MF']
+	df_PLM = df_diff_full.loc[df_diff_full['method']=='PLM']
+
+	#print(df_MF.loc[df_MF['best_method']=='MF' ].loc[df_MF['AUC']<0.]['Score'])
+	if printing:
+		print(len(df_ER['Score']))
+		print(len(df_PLM['Score']))
+		print(len(df_MF['Score']))
+
+	common = df_ER.merge(df_MF,on='Pfam')
+	print(len(common))
+	df_ER = df_ER[df_ER.Pfam.isin(common.Pfam)].dropna()
+	df_PLM = df_PLM[df_PLM.Pfam.isin(common.Pfam)].dropna()
+	df_MF = df_MF[df_MF.Pfam.isin(common.Pfam)].dropna()
+
+	if printing:
+		print(len(df_ER['Score']))
+		print(len(df_PLM['Score']))
+		print(len(df_MF['Score']))
+	df_ER = df_ER.sort_values(by='Pfam')
+	df_MF = df_MF.sort_values(by='Pfam')
+	df_PLM = df_PLM.sort_values(by='Pfam')
+
+	if printing:
+		print(df_ER['Pfam'])
+		print(df_MF['Pfam'])
+		print(df_PLM['Pfam'])
+
+
+	df_winner = df_diff_full[df_diff_full.Pfam.isin(common.Pfam)].dropna()
+	df_winner = df_winner.loc[df_winner['best_method'] == df_winner['method'] ] 
+	df_winner = df_winner.sort_values(by='Pfam')
+	scores = df_winner['Score'].values.tolist()
+	color_dict = {'ER':'blue','PLM':'green','MF':'orange'}
+	colors = [ color_dict[c] for c in df_ER['best_method'].values.tolist() ] 
+	print(len(scores),len(colors))
+	#cmap = colors.LinearSegmentedColormap.from_list('incr_alpha', [(0, (*colors.to_rgb(c),0)), (1, c)])
+	rgba_colors = np.zeros((len(scores),4))
+	rgba_colors[:,0:3] = [ mpl_colors.to_rgb(c) for c in colors ]  
+	rgba_colors[:,3] = scores
+	#print(rgba_colors)
+
+
+	return df_ER, df_MF, df_PLM,rgba_colors
+
 
 
 def gen_DI_matrix(DI):
