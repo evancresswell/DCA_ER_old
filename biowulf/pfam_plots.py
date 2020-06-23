@@ -1,6 +1,7 @@
 import os
 import datetime
 import numpy as np
+on_pc = False
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 import pickle
@@ -25,12 +26,12 @@ from pydca.msa_trimmer import msa_trimmer
 from pydca.contact_visualizer import contact_visualizer
 from pydca.dca_utilities import dca_utilities
 
-data_path = '../../hoangd2_data/Pfam-A.full'
 data_path = '../../Pfam-A.full'
+data_path = '../../hoangd2_data/Pfam-A.full'
 
-er_directory = './DI_test/ER/'
-mf_directory = './DI_test/MF/'
-plm_directory = './DI_test/PLM/'
+er_directory = './DI/ER/'
+mf_directory = './DI/MF/'
+plm_directory = './DI/PLM/'
 
 s_test = np.loadtxt('test_list.txt',dtype='str')
 
