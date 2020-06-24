@@ -2,6 +2,7 @@ import sys,os
 import numpy as np
 import pickle
 from scipy import linalg
+import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from pydca.meanfield_dca import meanfield_dca
 import expectation_reflection as ER
@@ -19,6 +20,7 @@ from direct_info import sort_di
 # Set data path
 #========================================================================================
 data_path = '/home/eclay/Pfam-A.full'
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 
 np.random.seed(1)
 #pfam_id = 'PF00025'
@@ -38,9 +40,16 @@ pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
 for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
 
 # data processing THESE SHOULD BE CREATED DURING DATA GENERATION
-ipdb = 0
-s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
-				gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
+#ipdb = 0
+#s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
+s0 = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id)) 
+print(s0.shape)
+
+n_var = s0.shape[1]
+mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+mx_cumsum = np.insert(mx.cumsum(),0,0)
+i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
+
 
 
 # number of positions
@@ -114,8 +123,8 @@ print('s0 OneHot -> s: \n',s[0][:mx[0]])
 
 
 
-computing_DI = True
 computing_DI = False
+computing_DI = True
 if computing_DI:
 
 	#========================================================================================
@@ -127,6 +136,7 @@ if computing_DI:
 		msa_outfile = '/home/eclay/DCA_ER/pfam_ecc/MSA_%s.fa'%(pfam_id) 
 		# use msa fasta file generated in data_processing
 		msa_outfile = './pfam_ecc/MSA_%s.fa'%(pfam_id) 
+		msa_outfile = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/MSA_%s.fa'%(pfam_id) 
 
 		# MF instance 
 		mfdca_inst = meanfield_dca.MeanFieldDCA(
@@ -232,7 +242,7 @@ if computing_DI:
 
 	#-------------------------------
 	# parallel
-	res_couplings = Parallel(n_jobs = 8)(delayed(predict_w_couplings)\
+	res_couplings = Parallel(n_jobs = 12)(delayed(predict_w_couplings)\
 			(s,i0,i1i2,niter_max=10,l2=100.0,couplings=couplings)\
 			for i0 in range(n_var))
 	#-------------------------------
@@ -266,7 +276,7 @@ if computing_DI:
 	# ER - NO COUPLINGS
 	#========================================================================================
 	# parallel
-	res = Parallel(n_jobs = 8)(delayed(predict_w)\
+	res = Parallel(n_jobs = 12)(delayed(predict_w)\
 		(s,i0,i1i2,niter_max=10,l2=100.0)\
 		for i0 in range(n_var))
 

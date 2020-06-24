@@ -462,7 +462,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     #mi = number_residues(s)
     #print(mi.mean())
-    np.save("pfam_ecc/%s_removed_cols.npy"%pfam_id,removed_cols)
+    np.save('%s/%s/msa.npy'%(data_path,pfam_id),removed_cols)
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
 

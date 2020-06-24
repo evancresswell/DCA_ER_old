@@ -1,7 +1,7 @@
 ##========================================================================================
 import numpy as np
 from scipy import linalg
-import er_setup as er_tools
+import ecc_tools as tools
 #from sklearn.preprocessing import OneHotEncoder
 
 

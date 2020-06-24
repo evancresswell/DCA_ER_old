@@ -2,7 +2,7 @@
 ## 2018.12.26: separate remove gaps (first) and remove conserved positions (last)
 import numpy as np
 from scipy.stats import itemfreq
-import os
+import os,sys
 
 """
 seq_file = 'fasta_final.txt'
@@ -320,7 +320,8 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
         if printing:
     	    print("shape of s (after UTF-8 decode):\n",s.shape)
     except:
-        print("UTF not decoded, pfam_id: %s \n "%pfam_id,s.shape)
+        print("\n\nUTF not decoded, pfam_id: %s \n\n"%pfam_id,s.shape)
+        print("Exception: ",sys.exc_info()[0])
         # Create list file for missing pdb structures
         if not os.path.exists('missing_MSA.txt'):
             file_missing_msa = open("missing_MSA.txt",'w')
