@@ -30,7 +30,37 @@ def direct_info_value(w2d,fi,q,i1i2):
 # w2d[nm,nm], fi[l,n],q[n]
     n = q.shape[0]
 
-    ew_all = np.exp(w2d)
+
+
+    #ew_all = np.exp(w2d)
+
+
+    # dealing with RuntimeWarning
+    try:
+        ew_all = np.exp(w2d)
+    except(RuntimeWarning):
+        import decimal
+        # Precision to use
+        decimal.getcontext().prec = decimal.getcontext().Etop() - 1
+        print(decimal.getcontext().prec)
+        w2d_list =  []
+        for w1,row in enumerate(w2d):
+           w2d_list.append([])
+           for w2,val in enumerate(row):
+               w2d_list[-1].append(decimal.Decimal(val))
+        w2d_new = np.asarray( w2d_list, dtype=object)
+        # New array with the specified precision
+        for w1,row in enumerate(w2d_new):
+           for w2,val in enumerate(row):
+               print(val)
+               val.exp() 
+
+
+
+
+
+
+
     di = np.zeros((n,n))
     tiny = 10**(-100.)
     diff_thres = 10**(-4.)

@@ -9,7 +9,7 @@ def fit(x,y_onehot,niter_max,l2,couplings= None):
     #print(niter_max)        
     l,n = x.shape
     m = y_onehot.shape[1] # number of categories
-    print('%d states for this site'%(m))
+    #print('%d states for this site'%(m))
     
     x_av = np.mean(x,axis=0)
     dx = x - x_av
@@ -18,11 +18,11 @@ def fit(x,y_onehot,niter_max,l2,couplings= None):
     # 2019.07.16:  l2 = lamda/(2L)
     c += l2*np.identity(n)/(2*l)
     c_inv = linalg.pinvh(c)
-    print('c_inv shape: ', c_inv.shape)
+    #print('c_inv shape: ', c_inv.shape)
 
     H0 = np.zeros(m)
     W = np.zeros((n,m))
-    print('y_onehot shape: ',y_onehot.shape)
+    #print('y_onehot shape: ',y_onehot.shape)
 
     for i in range(m):
         y = y_onehot[:,i]  # y = {0,1}

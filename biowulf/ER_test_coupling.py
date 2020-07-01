@@ -26,24 +26,30 @@ np.random.seed(1)
 #pfam_id = 'PF00025'
 pfam_id = sys.argv[1]
 
+er_directory = './DI/ER/'
+mf_directory = './DI/MF/'
+plm_directory = './DI/PLM/'
+
+input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
+with open(input_data_file,"rb") as f:
+	pfam_dict = pickle.load(f)
+f.close()
+#s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
+#				gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
+ipdb = 0
+s0 = pfam_dict['s0']	
+# use Feb version of s0
+s0 = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id))
+print(s0.shape)
+s_index = pfam_dict['s_index']	
+s_ipdb = pfam_dict['s_ipdb']	
+cols_removed = pfam_dict['cols_removed']
+
+
 
 #========================================================================================
 # Process data and write fast file for ER and MF
 #========================================================================================
-
-# Load PDB structure 
-pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
-
-#---------- Pre-Process Structure Data ----------------#
-# delete 'b' in front of letters (python 2 --> python 3)
-pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
-for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
-
-# data processing THESE SHOULD BE CREATED DURING DATA GENERATION
-#ipdb = 0
-#s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
-s0 = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id)) 
-print(s0.shape)
 
 n_var = s0.shape[1]
 mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
@@ -130,8 +136,8 @@ if computing_DI:
 	#========================================================================================
 	#                   DCA
 	#========================================================================================
-	computing_DCA = True
 	computing_DCA = False
+	computing_DCA = True
 	if computing_DCA:
 		msa_outfile = '/home/eclay/DCA_ER/pfam_ecc/MSA_%s.fa'%(pfam_id) 
 		# use msa fasta file generated in data_processing
@@ -160,13 +166,16 @@ if computing_DI:
 
 	#========================================================================================
 	# Get coupling matrix
+	computing_coupling = False
 	computing_coupling = True
 	if computing_coupling:
 		# seqid is similar to find_conserved_cols' fc in data_processing (fc = .8)
 
 		# Compute Sequence Weight Array
 		if os.path.exists('%s_seqs_weight.npy'%(pfam_id)):
-			seqs_weight = np.load(open('%s_seqs_weight.npy'%(pfam_id), 'rb'))
+			seqs_file = open('%s_seqs_weight.npy'%(pfam_id), 'rb')
+			seqs_weight = np.load(seqs_file,allow_pickle=True)
+			seqs_file.close()
 		else:
 			seqs_weight = tools.compute_sequences_weight(alignment_data = s0, seqid = .8)
 			np.save('%s_seqs_weight.npy'%(pfam_id),np.array(seqs_weight))
@@ -175,7 +184,9 @@ if computing_DI:
 
 		# Compute Single Site Frequency Matrix
 		if os.path.exists('%s_single_site_freqs.npy'%(pfam_id)):
-			single_site_freqs = np.load(open('%s_single_site_freqs.npy'%(pfam_id), 'rb'))
+			site_freqs_file = open('%s_single_site_freqs.npy'%(pfam_id), 'rb')
+			single_site_freqs = np.load(site_freqs_file,allow_pickle=True)
+			site_freqs_file.close()
 		else:
 			single_site_freqs = tools.compute_single_site_freqs(alignment_data = s0,seqs_weight=seqs_weight,mx= mx)
 			np.save('%s_single_site_freqs.npy'%(pfam_id),np.array(single_site_freqs))
@@ -196,7 +207,9 @@ if computing_DI:
 
 		# Compute Pair Site Frequency Matrix
 		if os.path.exists('%s_pair_site_freqs.npy'%(pfam_id)):
-			pair_site_freqs = np.load(open('%s_pair_site_freqs.npy'%(pfam_id), 'rb'))
+			pair_site_file = open('%s_pair_site_freqs.npy'%(pfam_id), 'rb')
+			pair_site_freqs = np.load(pair_site_file,allow_pickle=True)
+			pair_site_file.close()
 		else:
 			pair_site_freqs = tools.compute_pair_site_freqs_serial(alignment_data=s0, mx=mx,seqs_weight=seqs_weight)
 			np.save('%s_pair_site_freqs.npy'%(pfam_id),np.array(pair_site_freqs))
@@ -207,7 +220,10 @@ if computing_DI:
 		#print(len(mx.cumsum()))
 		# Compute Correlation Matrix
 		if os.path.exists('%s_corr_mat.npy'%(pfam_id)):
-			corr_mat = np.load(open('%s_corr_mat.npy'%(pfam_id), 'rb'))
+			corr_file = open('%s_corr_mat.npy'%(pfam_id), 'rb')
+			corr_mat = np.load(corr_file,allow_pickle=True)
+			print('Correlation Matrix loaded: shape ',corr_mat.shape,':\n',corr_mat)
+			corr_file.close()
 		else:
 			corr_mat =  tools.construct_corr_mat(reg_fi = reg_single_site_freqs, reg_fij = pair_site_freqs, seqs_len = n_var, mx = mx)
 			np.save('%s_corr_mat.npy'%(pfam_id),corr_mat)
@@ -218,7 +234,28 @@ if computing_DI:
 
 		# Compute Coupling Matrix
 		if os.path.exists('%s_couplings.npy'%(pfam_id)):
-			couplings = np.load(open('%s_couplings.npy'%(pfam_id), 'rb'))
+			couplings_file = open('%s_couplings.npy'%(pfam_id), 'rb')
+			couplings = np.load(couplings_file,allow_pickle=True)
+			print('Couplings Matrix loaded: \n',couplings)
+
+
+			s_av = np.mean(s,axis=0)
+			ds = s - s_av
+			l,n = s.shape
+
+			l2 = 100.
+			# calculate covariance of s (NOT DS) why not???
+			s_cov = np.cov(s,rowvar=False,bias=True)
+			# tai-comment: 2019.07.16:  l2 = lamda/(2L)
+			s_cov += l2*np.identity(n)/(2*l)
+			s_inv = linalg.pinvh(s_cov)
+			print('s_inv shape: ', s_inv.shape)
+
+
+
+			print('vs cov-inv: ',s_inv)
+			couplings_file.close()
+
 		else:
 			couplings = tools.compute_couplings(corr_mat = corr_mat)
 			np.save('%s_couplings.npy'%(pfam_id),couplings)
@@ -229,7 +266,9 @@ if computing_DI:
 
 		#print(np.unique(s0[:,20]))
 	
-
+	couplings_file = open('%s_couplings.npy'%(pfam_id), 'rb')
+	couplings = np.load(couplings_file,allow_pickle=True)
+	couplings_file.close()
 
 	#========================================================================================
 	# ER - COUPLINGS
@@ -262,7 +301,7 @@ if computing_DI:
 
 	sorted_DI_er_couplings = sort_di(di)
 
-	with open('./er_DI-couplings_%s.pickle'%(pfam_id), 'wb') as f:
+	with open('DI/ER/er_couplings_DI_%s.pickle'%(pfam_id), 'wb') as f:
 	    pickle.dump(sorted_DI_er_couplings, f)
 	f.close()
 	#print('ER DI: ', sorted_DI_er)
@@ -272,7 +311,6 @@ if computing_DI:
 
 	#========================================================================================
 	#========================================================================================
-	computing_DCA = True
 	# ER - NO COUPLINGS
 	#========================================================================================
 	# parallel
@@ -297,7 +335,7 @@ if computing_DI:
 
 	sorted_DI_er = sort_di(di)
 
-	with open('./er_DI_%s.pickle'%(pfam_id), 'wb') as f:
+	with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
 	    pickle.dump(sorted_DI_er, f)
 	f.close()
 
@@ -356,7 +394,7 @@ if computing_DI:
 
 	sorted_DI_er_cov_couplings = sort_di(di)
 
-	with open('./er_DI_cov_couplings_%s.pickle'%(pfam_id), 'wb') as f:
+	with open('DI/ER/er_cov_couplings_DI_%s.pickle'%(pfam_id), 'wb') as f:
 	    pickle.dump(sorted_DI_er_cov_couplings, f)
 	f.close()
 	#print('ER DI: ', sorted_DI_er)
@@ -371,10 +409,17 @@ if computing_DI:
 # Calculate ROC curves
 #========================================================================================
 plotting = True
-if plotting and not computing_DI:
+#if plotting and not computing_DI:
+if plotting :
 	print ('Plotting Protein Famility ', pfam_id)
 
-	# Plot Contact Map
+	pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
+
+	#---------- Pre-Process Structure Data ----------------#
+	# delete 'b' in front of letters (python 2 --> python 3)
+	pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
+	for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
+
 	ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
 	ct_distal = tools.distance_restr(ct,s_index,make_large=True)
 
@@ -382,19 +427,19 @@ if plotting and not computing_DI:
 
 	#---------------------- Load DI -------------------------------------#
 	print("Unpickling DI pickle files for %s"%(pfam_id))
-	file_obj = open("er_DI_%s.pickle"%(pfam_id),"rb")
+	file_obj = open("DI/ER/er_DI_%s.pickle"%(pfam_id),"rb")
 	sorted_DI_er = pickle.load(file_obj)
 	file_obj.close()
 
-	file_obj = open("mf_DI_%s.pickle"%(pfam_id),"rb")
+	file_obj = open("DI/MF/mf_DI_%s.pickle"%(pfam_id),"rb")
 	sorted_DI_mf = pickle.load(file_obj)
 	file_obj.close()
 
-	file_obj =open("er_DI-couplings_%s.pickle"%(pfam_id),"rb")
+	file_obj =open("DI/ER/er_couplings_DI_%s.pickle"%(pfam_id),"rb")
 	sorted_DI_er_coupling = pickle.load(file_obj)
 	file_obj.close()
 	
-	file_obj = open("er_DI_cov_couplings_%s.pickle"%(pfam_id),"rb")
+	file_obj = open("DI/ER/er_cov_couplings_DI_%s.pickle"%(pfam_id),"rb")
 	sorted_DI_er_cov_coupling = pickle.load(file_obj)
 	file_obj.close()
 

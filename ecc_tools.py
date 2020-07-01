@@ -85,9 +85,9 @@ def contact_map(pdb,ipdb,cols_removed,s_index):
     #print('pdb id, chain, start, end, length:',pdb_id,pdb_chain,pdb_start,pdb_end,pdb_end-pdb_start+1)
 
     #print('download pdb file')
-    pdb_file = pdb_list.retrieve_pdb_file(pdb_id,file_format='pdb')
+    pdb_file = pdb_list.retrieve_pdb_file(str(pdb_id),file_format='pdb')
     #pdb_file = pdb_list.retrieve_pdb_file(pdb_id)
-    chain = pdb_parser.get_structure(pdb_id,pdb_file)[0][pdb_chain]
+    chain = pdb_parser.get_structure(str(pdb_id),pdb_file)[0][pdb_chain]
     coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
     coords = coords_all[pdb_start-1:pdb_end]
     #print('original pdb:')
@@ -300,10 +300,10 @@ def compute_single_site_freqs(alignment_data=None, seqs_weight=None,mx = None ):
         #for a in range(1, num_site_states + 1):#we need gap states single site freqs too
         single_site_freqs.append([])
         num_site_states = mx[i] 
-        print('seq position %d has %d states'%(i,num_site_states))
+        #print('seq position %d has %d states'%(i,num_site_states))
         column_i = alignment_data[:,i]
         for a in np.unique(column_i):#we use varying site states (unique vals in col)
-            print('	a = ',a)
+            #print('	a = ',a)
             #print(np.unique(column_i)) # what values are in column_i?
             freq_ia = np.sum((column_i==a)*seqs_weight)
             single_site_freqs[-1].append(freq_ia/m_eff)

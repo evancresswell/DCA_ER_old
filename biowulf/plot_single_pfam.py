@@ -27,7 +27,7 @@ from pydca.contact_visualizer import contact_visualizer
 from pydca.dca_utilities import dca_utilities
 
 data_path = '../../Pfam-A.full'
-data_path = '../../hoangd2_data/Pfam-A.full'
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 
 er_directory = './DI/ER/'
 mf_directory = './DI/MF/'
