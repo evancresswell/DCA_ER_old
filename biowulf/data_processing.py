@@ -467,3 +467,167 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
 
+def data_processing_covid(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8):
+#def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
+
+    printing = True
+    printing = False
+
+    # read parse_pfam data:
+    #print('read original aligned pfam data')
+    #s = np.load('../%s/msa.npy'%pfam_id).T
+    s = np.load('%s/%s/msa.npy'%(data_path,pfam_id))
+    #print(type(s))
+    #print(type(s[0]))
+    #print(s[0])
+    if printing:
+    	print("shape of s (import from msa.npy):\n",s.shape)
+   
+    # convert bytes to str
+    """
+    try:
+        s = np.array([s[t,i].decode('UTF-8') for t in range(s.shape[0]) \
+             for i in range(s.shape[1])]).reshape(s.shape[0],s.shape[1])
+        if printing:
+    	    print("shape of s (after UTF-8 decode):\n",s.shape)
+    except:
+        print("\n\nUTF not decoded, pfam_id: %s \n\n"%pfam_id,s.shape)
+        print("Exception: ",sys.exc_info()[0])
+        # Create list file for missing pdb structures
+        if not os.path.exists('missing_MSA.txt'):
+            file_missing_msa = open("missing_MSA.txt",'w')
+            file_missing_msa.write("%s\n"% pfam_id)
+            file_missing_msa.close()
+        else:
+            file_missing_msa = open("missing_MSA.txt",'a')
+            file_missing_msa.write("%s\n"% pfam_id)
+            file_missing_msa.close()
+        return
+    """
+    if printing:
+    	print('\n\nstarting shape: ',s.shape)
+
+
+    if printing:
+    	print("#\n\n-------------------------Remove Gaps--------------------------#")
+    	print("s = \n",s)
+
+    # no pdb_ref structure for covid proteins, ref strucutre is always s[0]
+    tpdb =ipdb
+    gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
+
+
+    #print("removing gaps...")
+    s = s[:,~gap_pdb] # removes gaps  
+    if printing:
+        print(s.shape)
+    s_index = np.arange(s.shape[1])
+
+    if printing:
+    	print("s[tpdb] shape is ",s[tpdb].shape)
+    	print("s = \n",s)
+    	print("though s still has gaps, s[%d] does not:\n"%(tpdb),s[tpdb])
+    	print("s shape is ",s.shape)
+    	print("Saving indices of reference sequence s[%d](length=%d):\n"%(tpdb,s_index.shape[0]),s_index)
+    	print("#--------------------------------------------------------------#\n\n")
+  
+
+    #print(s.shape)
+    #print(s)
+
+    lower_cols = np.array([i for i in range(s.shape[1]) if s[tpdb,i].islower()])
+    #print("lower_cols: ",lower_cols)
+    
+    #upper = np.array([x.isupper() for x in s[tpdb]])
+
+    #print('select only column presenting as uppercase at the first row')
+    #upper = np.array([x.isupper() for x in s[0]])
+    #s = s[:,upper]
+    if printing:
+    	print(s.shape)
+
+    if printing:
+        print("In Data Processing Reference Sequence (shape=",s[tpdb].shape,"): \n",s[tpdb])
+    #print('remove sequences containing too many gaps')
+    s, tpdb = remove_bad_seqs(s,tpdb,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
+    if printing:
+    	print(s.shape)
+
+
+    bad_cols = find_bad_cols(s,gap_cols)
+    if printing:
+    	print('found bad columns :=',bad_cols)
+
+    # 2018.12.24:
+    # replace 'Z' by 'Q' or 'E' with prob
+    #print('replace Z by Q or E')
+    s = find_and_replace(s,'Z',np.array(['Q','E']))
+
+    # replace 'B' by Asparagine (N) or Aspartic (D)
+    #print('replace B by N or D')
+    s = find_and_replace(s,'B',np.array(['N','D']))
+
+    # replace 'X' as amino acids with prob
+    #print('replace X by other aminoacids')
+    amino_acids = np.array(['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S',\
+    'T','V','W','Y'])
+    s = find_and_replace(s,'X',amino_acids)
+
+    # remove conserved cols
+    conserved_cols = find_conserved_cols(s,conserved_cols)
+    if printing:
+    	print("found conserved columns (80% repetition):\n",conserved_cols)
+
+    #print(s.shape)
+    #print('number of conserved columns removed:',conserved_cols.shape[0])
+
+    removed_cols = np.array(list(set(bad_cols) | set(conserved_cols)))
+
+    removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
+    if printing:
+    	print("We remove conserved and bad columns with, at the following indices:\n",removed_cols)
+
+    # 2019.09.17: excluse conserved cols
+    #removed_cols = np.array(list(set(bad_cols) | set(lower_cols)))
+
+    s = np.delete(s,removed_cols,axis=1)
+    s_index = np.delete(s_index,removed_cols)
+    if printing:
+    	print("Removed Columns...")
+    	print("s now has shape: ",s.shape)
+    	print("s_index (length=%d) = \n"%s_index.shape[0],s_index)
+
+    #print('replace gap(-) by other aminoacids')
+    #s = find_and_replace(s,'-',amino_acids)
+
+    if printing:
+        print("In Data Processing Reference Sequence (shape=",s[tpdb].shape,"): \n",s[tpdb])
+
+    # convert letter to number:
+    s = covert_letter2number(s)
+    #print(s.shape) 
+    # replace lower probs by higher probs 
+    #print('replace lower probs by higher probs')
+    for i in range(s.shape[1]):
+        s[:,i] = replace_lower_by_higher_prob(s[:,i],prob_low)
+	
+    #print("s[tpdb] (shape=",s[tpdb].shape,"):\n",s[tpdb])
+    #min_res = min_res(s)
+    #print(min_res)
+
+    #remove_cols = np.hstack([gap_cols,conserved_cols])
+    #remove_cols = np.hstack([remove_cols,lower_cols]) ## 2019.01.22
+
+    #np.savetxt('s0.txt',s,fmt='%i')
+    #np.savetxt('cols_remove.txt',remove_cols,fmt='%i')
+
+    #f = open('n_pos.txt','w')
+    #f.write('%i'%(s.shape[1]))
+    #f.close()
+
+    #mi = number_residues(s)
+    #print(mi.mean())
+    np.save("%s/removed_cols.npy"%pfam_id,removed_cols)
+    return s,removed_cols,s_index, tpdb
+#=========================================================================================
+
