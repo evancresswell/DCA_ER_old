@@ -1,4 +1,9 @@
 *.pyc
+*.zip
+*.fasta
+covid_proteins/QHD*
+*.gz
+*.bz2
 DI/
 pfam_ecc/
 *.sif

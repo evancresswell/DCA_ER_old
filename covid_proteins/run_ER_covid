@@ -1,0 +1,5 @@
+#! /bin/bash
+
+module load singularity
+#singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python ER_covid_proteins.py
+singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python ER_covid_pdb.py
