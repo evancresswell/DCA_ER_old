@@ -207,7 +207,7 @@ def distance_restr_sortedDI(sorted_DI_in):
 #=========================================================================================
 def distance_restr(di,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
-	if di.shape[0] != s_index.shape[0]:
+	if di.shape[1] != s_index.shape[1]:
 		print("Distance restraint cannot be imposed, bad input")
 		sys.exit()
 	di_distal = np.zeros(di.shape)
