@@ -1,6 +1,7 @@
 import os,sys
 
-sys.path.append(os.path.dirname('/data/cresswellclayec/DCA_ER/biowulf/'))
+#sys.path.append(os.path.dirname('/data/cresswellclayec/DCA_ER/biowulf/'))
+sys.path.append(os.path.dirname('/home/eclay/DCA_ER/biowulf'))
 from Bio import SeqIO
 from Bio.PDB import *
 import pickle

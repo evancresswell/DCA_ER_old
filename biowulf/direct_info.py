@@ -31,36 +31,18 @@ def direct_info_value(w2d,fi,q,i1i2):
     n = q.shape[0]
 
 
-
     #ew_all = np.exp(w2d)
-
 
     # dealing with RuntimeWarning
     try:
         ew_all = np.exp(w2d)
     except(RuntimeWarning):
-        import decimal
-        # Precision to use
-        decimal.getcontext().prec = decimal.getcontext().Etop() - 1
-        print(decimal.getcontext().prec)
-        w2d_list =  []
-        for w1,row in enumerate(w2d):
-           w2d_list.append([])
-           for w2,val in enumerate(row):
-               w2d_list[-1].append(decimal.Decimal(val))
-        w2d_new = np.asarray( w2d_list, dtype=object)
-        # New array with the specified precision
-        for w1,row in enumerate(w2d_new):
-           for w2,val in enumerate(row):
-               print(val)
-               val.exp() 
-
-
-
-
-
-
-
+        max_w2d = max([max(w) for w in w2d])
+        print('subtracting max w2d value: ',max_w2d)
+        w2d = w2d - max_w2d
+        ew_all = np.exp(w2d)
+   
+ 
     di = np.zeros((n,n))
     tiny = 10**(-100.)
     diff_thres = 10**(-4.)
@@ -88,10 +70,10 @@ def direct_info_value(w2d,fi,q,i1i2):
                 eh_ew1 = eh2.dot(ew.T)
                 eh_ew2 = eh1.dot(ew)
 
-                eh1_new = fi0/eh_ew1
+                eh1_new = fi0/(eh_ew1+tiny) # ecc added tiny
                 eh1_new /= eh1_new.sum()
 
-                eh2_new = fj0/eh_ew2
+                eh2_new = fj0/(eh_ew2+tiny) # ecc added tiny
                 eh2_new /= eh2_new.sum()
 
                 diff = max(np.max(np.abs(eh1_new - eh1)),np.max(np.abs(eh2_new - eh2)))
@@ -102,7 +84,7 @@ def direct_info_value(w2d,fi,q,i1i2):
             # direct information
             eh1eh2 = eh1[:,np.newaxis]*eh2[np.newaxis,:]
             pdir = ew*(eh1eh2)
-            pdir /= pdir.sum()
+            pdir /= (pdir.sum()+tiny) # ecc added tiny
 
             fifj = fi0[:,np.newaxis]*fj0[np.newaxis,:]
 
