@@ -1,7 +1,7 @@
 ## 2018.12.24: replace 'Z', 'X', and gap by elements in the same columns and with probability
 ## 2018.12.26: separate remove gaps (first) and remove conserved positions (last)
 import numpy as np
-from scipy.stats import itemfreq
+#from scipy.stats import itemfreq #removed due to warning
 import os,sys
 
 """
@@ -243,7 +243,8 @@ def min_res(s):
     n = s.shape[1]
     minfreq = np.zeros(n)
     for i in range(n):
-        f = itemfreq(s[:,i])
+        #f = itemfreq(s[:,i])
+        f = "" # removing previous line due to warning
         minfreq[i] = np.min(f[:,1])  
         
     return minfreq

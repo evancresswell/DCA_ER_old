@@ -3,14 +3,15 @@ import datetime
 import pickle
 import numpy as np
 
-job_list = sys.argv[1] 
-
-s = np.loadtxt(job_list,dtype='str')
+job_id = sys.argv[1]
 id_method = ['PLM', 'ER', 'MF']
+id_method = 'covER' # ER method with weights initialized with inverse of covariance matrix
+id_method = 'coupER' # ER method with weights initialized with inverse of coupling matrix
+id_method = sys.argv[2]
 
-for i,job_id in enumerate(s):
-	biowulf_output = '%s_job-%s_swarm_ouput.txt'%(id_method[i],job_id)
-	biowulf_file = open(biowulf_output, "w")
-	biowulf_file.write(str(job_id) + " "+ id_method[i]+"\n")	
-	biowulf_file.close()
-	os.system('jobhist %s >> %s'%(job_id,biowulf_output))
+biowulf_output = '%s_job-%s_swarm_ouput.txt'%(id_method,job_id)
+biowulf_file = open(biowulf_output, "w")
+biowulf_file.write(str(job_id) + " "+ id_method+"\n")	
+biowulf_file.close()
+os.system('jobhist %s >> %s'%(job_id,biowulf_output))
+

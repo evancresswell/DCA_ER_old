@@ -1,0 +1,4 @@
+#!/bin/bash
+
+#swarm -f cov_DI_list.swarm -t 20 -g 250.0 --time=1-00:00:00 --module singularity --logdir cov_swarm_output #  quick # norm
+swarm -f generate_covid_PDBs.swarm -t 8 -g 50.0 --time=1-00:00:00 --module singularity --logdir cov_swarm_output #  quick # norm
