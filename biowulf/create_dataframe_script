@@ -1,0 +1,5 @@
+#! /bin/bash
+
+module load singularity
+singularity exec -B /data/cresswellclayec/ /data/cresswellclayec/DCA_ER/dca_er.simg python create_sim_data_frame.py covER_job-60721904_swarm_ouput.txt
+#singularity exec -B /data/cresswellclayec/ /data/cresswellclayec/DCA_ER/dca_er.simg python create_sim_data_frame.py coupER_job-60311898_swarm_ouput.txt

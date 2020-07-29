@@ -1,0 +1,4 @@
+#!/bin/bash
+
+swarm -f coupER_fails.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+swarm -f covER_fails.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm

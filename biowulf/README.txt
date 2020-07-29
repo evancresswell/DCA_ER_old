@@ -35,16 +35,21 @@ on Biowulf
 
 #----- Analysis --------#
 - Collect resulting information from swarm of simulations
-  RUN: python 15sim_summary.py job_list.txt
-	- This requires successfull swarm simulation and -> [job_list.txt]
-		- job_list.txt
-			- Should be 3 line file (8 digit job number)
+  RUN: python 15sim_summary.py job_id method
+	- This requires successfull swarm simulation with a swarm ID 
+	- Each simulation must be of only one Method
 	- Creates a file for each method 
 		- #METHOD#_job-#JOB-NUM#_swarm_ouput.txt
-- Read in DataFrame from output
-	- Remove info manually
-  RUN: create_sim_data_frame.py
-#-----------------------#
 
+
+- Create DataFrame from txt output
+  RUN: sinteractive cpus-per-task=50 --mem=100g 
+  RUN: python create_sim_data_frame.py #METHOD#_job-#JOB-NUM#_swarm_ouput.txt
+	- Remove info manually (first row should be column names)
+
+  RUN: genddd...
+
+  RUN: dkfjdkls ...
+#-----------------------#
 
 #-----------------------------------------------------------------# 

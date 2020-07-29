@@ -129,7 +129,7 @@ sorted_DI_er_cov_couplings = sort_di(di)
 with open('DI/ER/er_cov_couplings_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(sorted_DI_er_cov_couplings, f)
 f.close()
-#print('ER DI: ', sorted_DI_er)
+print('ER DI: ', sorted_DI_er_cov_couplings)
 
 
 
