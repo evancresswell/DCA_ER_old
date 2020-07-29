@@ -1,7 +1,9 @@
 import os,sys
 
-#sys.path.append(os.path.dirname('/data/cresswellclayec/DCA_ER/biowulf/'))
-sys.path.append(os.path.dirname('/home/eclay/DCA_ER/biowulf'))
+sys.path.append(os.path.dirname('/data/cresswellclayec/DCA_ER/biowulf/'))
+on_pc = True
+if on_pc:
+	sys.path.append(os.path.dirname('/home/eclay/DCA_ER/biowulf'))
 from Bio import SeqIO
 from Bio.PDB import *
 import pickle
@@ -88,9 +90,13 @@ if 0: # test with regular pfam
 
 # Generate MSA numpy array
 root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins'
+if on_pc:
+	root_dir = '/home/eclay/DCA_ER/covid_proteins'
 dir_list = glob(root_dir+"/*/")
 #print(dir_list)
 string ="/data/cresswellclayec/DCA_ER/covid_proteins/QHD"
+if on_pc:
+	string ="/home/eclay/DCA_ER/covid_proteins/QHD"
 covid_protein_list = []
 
 parser = PDBParser()
@@ -163,6 +169,8 @@ for pfam_id in cov_list:
 
 	print("Writing FASTA")
 	path = "/data/cresswellclayec/DCA_ER/covid_proteins/%s/"%(pfam_id)
+	if on_pc:
+		path = "/home/eclay/DCA_ER/covid_proteins/%s/"%(pfam_id)
 	s_ipdb =  0
 	dp.write_FASTA(s0,pfam_id,s_ipdb,number_form=True,processed = True,path=path)
 
@@ -260,8 +268,6 @@ if simulating:
 		with open('%s/DI_PLM.pickle'%(pfam_id), 'wb') as f:
 		    pickle.dump(sorted_DI_plm, f)
 		f.close()
-
-		sys.exit()
 
 		n_var = s0.shape[1]
 		mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
