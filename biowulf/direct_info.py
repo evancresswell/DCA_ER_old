@@ -119,5 +119,13 @@ def sort_di(di):
 	tuple_list = tuple_list[::-1]
 	return tuple_list
 
+def sindex_di(sorted_di,s_index):
+	s_index_di = []
+	for di_tuple in sorted_di:
+		#print(di_tuple ,"-->",((s_index[di_tuple[0][0]], s_index[di_tuple[0][1]]),di_tuple[1]))
+		s_index_di.append(((s_index[di_tuple[0][0]], s_index[di_tuple[0][1]]),di_tuple[1])) 	
+	return s_index_di
+
+
 
 

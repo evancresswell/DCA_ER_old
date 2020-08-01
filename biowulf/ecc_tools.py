@@ -4,6 +4,7 @@ import numpy as np
 import sys,os,errno
 # Import Bio data processing features 
 import Bio.PDB, warnings
+from Bio.PDB import *
 pdb_list = Bio.PDB.PDBList()
 pdb_parser = Bio.PDB.PDBParser()
 from scipy.spatial import distance_matrix
@@ -78,7 +79,7 @@ def gen_DI_matrix(DI):
     return di
 
 
-def contact_map(pdb,ipdb,cols_removed,s_index):
+def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
     pdb_id = pdb[ipdb,5]
     pdb_chain = pdb[ipdb,6]
     pdb_start,pdb_end = int(pdb[ipdb,7]),int(pdb[ipdb,8])
@@ -87,9 +88,28 @@ def contact_map(pdb,ipdb,cols_removed,s_index):
     #print('download pdb file')
     pdb_file = pdb_list.retrieve_pdb_file(str(pdb_id),file_format='pdb')
     #pdb_file = pdb_list.retrieve_pdb_file(pdb_id)
+    #---------------------------------------------------------------------------------------------------------------------#
     chain = pdb_parser.get_structure(str(pdb_id),pdb_file)[0][pdb_chain]
-    coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
-    coords = coords_all[pdb_start-1:pdb_end]
+    if use_old:
+        coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
+        #---PROOF THAT THE ABOVE METHOD IS WRONG.. IT ITERATES THROUGH ATOMS! NOT RESIDUES OR PARTICULAR ATOMS IN RESIDUES----#
+        #for a in chain.get_atoms():
+        #    print(a.get_name())
+        print(len(coords_all))
+        coords = coords_all[pdb_start-1:pdb_end]
+    else:
+        # Correct Method
+        ppb = PPBuilder().build_peptides(chain)
+        print('peptide build of chain produced %d elements'%(len(ppb)))
+        good_coords = []
+        for i,ca in enumerate(ppb[0].get_ca_list()):		
+           #print(ca.get_coord())
+           #coords_zhang.append(a.get_coord())
+           good_coords.append(ca.get_coord())
+        coords = np.array(good_coords)
+    
+    #---------------------------------------------------------------------------------------------------------------------#
+
     #print('original pdb:')
     #print(coords_all.shape)
     #print(coords.shape)
@@ -99,6 +119,7 @@ def contact_map(pdb,ipdb,cols_removed,s_index):
     print(coords_remain.shape)
     #print(coords_remain.shape)
     
+
     ct = distance_matrix(coords_remain,coords_remain)
 
     return ct
@@ -157,7 +178,7 @@ def roc_curve(ct,di,ct_thres):
     return pbin,tpbin,fpbin
 
 
-on_pc = False
+on_pc = True
 if on_pc:
 	from IPython.display import HTML
 	def hide_toggle(for_next=False):

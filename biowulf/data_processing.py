@@ -302,10 +302,10 @@ def delete_sorted_DI_duplicates(sorted_DI):
 #pfam_id = 'PF00186'
 #ipdb=0
 
+    #def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
 def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8):
-#def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
-
-    printing = False
+    
+    printing = True
 
     # read parse_pfam data:
     #print('read original aligned pfam data')
@@ -523,6 +523,7 @@ def data_processing_covid(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,pro
     if printing:
         print(s.shape)
     s_index = np.arange(s.shape[1])
+    print(s_index)
 
     if printing:
     	print("s[tpdb] shape is ",s[tpdb].shape)
@@ -593,6 +594,7 @@ def data_processing_covid(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,pro
 
     s = np.delete(s,removed_cols,axis=1)
     s_index = np.delete(s_index,removed_cols)
+    print(s_index)
     if printing:
     	print("Removed Columns...")
     	print("s now has shape: ",s.shape)
