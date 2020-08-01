@@ -6,7 +6,7 @@ import numpy as np
 import data_processing as dp
 from multiprocessing import Pool
 #------------------------------- Create ROC Curves ---------------------------------#
-def add_ROC(df):
+def add_ROC(df,filepath):
 	data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 
 	Ps = []
@@ -181,74 +181,33 @@ def add_ROC(df):
 	return df.copy()
 #-----------------------------------------------------------------------------------#
 
-#-------------------------- Parallelize Data Frame Generation ----------------------#
-def parallelize_dataframe(df, func, n_cores=28):
-    df_split = np.array_split(df, n_cores)
-    pool = Pool(n_cores)
-    df = pd.concat(pool.map(func, df_split),sort=False)
-    pool.close()
-    pool.join()
-    return df
-#-----------------------------------------------------------------------------------#
-
-
-
-
 #-----------------------------------------------------------------------------------#
 #------------------------------- Create Pandas DataFrame ---------------------------#
+#----------------------------------- Single DI Swarm Job ---------------------------#
 #-----------------------------------------------------------------------------------#
 
 # Jobload info from text file 
-filepath = sys.argv[1]
-#file_out = sys.argv[2]
+prep_df_file = sys.argv[1]
+job_id = sys.argv[2]
 
-#if os.path.exists(filepath[:-4]+'.pkl'):
-#	df = pd.read_pickle(filepath[:-4]+'.pkl')
-#	print(df)
-#else:
-# Read in DataFrame
-df = pd.read_csv(filepath, sep='\s+', engine='python',header=0)
-#print(df)
+# Get dataframe of job_id
+df_prep = pickle.load(open(prep_df_file,"rb")) 
+df_jobID = df_prep.copy()
+df_jobID = df_jobID.loc[df_jobID.Jobid == job_id]
+print(df_jobID)
 
-# Polish MemReq Column
-df.MemReq = df.MemReq.str.extract(r'(\d+\.+\d+)(GB/node)' ,expand=False) 
-df['MemReq'] =pd.to_numeric(df['MemReq'],downcast='float')
-df = df.rename(columns={'MemReq': 'GB/node'})
+roc_jobID_df = add_ROC(df_jobID,prep_df_file)
 
-# Polish MemReq Column
-df.MemUsed = df.MemUsed.str.extract(r'(\d+\.+\d+)(GB)' ,expand=False) 
-df['MemUsed'] =pd.to_numeric(df['MemUsed'],downcast='float')
-
-#print(df)
-
-# Iterate Through Jobs and add to DataFrame
-jobs = df.Jobid
-
-for i,job_id in enumerate(jobs):
-	try:
-		#print(job_id)
-		with open("swarm_output/swarm_%s.o"%(job_id)) as f:
-			families = re.findall(r'PF+\d+',f.read())
-		df = df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
-		df.loc[df.Jobid == job_id,'Pfam'] = families
-	except(FileNotFoundError): 
-		print("No swarm output file for %s, assume there are no corresponding DI"%job_id)
-print(df)
-
-# Re index with PFAM ID
-df_pfam = df.copy()
-df_pfam.set_index('Pfam')
-
-#print("Generating ROC curves for %d Pfams"%(len(df)))
-
-# Genreate ROC / AUC / Precisoin / DI Dataframe
-df_sum = parallelize_dataframe(df_pfam, add_ROC) # FULL BIOWULF RUN
-#df_sum = parallelize_dataframe(df_pfam, add_ROC,n_cores = 8)  # TESTING RUN
 
 #print(df_roc)
-sum_filename = filepath[:-4]+'_summary.pkl' 
-df_sum.to_pickle(sum_filename)
-print ('saving file: ' + sum_filename)
+if not os.path.exists('./job_ROC_dfs/'): 
+	print('job_ROC_dfs/ DNE.. Make directory and rerun')
+	sys.exit()
+
+df_jobID_filename = 'job_ROC_dfs/%s.pkl'%job_id
+print ('saving file: ' + df_jobID_filename)
+
+roc_jobID_df.to_pickle(df_jobID_filename)
 
 
 #-----------------------------------------------------------------------------------#

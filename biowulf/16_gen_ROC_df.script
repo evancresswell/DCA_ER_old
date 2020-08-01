@@ -1,0 +1,8 @@
+#!/bin/bash
+
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------#
+# MUST RUN:
+# singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python setup_swarm_sim_dataframe.py covER_job-60721904_swarm_ouput.txt 
+# FIRST
+swarm -f  covER_job-60721904_swarm_ouput.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+#-------------------------------------------------------------------------------------------------------------------------------------------------------------------#
