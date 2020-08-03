@@ -78,7 +78,7 @@ def add_ROC(df,filepath):
 					DI = pickle.load(f)
 				f.close()
 			else:
-				print("File Method-Prefix %s of %s  not recognized"%(filepath[1:6],filepath))
+				print("File Method-Prefix %s of %s  not recognized"%(filepath[:6],filepath))
 				sys.exit()
 
 			DI_dup = dp.delete_sorted_DI_duplicates(DI)	
@@ -127,6 +127,7 @@ def add_ROC(df,filepath):
 			#df.loc[i,'DI'] = sorted_DI 
 			#df.loc[i,'OptiDist'] = ct_thres[i]  
 			#print("here")
+			print("Done\n\n\n")
 		except  FileNotFoundError as e:
 			print("ERROR!!\n Prediction: PDB File not found by BioPython")
 			print(str(e))
@@ -150,16 +151,19 @@ def add_ROC(df,filepath):
 			print("ERROR!!\n Prediction:max() arg is an empty sequence")
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
+			ERR.append('ValueErr')
 			Ps.append([])	
 			TPs.append([])	
 			FPs.append([])	
 			AUCs.append(-1)	
 			DIs.append([])
 			ODs.append(-1)
-		except IndexError:
-			print("!!ERROR\n Indexing error, check DI for %s"%(pfam_id))
+		except IndexError as e:
+			print("!!ERROR\n Indexing error, check DI or PDB for %s"%(pfam_id))
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
+			print('\n\n\n')
+			ERR.append('Indexing_CT')
 			Ps.append([])	
 			TPs.append([])	
 			FPs.append([])	

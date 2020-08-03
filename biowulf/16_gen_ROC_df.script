@@ -4,9 +4,9 @@
 # MUST RUN:
 # singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python setup_swarm_sim_dataframe.py covER_job-60721904_swarm_ouput.txt 
 # FIRST
-#swarm -f  covER_job-60721904_swarm_ouput.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
-#swarm -f  coupER_job-60311898_swarm_ouput.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
-#swarm -f  ER_job-53759610_swarm_ouput.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
-swarm -f  MF_job-53760930_swarm_ouput.swarm -t 20 -g 50.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
-swarm -f  PLM_job-53760928_swarm_ouput.swarm -t 20 -g 50.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+#swarm -f  covER_job-60721904_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+#swarm -f  coupER_job-60311898_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+#swarm -f  ER_job-53759610_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+swarm -f  MF_job-53760930_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
+swarm -f  PLM_job-53760928_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------#

@@ -80,6 +80,7 @@ def gen_DI_matrix(DI):
 
 
 def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
+    print(pdb[ipdb,:])
     pdb_id = pdb[ipdb,5]
     pdb_chain = pdb[ipdb,6]
     pdb_start,pdb_end = int(pdb[ipdb,7]),int(pdb[ipdb,8])
@@ -99,13 +100,23 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
         coords = coords_all[pdb_start-1:pdb_end]
     else:
         # Correct Method
-        ppb = PPBuilder().build_peptides(chain)
-        print('peptide build of chain produced %d elements'%(len(ppb)))
+        #ppb = PPBuilder().build_peptides(chain)
+        #print('peptide build of chain produced %d elements'%(len(ppb)))
         good_coords = []
+        coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
+        ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
+        ca_coords = coords_all[ca_residues]
+        good_coords = ca_coords[pdb_start-1:pdb_end]
+        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d' % (len(coords_all),len(ca_coords),len(good_coords)))
+        #for i,a in enumerate(chain.get_atoms()):
+        #    if a.get_name() == 'CA':
+        #        good_coords.append(a.get_coord())		
+        """
         for i,ca in enumerate(ppb[0].get_ca_list()):		
            #print(ca.get_coord())
            #coords_zhang.append(a.get_coord())
            good_coords.append(ca.get_coord())
+        """
         coords = np.array(good_coords)
     
     #---------------------------------------------------------------------------------------------------------------------#
@@ -231,9 +242,9 @@ def distance_restr(di,s_index,make_large=False):
 	if di.shape[0] != s_index.shape[0]:
 		print("Distance restraint cannot be imposed, bad input")
 		#IndexError: index 0 is out of bounds for axis 0 with size 0
-		#print("s_index: ",s_index.shape[0],"di shape: ",di.shape[0])
-		print('di:\n',di[0])
-		sys.exit()
+		print("s_index: ",s_index.shape[0],"di shape: ",di.shape[0])
+		#print('di:\n',di[0])
+		raise IndexError("matrix input dimensions do not matchup with simulation n_var")
 	di_distal = np.zeros(di.shape)
 	for i in range(di.shape[0]):
 		for j in range(di.shape[1]):
