@@ -12,7 +12,7 @@ data_TP = {}
 data_FP = {}
 data_P = {}
 ROC = {}
-generate_TPFP_df = False
+generate_TPFP_df = True
 if generate_TPFP_df:
 	for filepath in sys.argv[1:]:
 		df = pd.read_pickle(filepath)
@@ -24,6 +24,20 @@ if generate_TPFP_df:
 		#for column in df.columns:
 		#	print(column)
 		#df['TP'] = df['TP'].apply(lambda x: x.empty if len(x) == 0)
+		if filepath[0:6] =="coupER":
+			method = "coupER"
+			print(method)
+			data_AUC["coupER"] = df["AUC"]
+			data_TP["coupER"] = df["TP"]
+			data_FP["coupER"] = df["FP"]
+			data_P["coupER"] = df["P"]
+		if filepath[0:5] =="covER":
+			method = "covER"
+			print(method)
+			data_AUC["covER"] = df["AUC"]
+			data_TP["covER"] = df["TP"]
+			data_FP["covER"] = df["FP"]
+			data_P["covER"] = df["P"]
 		if filepath[:2] =="ER":
 			method = "ER"
 			print(method)
@@ -71,7 +85,7 @@ if generate_TPFP_df:
 	df_AUC = pd.DataFrame.from_dict(data_AUC)
 
 	# Remove empty Rows
-	for method in ["MF","PLM","ER"]:
+	for method in ["MF","PLM","ER","coupER","covER"]:
 		df_P = df_P.loc[df_P[method].str.len()!=0]
 		df_P = df_P.loc[df_P[method].str.len()!=0]
 		df_TP = df_TP.loc[df_TP[method].str.len()!=0]
@@ -118,7 +132,7 @@ ER
 method_summary.pkl files not good
 """
 
-generate_PR = True
+generate_PR = False
 if generate_PR:
 	TP_methods = {}
 	FP_methods ={}
@@ -126,7 +140,7 @@ if generate_PR:
 	AUC_methods ={}
 	try:
 		# Create TP and FP dataframes from all three mthods
-		for method in ["MF","PLM","ER"]:
+		for method in ["MF","PLM","ER","coupER","covER"]:
 			df = pd.read_pickle(method+"_summary.pkl")
 			df = df.set_index('Pfam')
 
@@ -199,7 +213,7 @@ if generate_PR:
 		#print(df_PR.index)
 		#print(df_PR.head())
 
-		for method in ["MF","PLM","ER"]:
+		for method in ["MF","PLM","ER","coupER","covER"]:
 			df_PR = df_PR.loc[df_PR[method].str.len()!=0]
 
 		#print("PR: ,",df_PR.index)
@@ -226,18 +240,29 @@ if plotting:
 	p_er = df_P["ER"].mean()
 	p_mf = df_P["MF"].mean()
 	p_plm = df_P["PLM"].mean()
+	p_covER = df_P["covER"].mean()
+	p_coupER = df_P["coupER"].mean()
 
 	tp_er = df_TP["ER"].mean()
 	tp_mf = df_TP["MF"].mean()
 	tp_plm = df_TP["PLM"].mean()
+	tp_covER = df_TP["covER"].mean()
+	tp_coupER = df_TP["coupER"].mean()
+
 
 	fp_er = df_FP["ER"].mean()
 	fp_mf = df_FP["MF"].mean()
 	fp_plm = df_FP["PLM"].mean()
+	fp_covER = df_FP["covER"].mean()
+	fp_coupER = df_FP["coupER"].mean()
+
+
 
 	plt.plot( p_er,tp_er / (tp_er + fp_er),'b-',label='ER')
 	plt.plot( p_mf,tp_mf / (tp_mf + fp_mf),'r-',label='MF')
 	plt.plot( p_plm,tp_plm / (tp_plm + fp_plm),'g-',label='PLM')
+	plt.plot( p_coupER,tp_coupER / (tp_coupER+ fp_coupER),'g-',label='coupER')
+	plt.plot( p_covER,tp_covER / (tp_covER+ fp_covER),'g-',label='covER')
 	plt.title("Mean Precision-Recall")
 	plt.legend(loc='upper right')
 	plt.savefig("MeanPrecision_summary.pdf")
@@ -247,6 +272,8 @@ if plotting:
 	plt.plot( fp_er,tp_er ,'b-',label='ER')
 	plt.plot( fp_mf,tp_mf ,'r-',label='MF')
 	plt.plot( fp_plm,tp_plm ,'g-',label='PLM')
+	plt.plot( fp_coupER,tp_coupER ,'g-',label='coupER')
+	plt.plot( fp_covER,tp_covER ,'g-',label='covER')
 	plt.title("Mean ROC")
 	plt.legend(loc='upper left')
 	plt.savefig("MeanROC_summary.pdf")
@@ -262,6 +289,8 @@ if plotting:
 	print(df_AUPR["ER"])
 	print(df_AUPR["MF"])
 	print(df_AUPR["PLM"])
+	print(df_AUPR["coupER"])
+	print(df_AUPR["covER"])
 	plt.figure();
 	df_AUPR.plot.hist(bins=100,alpha = .5,density=True)
 	plt.xlim([0,1])

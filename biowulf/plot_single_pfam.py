@@ -86,6 +86,12 @@ print("Unpickling DI pickle files for %s"%(pfam_id))
 with open("%ser_DI_%s.pickle"%(er_directory,pfam_id),"rb") as f:
 	DI_er = pickle.load(f)
 f.close()
+with open("%ser_cov_couplings_DI_%s.pickle"%(er_directory,pfam_id),"rb") as f:
+	DI_covER = pickle.load(f)
+f.close()
+with open("%ser_couplings_DI_%s.pickle"%(er_directory,pfam_id),"rb") as f:
+	DI_coupER = pickle.load(f)
+f.close()
 with open("%splm_DI_%s.pickle"%(plm_directory,pfam_id),"rb") as f:
 	DI_plm = pickle.load(f)
 f.close()
@@ -98,10 +104,14 @@ f.close()
 #DI_plm = pickle.load(open("%splm_DI_%s.pickle"%(plm_directory,pfam_id),"rb"))
 
 DI_er_dup = dp.delete_sorted_DI_duplicates(DI_er)	
+DI_cov_er_dup = dp.delete_sorted_DI_duplicates(DI_covER)	
+DI_coup_er_dup = dp.delete_sorted_DI_duplicates(DI_coupER)	
 DI_plm_dup = dp.delete_sorted_DI_duplicates(DI_plm)	
 DI_mf_dup = dp.delete_sorted_DI_duplicates(DI_mf)	
 
 sorted_DI_er = tools.distance_restr_sortedDI(DI_er_dup)
+sorted_DI_cov_er = tools.distance_restr_sortedDI(DI_cov_er_dup)
+sorted_DI_coup_er = tools.distance_restr_sortedDI(DI_coup_er_dup)
 sorted_DI_plm = tools.distance_restr_sortedDI(DI_plm_dup)
 sorted_DI_mf = tools.distance_restr_sortedDI(DI_mf_dup)
 
@@ -125,12 +135,22 @@ if distance_enforced:
 else:
 	n_seq = max([coupling[0][0] for coupling in sorted_DI_er]) 
 	di_er = np.zeros((n_var,n_var))
+	di_cov_er = np.zeros((n_var,n_var))
+	di_coup_er = np.zeros((n_var,n_var))
 	di_mf = np.zeros((n_var,n_var))
 	di_plm = np.zeros((n_var,n_var))
 	for coupling in DI_er_dup:
 		#print(coupling[1])
 		di_er[coupling[0][0],coupling[0][1]] = coupling[1]
 		di_er[coupling[0][1],coupling[0][0]] = coupling[1]
+	for coupling in DI_cov_er_dup:
+		#print(coupling[1])
+		di_cov_er[coupling[0][0],coupling[0][1]] = coupling[1]
+		di_cov_er[coupling[0][1],coupling[0][0]] = coupling[1]
+	for coupling in DI_coup_er_dup:
+		#print(coupling[1])
+		di_coup_er[coupling[0][0],coupling[0][1]] = coupling[1]
+		di_coup_er[coupling[0][1],coupling[0][0]] = coupling[1]
 	for coupling in DI_mf_dup:
 		di_mf[coupling[0][0],coupling[0][1]] = coupling[1]
 		di_mf[coupling[0][1],coupling[0][0]] = coupling[1]
@@ -148,6 +168,8 @@ n = ct_thres.shape[0]
 
 auc_mf = np.zeros(n)
 auc_er = np.zeros(n)
+auc_cov_er = np.zeros(n)
+auc_coup_er = np.zeros(n)
 auc_plm = np.zeros(n)
 
 for i in range(n):
@@ -157,18 +179,28 @@ for i in range(n):
 	################################3 need to update singularity container p,tp,fp = tools.roc_curve(ct_distal,di_er,ct_thres[i])
 	p,tp,fp = tools.roc_curve(ct_distal,di_er,ct_thres[i])
 	auc_er[i] = tp.sum()/tp.shape[0]
+
+	p,tp,fp = tools.roc_curve(ct_distal,di_cov_er,ct_thres[i])
+	auc_cov_er[i] = tp.sum()/tp.shape[0]
+	
+	p,tp,fp = tools.roc_curve(ct_distal,di_coup_er,ct_thres[i])
+	auc_coup_er[i] = tp.sum()/tp.shape[0]
 	
 	p,tp,fp = tools.roc_curve(ct_distal,di_plm,ct_thres[i])
 	auc_plm[i] = tp.sum()/tp.shape[0]
 
 i0_mf = np.argmax(auc_mf)
 i0_er = np.argmax(auc_er)
+i0_coup_er = np.argmax(auc_coup_er)
+i0_cov_er = np.argmax(auc_cov_er)
 i0_plm = np.argmax(auc_plm)
 
 
 p0_mf,tp0_mf,fp0_mf = tools.roc_curve(ct_distal,di_mf,ct_thres[i0_mf])
 ##################################### need to update singularity container   p0_er,tp0_er,fp0_er = tools.roc_curve(ct_distal,di_er,ct_thres[i0_er])
 p0_er,tp0_er,fp0_er = tools.roc_curve(ct_distal,di_er,ct_thres[i0_er])
+p0_cov_er,tp0_cov_er,fp0_cov_er = tools.roc_curve(ct_distal,di_cov_er,ct_thres[i0_cov_er])
+p0_coup_er,tp0_coup_er,fp0_coup_er = tools.roc_curve(ct_distal,di_coup_er,ct_thres[i0_coup_er])
 p0_plm,tp0_plm,fp0_plm = tools.roc_curve(ct_distal,di_plm,ct_thres[i0_plm])
 
 #------------------ Plot ROC for optimal DCA vs optimal ER ------------------#
@@ -193,6 +225,8 @@ with PdfPages("./Pfam_Plots/%s.pdf"%pfam_id) as pdf:
 	plt.subplot2grid((1,3),(0,0))
 	plt.title('ROC ')
 	plt.plot(fp0_er,tp0_er,'b-',label="er")
+	plt.plot(fp0_coup_er,tp0_coup_er,'y-',label="coup_er")
+	plt.plot(fp0_cov_er,tp0_cov_er,'m-',label="cov_er")
 	plt.plot(fp0_mf,tp0_mf,'r-',label="mf")
 	plt.plot(fp0_plm,tp0_plm,'g-',label="plm")
 	plt.plot([0,1],[0,1],'k--')
@@ -207,12 +241,14 @@ with PdfPages("./Pfam_Plots/%s.pdf"%pfam_id) as pdf:
 	plt.title('AUC')
 	plt.plot([ct_thres.min(),ct_thres.max()],[0.5,0.5],'k--')
 	plt.plot(ct_thres,auc_er,'b-',label="er")
+	plt.plot(ct_thres,auc_coup_er,'y-',label="coup_er")
+	plt.plot(ct_thres,auc_cov_er,'m-',label="cov_er")
 	plt.plot(ct_thres,auc_mf,'r-',label="mf")
 	plt.plot(ct_thres,auc_plm,'g-',label="plm")
 	print(auc_er)
 	print(auc_mf)
 	print(auc_plm)
-	plt.ylim([min(auc_er.min(),auc_mf.min(),auc_plm.min())-0.05,max(auc_er.max(),auc_mf.max(),auc_plm.max())+0.05])
+	plt.ylim([min(auc_cov_er.min(),auc_coup_er.min(),auc_er.min(),auc_mf.min(),auc_plm.min())-0.05,max(auc_cov_er.max(),auc_coup_er.max(),auc_er.max(),auc_mf.max(),auc_plm.max())+0.05])
 	plt.xlim([ct_thres.min(),ct_thres.max()])
 	plt.xlabel('distance threshold')
 	plt.ylabel('AUC')
@@ -222,6 +258,8 @@ with PdfPages("./Pfam_Plots/%s.pdf"%pfam_id) as pdf:
 	plt.subplot2grid((1,3),(0,2))
 	plt.title('Precision')
 	plt.plot( p0_er,tp0_er / (tp0_er + fp0_er),'b-',label='er')
+	plt.plot( p0_coup_er,tp0_coup_er / (tp0_coup_er + fp0_coup_er),'y-',label='coup_er')
+	plt.plot( p0_cov_er,tp0_cov_er / (tp0_cov_er + fp0_cov_er),'m-',label='cov_er')
 	plt.plot( p0_mf,tp0_mf / (tp0_mf + fp0_mf),'r-',label='mf')
 	plt.plot( p0_plm,tp0_plm / (tp0_plm + fp0_plm),'g-',label='plm')
 	plt.xlim([0,1])
@@ -246,6 +284,18 @@ with PdfPages("./Pfam_Plots/%s.pdf"%pfam_id) as pdf:
 
 
 	#""" NEED MF and PLM FIRST
+	cov_erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
+		refseq_file = ref_outfile,
+		sorted_dca_scores = sorted_DI_cov_er,
+		linear_dist = 4,
+		contact_dist = 8.0,
+	)
+	coup_erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
+		refseq_file = ref_outfile,
+		sorted_dca_scores = sorted_DI_coup_er,
+		linear_dist = 4,
+		contact_dist = 8.0,
+	)
 	erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
 		refseq_file = ref_outfile,
 		sorted_dca_scores = sorted_DI_er,
@@ -268,7 +318,7 @@ with PdfPages("./Pfam_Plots/%s.pdf"%pfam_id) as pdf:
 
 	#"""
 	# Define a list of contact visualizers to plot 3 methods
-	slick_contact_maps = [ erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
+	slick_contact_maps = [ cov_erdca_visualizer, coup_erdca_visualizer, erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	slick_titles = [ 'ER', 'MF', 'PLM']
 
 	# Create subplots

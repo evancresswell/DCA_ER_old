@@ -42,14 +42,26 @@ on Biowulf
 		- #METHOD#_job-#JOB-NUM#_swarm_ouput.txt
 
 
-- Create DataFrame from txt output
-  RUN: sinteractive cpus-per-task=50 --mem=100g 
-  RUN: python create_sim_data_frame.py #METHOD#_job-#JOB-NUM#_swarm_ouput.txt
-	- Remove info manually (first row should be column names)
 
-  RUN: genddd...
-
-  RUN: dkfjdkls ...
+- Create DataFrame from txt output # SWARM RUN
+  RUN: sinuglairty exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python setup_swarm_sim_dataframe.py <METHOD>_job-<JOBID>_swarm_ouput.txt
+	- The text file generated with 15sim_summary.py
+	- you can use jobhist <JOBID> and remove info manually (first row should be column names)
+  RUN: ./16_gen_ROC_df.script <----> swarm simulation
+	- uses gen_ROC_jobID_df.py to 
+	- creates indidvidual swarm dfs in directory: job_ROC_dfs/
+  ---> move into job_ROC_dfs/
+  RUN: sinteractive --mem=150g --cpus-per-task=4
+  RUN: module load singularity
+  RUN: singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python concat_dfs.py <JOBIDA>
+  	- this creates dataframe for full swarm simulation: <JOBID>_full.pkl 
+ 
 #-----------------------#
+- Plot Contact Map and ROC curves for Pfams
+  RUN: ./pfam_plotting.script
+	- runs: 
+		singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python plot_single_pfam.py <PFAM>
+#----- Plotting --------#
 
+#-----------------------#
 #-----------------------------------------------------------------# 

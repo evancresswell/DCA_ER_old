@@ -51,6 +51,7 @@ def add_ROC(df,filepath):
 		
 		# Load Contact Map
 		try:
+			print(pfam_id)
 			ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
 			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
 			#---------------------- Load DI -------------------------------------#
