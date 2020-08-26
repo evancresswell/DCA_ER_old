@@ -1,10 +1,15 @@
+# RUN : singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/dca_er.simg python gen_PR_df.py ER_53759610_full_test.pkl covER_60721904_full_test.pkl coupER_60311898_full_test.pkl MF_53760930_full_test.pkl PLM_53760928_full_test.pkl
+
 import pandas as pd
-import sys
+import sys,os
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import roc_auc_score
 import numpy as np
-
+import pickle
+method_list = ["ER","coupER","covER"]
+method_list = ["ER","PLM", "MF"]
+method_list = ["MF","PLM","ER","coupER","covER"]
 data_AUC = {}
 data_AUPR = {}
 data_PR = {}
@@ -13,57 +18,125 @@ data_FP = {}
 data_P = {}
 ROC = {}
 generate_TPFP_df = True
+join_style = 'outer'
+print('\n\n\nTHE FIRST PKL FILE MUST BE ER!!!!\n\n\n')
 if generate_TPFP_df:
-	for filepath in sys.argv[1:]:
+	df_TP = pd.DataFrame()
+	df_FP = pd.DataFrame()
+	df_AUC = pd.DataFrame()
+	df_P = pd.DataFrame()
+	for ii,filepath in enumerate(sys.argv[1:]):
+		print("\n\n\n\nLoading ROC DataFrame: ",filepath)
 		df = pd.read_pickle(filepath)
-		#for column in df.columns:
-		#	print(column)
+		print("\nDataFrame size: ",df.shape)
 
+
+		# Remove duplicate rows...
+		print('Removing Duplicates...')
+		df = df.drop_duplicates(subset='Pfam')
 		print("DataFrame size: ",df.shape)
-		print("Mean AUC: ",df['AUC'].mean())
+		
+		print('\n\nConverting string index to integer:')
+		# Make Pfam column the index
+		df = df.set_index(df['Pfam'])	
+		df = df.sort_index()
+		print(df.index[:10])
+	
+		# Convert Pfam to integer and reset column	
+		pfam_index_str = df.index.tolist()
+		pfam_ints = [int(pfam_str.lstrip('PF0')) for pfam_str in pfam_index_str]
+		df.index = pfam_ints
+		print('New index',df.index[:10])
+		
 		#for column in df.columns:
 		#	print(column)
-		#df['TP'] = df['TP'].apply(lambda x: x.empty if len(x) == 0)
+		#print("Mean AUC: ",df['AUC'].mean())
+
+
+		print('\n\nIntial df head: \n',df.head())
+		# remove empty rows
+		df = df.loc[df['AUC']!=-1]
+		print("remove empty rows")
+		print("df head: \n",df.head())
+
 		if filepath[0:6] =="coupER":
 			method = "coupER"
-			print(method)
+			print('\n\n Adding Info for: '+method)
+			
+			df_TP = pd.concat((df_TP,df["TP"].rename("coupER").to_frame()),axis = 1,join=join_style)
+			df_P = pd.concat((df_P,df["P"].rename("coupER").to_frame()),axis = 1,join=join_style)
+			df_FP = pd.concat((df_FP,df["FP"].rename("coupER").to_frame()),axis = 1,join=join_style)
+			df_AUC = pd.concat((df_AUC,df["AUC"].rename("coupER").to_frame()),axis = 1,join=join_style)
+
 			data_AUC["coupER"] = df["AUC"]
 			data_TP["coupER"] = df["TP"]
 			data_FP["coupER"] = df["FP"]
 			data_P["coupER"] = df["P"]
-		if filepath[0:5] =="covER":
+		elif filepath[0:5] =="covER":
 			method = "covER"
-			print(method)
+			print('\n\nAdding info for method: '+method)
+			df_TP = pd.concat((df_TP,df["TP"].rename("covER").to_frame()),axis = 1,join=join_style)
+			df_P = pd.concat((df_P,df["P"].rename("covER").to_frame()),axis = 1,join=join_style)
+			df_FP = pd.concat((df_FP,df["FP"].rename("covER").to_frame()),axis = 1,join=join_style)
+			df_AUC = pd.concat((df_AUC,df["AUC"].rename("covER").to_frame()),axis = 1,join=join_style)
+
 			data_AUC["covER"] = df["AUC"]
 			data_TP["covER"] = df["TP"]
 			data_FP["covER"] = df["FP"]
 			data_P["covER"] = df["P"]
-		if filepath[:2] =="ER":
+		elif filepath[:2] =="ER":
 			method = "ER"
-			print(method)
+			print('\n\nAdding info for method: '+method)
+			#df_TP = pd.concat((df_TP,df["TP"].rename("ER")),axis = 1,join='outer')
+			#df_P = pd.concat((df_P,df["P"].rename("ER")),axis = 1,join='outer')
+			#df_FP = pd.concat((df_FP,df["FP"].rename("ER")),axis = 1,join='outer')
+			#df_AUC = pd.concat((df_AUC,df["AUC"].rename("ER")),axis = 1,join='outer')
+			df_TP = df["TP"].rename("ER").to_frame()
+			df_FP = df["FP"].rename("ER").to_frame()
+			df_P = df["P"].rename("ER").to_frame()
+			df_AUC = df["AUC"].rename("ER").to_frame()
+
 			data_AUC["ER"] = df["AUC"]
 			data_TP["ER"] = df["TP"]
 			data_FP["ER"] = df["FP"]
 			data_P["ER"] = df["P"]
 		elif filepath[:3] =="PLM":
 			method = "PLM"
-			print(method)
+			print('\n\nAdding info for method: '+method)
+			df_TP = pd.concat((df_TP,df["TP"].rename("PLM").to_frame()),axis = 1,join=join_style)
+			df_P = pd.concat((df_P,df["P"].rename("PLM").to_frame()),axis = 1,join=join_style)
+			df_FP = pd.concat((df_FP,df["FP"].rename("PLM").to_frame()),axis = 1,join=join_style)
+			df_AUC = pd.concat((df_AUC,df["AUC"].rename("PLM").to_frame()),axis = 1,join=join_style)
+
 			data_AUC["PLM"] = df["AUC"]
 			data_TP["PLM"] = df["TP"]
 			data_FP["PLM"] = df["FP"]
 			data_P["PLM"] = df["P"]
 		elif filepath[:2] == "MF":
 			method = "MF"
-			print(method)
+			print('\n\nAdding info for method: '+method)
+			df_TP = pd.concat((df_TP,df["TP"].rename("MF").to_frame()),axis = 1,join=join_style)
+			df_P = pd.concat((df_P,df["P"].rename("MF").to_frame()),axis = 1,join=join_style)
+			df_FP = pd.concat((df_FP,df["FP"].rename("MF").to_frame()),axis = 1,join=join_style)
+			df_AUC = pd.concat((df_AUC,df["AUC"].rename("MF").to_frame()),axis = 1,join=join_style)
+
 			data_AUC["MF"] = df["AUC"]
 			data_TP["MF"] = df["TP"]
 			data_FP["MF"] = df["FP"]
 			data_P["MF"] = df["P"]
 		else: 
 			print("Method not defined")
+		print('\nAfter adding %s, DF stats are:'%method)	
+		#print('df_FP index:',df_FP.index)
+		print('df_TP:',df_TP.head())
+		print('\n df_AUC: \n',df_AUC.head(),'\n\n\n')
+		#print('\n\n\n')
 
 		# Trim empty lists from dfs.	
 		df = df.loc[df['TP'].str.len()!=0]
+		df.to_pickle(method+"_summary.pkl")
+
+
 		plotting_ROC = False
 		if plotting_ROC:
 			for index,row in df.iterrows():
@@ -76,32 +149,110 @@ if generate_TPFP_df:
 			plt.legend(loc='lower right')
 			plt.savefig(method+"_ROC_new.pdf")
 			plt.close()
-		print(len(df['TP']))
 		df.to_pickle(method+"_summary.pkl")
+	# Remove nan lines print length of dfs
+	print("\n\n Removing NaN Values\n")
+	print("Dimensions Before drop NaN:")
+	print("TP: ", len(df_TP))
+	print("FP: ", len(df_FP))
+	print("P: ", len(df_P))
+	print("AUC: ", len(df_AUC))
+	df_TP = df_TP.dropna()
+	df_FP = df_FP.dropna()
+	df_P = df_P.dropna()
+	df_AUC = df_AUC.dropna()
+	print("Dimensions After drop NaN:")
+	print("TP: ", len(df_TP))
+	print("FP: ", len(df_FP))
+	print("P: ", len(df_P))
+	print("AUC: ", len(df_AUC))
+	print("\n\n\n")
 
-	df_P = pd.DataFrame.from_dict(data_P)
-	df_TP = pd.DataFrame.from_dict(data_TP)
-	df_FP = pd.DataFrame.from_dict(data_FP)
-	df_AUC = pd.DataFrame.from_dict(data_AUC)
 
+	output = open('pfam_df_auc_allMethods.pkl', 'wb')
+	pickle.dump(df_AUC, output)	
+	output = open('pfam_df_tp_allMethods.pkl', 'wb')
+	pickle.dump(df_TP, output)	
+	output = open('pfam_df_fp_allMethods.pkl', 'wb')
+	pickle.dump(df_FP, output)	
+	output = open('pfam_df_p_allMethods.pkl', 'wb')
+	pickle.dump(df_P, output)
+
+
+	output = open('data_auc.pkl', 'wb')
+	pickle.dump(data_AUC, output)	
+	output = open('data_tp.pkl', 'wb')
+	pickle.dump(data_TP, output)	
+	output = open('data_fp.pkl', 'wb')
+	pickle.dump(data_FP, output)	
+	output = open('data_p.pkl', 'wb')
+	pickle.dump(data_P, output)	
+	"""
+	else:
+	with open('data_auc.pkl', 'rb') as f:
+		data_AUC = pickle.load(f)
+	with open('data_p.pkl', 'rb') as f:
+		data_P = pickle.load(f)
+	with open('data_tp.pkl', 'rb') as f:
+		data_TP = pickle.load(f)
+	with open('data_fp.pkl', 'rb') as f:
+		data_FP = pickle.load(f)
+	"""
+
+	using_data_dicts =False
+	if using_data_dicts:
+		# remove duplicate indices
+		for method in method_list:
+			data_P[method] = data_P[method][~data_P[method].index.duplicated()]
+			data_TP[method] = data_TP[method][~data_TP[method].index.duplicated()]
+			data_FP[method] = data_FP[method][~data_FP[method].index.duplicated()]
+			data_AUC[method] = data_AUC[method][~data_AUC[method].index.duplicated()]
+
+		df_P = pd.DataFrame.from_dict(data_P)
+		df_TP = pd.DataFrame.from_dict(data_TP)
+		df_FP = pd.DataFrame.from_dict(data_FP)
+		df_AUC = pd.DataFrame.from_dict(data_AUC)
+		print(df_P.head())
+		# not necessary
+		if 0:
+			# only keep union indices  for dataframes
+			df_list = [df_P,df_TP,df_FP,df_AUC]
+			index_list = []
+			for df in df_list: 		
+				index_list.append(df.index.tolist())
+			index_union_list = set(index_list[0]).intersection(*index_list)
+			print(index_union_list)
+		
+			df_P = df_P[df_P.index.isin(index_union_list)]
+			df_TP = df_TP[df_TP.index.isin(index_union_list)]
+			df_FP = df_FP[df_FP.index.isin(index_union_list)]
+			df_AUC = df_AUC[df_AUC.index.isin(index_union_list)]
+
+			print(len(df_AUC.index.tolist()))
+			print(len(df_P.index.tolist()))
 	# Remove empty Rows
-	for method in ["MF","PLM","ER","coupER","covER"]:
-		df_P = df_P.loc[df_P[method].str.len()!=0]
+	for method in method_list:
 		df_P = df_P.loc[df_P[method].str.len()!=0]
 		df_TP = df_TP.loc[df_TP[method].str.len()!=0]
 		df_FP = df_FP.loc[df_FP[method].str.len()!=0]
-		df_AUC = df_AUC.loc[df_P[method].str.len()!=0]
+		
+		print('\n\n#---Indices Info---#')
+		print('AUC DF: ',df_AUC.index)
+		print('TP DF: ',df_TP.index)
+		print('FP DF: ',df_FP.index)
+		print('P DF: ',df_P.index)
+		print('#-----------------#\n\n')
 
 	print("shapes: ",df_P.shape,df_TP.shape,df_FP.shape,df_AUC.shape)
 
-	df_P.to_pickle("P_df_summary.pkl")
-	df_TP.to_pickle("TP_df_summary.pkl")
-	df_FP.to_pickle("FP_df_summary.pkl")
-	df_AUC.to_pickle("AUC_df_summary.pkl")
+	df_P.to_pickle("P_df_summary_allMethods.pkl")
+	df_TP.to_pickle("TP_df_summary_allMethods.pkl")
+	df_FP.to_pickle("FP_df_summary_allMethods.pkl")
+	df_AUC.to_pickle("AUC_df_summary_allMethods.pkl")
 
 merge_dfs = False
 if merge_dfs:
-	for i,method in enumerate(["MF","PLM","ER"]):
+	for i,method in enumerate(method_list):
 		df = pd.read_pickle(method+"_summary.pkl")
 		if i == 0:
 			df_TP = df.loc[df['TP']]
@@ -140,7 +291,7 @@ if generate_PR:
 	AUC_methods ={}
 	try:
 		# Create TP and FP dataframes from all three mthods
-		for method in ["MF","PLM","ER","coupER","covER"]:
+		for method in method_list:
 			df = pd.read_pickle(method+"_summary.pkl")
 			df = df.set_index('Pfam')
 
@@ -213,7 +364,7 @@ if generate_PR:
 		#print(df_PR.index)
 		#print(df_PR.head())
 
-		for method in ["MF","PLM","ER","coupER","covER"]:
+		for method in method_list:
 			df_PR = df_PR.loc[df_PR[method].str.len()!=0]
 
 		#print("PR: ,",df_PR.index)

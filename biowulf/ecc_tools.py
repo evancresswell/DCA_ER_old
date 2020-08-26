@@ -1,4 +1,5 @@
 from numba import prange as parallel_range
+from pprint import pprint
 import pandas as pd
 import numpy as np
 import sys,os,errno
@@ -15,6 +16,34 @@ warnings.simplefilter('ignore', DeprecationWarning)
 from matplotlib import colors as mpl_colors
 
 import random
+def split_and_shift_contact_pairs(list_of_contacts):
+	"""Separating contacting site pairs into two lists: One containing all
+	first entries (xdata), and the other containing all second entries (ydata).
+
+	Note that, each site pair is shifted by 1 so as to make them ready for
+	visualization (since the sites have been counted starting from 0)
+
+	Parameters
+	----------
+	    list_of_contacts : list/tuple
+		A list or tuple containing tuples of contacting site pairs.
+
+	Returns
+	-------
+	    xdata : list
+		List containing shifted first entries of site pairs as obtained
+		from list_of_contacts parameter.
+	    ydata : list
+		List containing shifted second entries of site pairs as obtained
+		from list_of_contacts parameter
+	"""
+	xdata = list()
+	ydata = list()
+	for first, second in list_of_contacts:
+		xdata.append(first + 1) # shift indexing by 1 for visualization (output)
+		ydata.append(second + 1)
+
+	return xdata, ydata
 
 
 def get_score_df(df_diff_full):
@@ -100,13 +129,23 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
         coords = coords_all[pdb_start-1:pdb_end]
     else:
         # Correct Method
-        #ppb = PPBuilder().build_peptides(chain)
-        #print('peptide build of chain produced %d elements'%(len(ppb)))
+        ppb = PPBuilder().build_peptides(chain)
+        #    print(pp.get_sequence())
+        print('peptide build of chain produced %d elements'%(len(ppb)))
+	
+        for i,pp in enumerate(ppb):
+            poly_seq = [char for char in str(pp.get_sequence())]
+            #poly_seq = poly_seq[pdb_start-1:pdb_end]
+            poly_seq = np.delete(poly_seq,cols_removed)
+            print(poly_seq)
+            print('peptide seq len: ',len(poly_seq))
+            print('s_index len: ',len(s_index))
         good_coords = []
         coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
         ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
         ca_coords = coords_all[ca_residues]
         good_coords = ca_coords[pdb_start-1:pdb_end]
+        print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
         print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d' % (len(coords_all),len(ca_coords),len(good_coords)))
         #for i,a in enumerate(chain.get_atoms()):
         #    if a.get_name() == 'CA':
@@ -227,12 +266,25 @@ if on_pc:
 	    return HTML(html)
 
 #=========================================================================================
-def distance_restr_sortedDI(sorted_DI_in):
+def distance_restr_sortedDI(sorted_DI_in, s_index=None):
 	sorted_DI = sorted_DI_in.copy()
 	count = 0
 	for site_pair, score in sorted_DI_in:
-		if abs(site_pair[0] - site_pair[1])<5:
-			sorted_DI[count] = site_pair,0
+
+		# if s_index exists re-index sorted pair
+		if s_index is not None:
+			pos_0 = s_index[site_pair[0]]
+			pos_1 = s_index[site_pair[1]]
+		else:
+			pos_0 = site_pair[0]
+			pos_1 = site_pair[1]
+			print('MAKE SURE YOUR INDEXING IS CORRECT!!')
+			print('		 or pass s_index to distance_restr_sortedDI()')
+
+		if abs(pos_0- pos_1)<5:
+			sorted_DI[count] = (pos_0,pos_1),0
+		else:
+			sorted_DI[count] = (pos_0,pos_1),score
 		count += 1
 	sorted_DI.sort(key=lambda x:x[1],reverse=True)  
 	return sorted_DI

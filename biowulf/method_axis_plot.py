@@ -9,15 +9,17 @@ import matplotlib
 from matplotlib import pyplot as plt
 from numpy import mean
 import matplotlib.pylab as pylab
-from matplotlib import colors as mpl_colors
 import ecc_tools as tools
 
 xtick_params = {'xtick.labelsize':'small'}
 pylab.rcParams.update(xtick_params)
 print('using backend: ',matplotlib.get_backend())
 
-finding_best_method = True
+method_list = ['covER','coupER','ER','PLM','MF']
+method_list = ['ER','PLM','MF']
+
 finding_best_method = False
+finding_best_method = True
 if finding_best_method:
 	tp_file = "df_TP_method_summary.pkl"
 	fp_file = "df_FP_method_summary.pkl"
@@ -41,58 +43,83 @@ if finding_best_method:
 
 	df_diff = df_AUC_diff.copy()
 	df_diff_full = df_AUC_diff.copy()
+	print("df_diff_full shape: " ,df_diff_full.shape	)
+	print("number of pfams: " ,len(df_diff_full['Pfam'].unique()))	
+	print("df_diff_full methods: " ,df_diff_full['method'].unique())	
+	df_diff_full = df_diff_full[df_diff_full['method'].isin(method_list)]
+	print("df_diff_full shape: (after removing methods)" ,df_diff_full.shape)	
+	print("number of pfams: " ,len(df_diff_full['Pfam'].unique()))	
+	print("df_diff_full methods: " ,df_diff_full['method'].unique())	
+	df_diff = df_diff[df_diff['method'].isin(method_list)]
 
+	
 	df_diff['best_method'] = 'None'
 	df_diff_full['best_method'] = 'None'
 	bad_guess_pfams = []
-
 	df_diff_full['Score'] = 0.
+	df_diff['Score'] = 0.
 	count = 0
 	for protein_family in df_diff['Pfam']:
 		#print(protein_family)
-		#count = count+1
-
 		try:
+
+			#df_protein = df_diff.loc[df_diff['Pfam']==protein_family]
 			df_protein = df_diff.loc[df_diff['Pfam']==protein_family]
+
+			# Use only methods defined in method list
 			methods = df_protein['method'].unique()
 			print(methods)
 
+			AUC_max = df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC']
 			for method in methods:
 				AUC_method = df_protein.at[df_protein[df_protein['method'] == method].index.tolist()[0],'AUC']
 				non_method_df = df_protein.loc[df_protein['method'] != method]
 				AUC_other = non_method_df.at[non_method_df[non_method_df['AUC'] \
 				== non_method_df['AUC'].max()].index.tolist()[0],'AUC']
-
 				score = (AUC_method - AUC_other) 
-				#score = (AUC_max - AUC_min) * np.heaviside(AUC_max,.5)  
 
+				#score = (AUC_max - AUC_min) * np.heaviside(AUC_max,.5)  
+				score = AUC_method / AUC_max
 				#print(method,' Score = ',AUC_method,' - ' ,AUC_other,' = ', score)
 
+				print(method,' Score = ',AUC_method,' - ' ,AUC_other,' = ', score)
 				df_diff_full['Score'].loc[df_diff_full['Pfam']==protein_family,df_diff_full['method']==method] = score
-
+				df_diff['Score'].loc[df_diff['Pfam']==protein_family,df_diff['method']==method] = score
 
 			# get best method
 			method_max = df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'method']
 			print('best method: ',method_max,' score:',df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'])
+
 			if df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'] > .5:
 				df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
 			else:
 				#print('for pfam ',protein_family,' method ',method_max,' has has best AUC: ,',df_protein.at[df_protein[df_protein['AUC']== df_protein['AUC'].max()].index.tolist()[0],'AUC'])
 				bad_guess_pfams.append(protein_family)
+				df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
 			df_diff_full.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
 			#print('df_diff_full[pfam]:\n',df_diff_full.loc[df_diff['Pfam']==protein_family])
-			if count>50:
-				sys.exit()
-
 		except IndexError:
 			print('ERROR in : ',protein_family)
 			print(df_diff.loc[df_diff['Pfam']==protein_family])
 		#print(df_diff_full.loc[df_diff['Pfam']==protein_family])
-	np.save('bad_guess_pfams.npy',np.array(bad_guess_pfams))
-	df_diff_full.to_pickle('df_axis_method.pkl')	
+	if len(method_list)>3:
+		np.save('bad_guess_pfams_allMethods.npy',np.array(bad_guess_pfams))
+		df_diff.to_pickle('df_axis-method_allMethods.pkl')	
+		df_diff_full.to_pickle('df_axis-method_full_allMethods.pkl')	
+	else:
+		np.save('bad_guess_pfams.npy',np.array(bad_guess_pfams))
+		df_diff.to_pickle('df_axis_method.pkl')	
+		df_diff_full.to_pickle('df_axis-method_full.pkl')	
+
 else:
-	df_diff_full =pd.read_pickle('df_axis_method.pkl')
-	bad_guess_pfams = np.load('bad_guess_pfams.npy')
+	if len(method_list)>3:
+		#df_diff =pd.read_pickle('df_pfam-bar.pkl')
+		#df_diff_full =pd.read_pickle('df_best_method_full.pkl')
+		df_diff_full =pd.read_pickle('df_pfam-bar_full_allMethods.pkl')
+		bad_guess_pfams = np.load('bad_guess_pfams_allMethods.npy')
+	else:
+		df_diff_full =pd.read_pickle('df_axis-method_full.pkl')
+		bad_guess_pfams = np.load('bad_guess_pfams.npy')
 
 df_diff = df_diff_full.copy()
 df_diff = df_diff.loc[df_diff['AUC']>.5]
@@ -100,7 +127,7 @@ df_diff = df_diff.loc[df_diff['AUC']>.5]
 #print(df_diff_full.columns)
 #print(df_diff.columns)
 
-plot_best_method_only = False
+plot_best_method_only = True
 if plot_best_method_only:
 	df_diff = df_diff.loc[df_diff['best_method'] == df_diff['method']]
 	df_diff_full = df_diff_full.loc[df_diff_full['best_method'] == df_diff_full['method']]
@@ -167,6 +194,7 @@ plt.close()
 
 
 plot_zoom = True
+plot_zoom = False
 if plot_zoom:
 	#---------- Plotting --------------#
 

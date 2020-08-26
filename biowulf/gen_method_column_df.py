@@ -1,10 +1,14 @@
+# RUN: 
+# singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/dca_er.simg python gen_method_column_df.py 
+
 import pandas as pd
 import sys
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.metrics import roc_auc_score
 import numpy as np
-
+method_list = ["MF","PLM","ER","covER","coupER"]
+method_list = ["MF","PLM","ER"]
 data_AUC = {}
 data_AUPR = {}
 data_PR = {}
@@ -13,6 +17,8 @@ data_FP = {}
 data_P = {}
 ROC = {}
 
+# Generate PR creates a DF where methods are considered a column value requires the <method>_summary.pkl created in gen_PR_df.py
+#									---> should change so that we only generate summary pkls in there...
 generate_PR = True
 if generate_PR:
 	TP_methods = {}
@@ -23,7 +29,7 @@ if generate_PR:
 	AUPR_methods = {}
 	try:
 		# Create TP and FP dataframes from all three mthods
-		for method in ["MF","PLM","ER"]:
+		for method in method_list:
 			df = pd.read_pickle(method+"_summary.pkl")
 			#df = df.set_index('Pfam')
 
@@ -117,9 +123,9 @@ if generate_PR:
 		#print("AUPR:len ,",len(df_AUPR.index))
 	except ValueError as err:
 		print(err.args)	
-
 #----------------------------------------------------------------#
-
+# THIS PLOTTING IS OBSOLETE 8/12/2020
+plotting = True
 plotting = False
 if plotting:
 	p_er = df_P["ER"].mean()

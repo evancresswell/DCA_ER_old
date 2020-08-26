@@ -107,8 +107,12 @@ def convert_number2letter(s):
 
     number2letter = {0:'A', 1:'C', 2:'D', 3:'E', 4:'F', 5:'G', 6:'H', 7:'I', 8:'K', 9:'L',\
 	 				10:'M', 11:'N', 12:'P', 13:'Q', 14:'R', 15:'S', 16:'T', 17:'V', 18:'W', 19:'Y', 20:'-'} 
-    l,n = s.shape
-    return np.array([number2letter[s[t,i]] for t in range(l) for i in range(n)]).reshape(l,n)
+    print('converting s with shape : ',s.shape)
+    try:
+        l,n = s.shape
+        return np.array([number2letter[s[t,i]] for t in range(l) for i in range(n)]).reshape(l,n)
+    except(ValueError):
+        return np.array([number2letter[r] for r in s])
 
 
 
@@ -216,8 +220,13 @@ def write_FASTA(msa,pfam_id,s_ipdb,number_form=True,processed = True,path = './'
 	ref_str = ''
 	ref_list = ref_letters.tolist()
 	ref_str = ref_str.join(ref_list)
-	with open(path+ref_outfile, 'w') as fh:
-		fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
+	if processed:
+		with open(path+ref_outfile, 'w') as fh:
+			fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
+	else:
+		ref_outfile = 'orig_ref_'+pfam_id+'.fa'
+		with open(path+ref_outfile, 'w') as fh:
+			fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
 
 	# Next save MSA to FAST file
 
@@ -301,15 +310,8 @@ def delete_sorted_DI_duplicates(sorted_DI):
 
 #pfam_id = 'PF00186'
 #ipdb=0
-
-    #def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
-def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8):
-    
+def load_msa(data_path,pfam_id):
     printing = True
-
-    # read parse_pfam data:
-    #print('read original aligned pfam data')
-    #s = np.load('../%s/msa.npy'%pfam_id).T
     s = np.load('%s/%s/msa.npy'%(data_path,pfam_id)).T
     if printing:
     	print("shape of s (import from msa.npy):\n",s.shape)
@@ -333,6 +335,16 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
             file_missing_msa.write("%s\n"% pfam_id)
             file_missing_msa.close()
         return
+    return s
+
+    #def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
+def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8,printing=True):
+    
+    # read parse_pfam data:
+    #print('read original aligned pfam data')
+    #s = np.load('../%s/msa.npy'%pfam_id).T
+    s = load_msa(data_path,pfam_id)
+
     #print('select only column presenting as uppercase at PDB sequence')
     #pdb = np.load('../%s/pdb_refs.npy'%pfam_id)
     pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))

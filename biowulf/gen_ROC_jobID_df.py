@@ -40,40 +40,45 @@ def add_ROC(df,filepath):
 			pfam_dict = pickle.load(f)
 		f.close()
 		s0 = pfam_dict['s0']	
+		s0_alt = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id))
 		s_index = pfam_dict['s_index']	
-		s_ipdb = pfam_dict['s_ipdb']	
+		s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
 		cols_removed = pfam_dict['cols_removed']
 		n_var = s0.shape[1]
 		seq_lens.append(n_var)
 		num_seqs.append(s0.shape[0]) 
 		pdb_id = pdb[ipdb,5]
+		seq_row =s_ipdb 
+		subject_seq = dp.convert_number2letter(s0[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
+		print('Example DF row for %s\n'%pfam_id,df.loc[df.Pfam== pfam_id])
 		
 		# Load Contact Map
 		try:
-			print(pfam_id)
+			print(pfam_id, ': subject msa sequence')
 			ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
 			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
+			print('subject MSA sequence:\n',subject_seq)
+			print(len(subject_seq))
 			#---------------------- Load DI -------------------------------------#
 			#print("Unpickling DI pickle files for %s"%(pfam_id))
-			if filepath[0:6] =="coupER":
+			if filepath[:3] =="cou":
 				with open("DI/ER/er_couplings_DI_%s.pickle"%(pfam_id),"rb") as f:
 					DI = pickle.load(f)
 				f.close()
-			if filepath[0:5] =="covER":
+			elif filepath[:3] =="cov":
 				with open("DI/ER/er_cov_couplings_DI_%s.pickle"%(pfam_id),"rb") as f:
 					DI = pickle.load(f)
 				f.close()
-			if filepath[3:5] =="ER":
+			elif filepath[:2] =="ER":
 				with open("DI/ER/er_DI_%s.pickle"%(pfam_id),"rb") as f:
 					DI = pickle.load(f)
 				f.close()
-
-			elif filepath[3:6] =="PLM":
+			elif filepath[:3] =="PLM":
 				with open("DI/PLM/plm_DI_%s.pickle"%(pfam_id),"rb") as f:
 					DI = pickle.load(f)
 				f.close()
-			elif filepath[3:5] == "MF":
+			elif filepath[:2] == "MF":
 				with open("DI/MF/mf_DI_%s.pickle"%(pfam_id),"rb") as f:
 					DI = pickle.load(f)
 				f.close()
@@ -159,6 +164,8 @@ def add_ROC(df,filepath):
 			DIs.append([])
 			ODs.append(-1)
 		except IndexError as e:
+			print('MSA subject: ',subject_seq)
+			print(len(subject_seq))
 			print("!!ERROR\n Indexing error, check DI or PDB for %s"%(pfam_id))
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
@@ -182,6 +189,10 @@ def add_ROC(df,filepath):
 	df = df.assign(OptiDist = ODs)
 	df = df.assign(seq_len = seq_lens)
 	df = df.assign(num_seq = num_seqs)
+
+	# Print duplicate Pfams rows
+	print("Duplicates:")
+	print(df[df.duplicated(['Pfam'])])
 	#print(df)
 	return df.copy()
 #-----------------------------------------------------------------------------------#

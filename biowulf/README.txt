@@ -1,3 +1,23 @@
+
+#---------------------- File Directory ---------------------------# 
+Enty: June 8, 2020
+
+Files to read swarm pkl files and create several different kinds of dataframes:
+method_axis_plot and pfam_bar_methods created the most up-to-date figures (namely pfam_bar_method)
+
+ Aug 15 14:00 pfam_pdb_seq_match.py - checks pdb_refs.npy against actual MSA matching the give PPB loaded PDB struture (also compares with PYDCA)
+ Jun  5 16:34 ks_comparison.py - compare score/AUC histograms to discern that they are from different distributions
+ Jun  5 15:20 ecc_tools.py -  added get_score_df to create method dataframes (used in method_axis_plot)
+ Jun  5 15:06 method_axis_plot.py - plot method scores along xyz axis
+ Jun  4 18:59 pfam_bar_method.py -  plot Score (method_auc - max AUC) and best method count for pfams in different ranges of number of sequence - uses datframes generated in gen_method_column_df.py
+ Jun  4 12:06 compare_ER-MF.py - same as pfam_bar_method but only compares ER and MF
+ Jun  4 09:39 pfam_best_method_surface.py - 3D axis plot score on z-axis num-seq and len-seq x-y
+ May 22 20:22 gen_method_column_df.py - generated dataframes for plotting with individual methods per row
+ May 22 11:51 gen_PR_df.py - generates dataframes for individual metrics (AUC,AUPR, TP, FP etc) which are used in gen_method_column_df.py
+ May  7 18:32 create_sim_data_frame.py
+#-----------------------------------------------------------------# 
+
+
 #---------------------- Biowulf Simulations ----------------------# 
 
 This directory is for the execution and analysis of simulations run
@@ -32,16 +52,20 @@ on Biowulf
 			- see ../README.md section: Generate Singularity Container to Run Code
 #-----------------------#
 
+#---------------------------------------------------------------------#
+#------------------------- Analysis Drivers --------------------------#
+#---------------------------------------------------------------------#
 
-#----- Analysis --------#
+-- The following is the flow of runs to get to plotting routines once you have completed swarm simulations for various methods
+
+#----- WORKFLOW --------#
 - Collect resulting information from swarm of simulations
   RUN: python 15sim_summary.py job_id method
 	- This requires successfull swarm simulation with a swarm ID 
 	- Each simulation must be of only one Method
 	- Creates a file for each method 
-		- #METHOD#_job-#JOB-NUM#_swarm_ouput.txt
-
-
+		- <METHOD>_job-<JOB-NUM>_swarm_ouput.txt
+  - Can also just use jobhist <JOB-NUM> and then curate
 
 - Create DataFrame from txt output # SWARM RUN
   RUN: sinuglairty exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python setup_swarm_sim_dataframe.py <METHOD>_job-<JOBID>_swarm_ouput.txt
@@ -54,14 +78,43 @@ on Biowulf
   RUN: sinteractive --mem=150g --cpus-per-task=4
   RUN: module load singularity
   RUN: singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python concat_dfs.py <JOBIDA>
-  	- this creates dataframe for full swarm simulation: <JOBID>_full.pkl 
- 
+  	- this creates dataframe for full swarm simulation: ../<METHOD>_<JOBID>_full.pkl 
+  ---> move back up to biowulf/
+  RUN: singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python gen_PR_df.py <METHOD1>_<JOBID1>_full.pkl <METHOD2>_<JOBID2>_full.pkl ...
+	- this creates two dataframe types
+		- a summary dataframe (used in pfam_bar_method for final plots)
+		- a specialized dataframe set for TP, FP, P, AUC, AUPR, PR etc ...
+			- Each df has methods as columns
 #-----------------------#
+
+#---------------------------------------------------------------------#
+#---------------------------------------------------------------------#
+#---------------------------------------------------------------------#
+
+
+ 
+#-----------------------------------------------------------------# 
+#---------------- Plotting Drivers -------------------------------# 
+#-----------------------------------------------------------------# 
+
+
+#----- Plotting All Pfams --------#
+- Plot BarPlot of best methods across ranges of number of sequences
+  	RUN: singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python pfam_bar_method.py
+- Plot AUC/Score of methods along axis (color is best method)
+  	RUN: singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python method_axis_plot.py
+#---------------------------------#
+
+
+#----- Plotting Single Pfams --------#
 - Plot Contact Map and ROC curves for Pfams
   RUN: ./pfam_plotting.script
 	- runs: 
 		singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python plot_single_pfam.py <PFAM>
-#----- Plotting --------#
+#------------------------------------#
 
-#-----------------------#
 #-----------------------------------------------------------------# 
+#-----------------------------------------------------------------# 
+#-----------------------------------------------------------------# 
+
+

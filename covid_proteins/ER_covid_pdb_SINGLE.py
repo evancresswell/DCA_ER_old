@@ -217,14 +217,14 @@ try:
 		# Remove bad distances and Duplicates
 		print('		unsorted DI: ',DI_er[0:10])
 		DI_er_dup = dp.delete_sorted_DI_duplicates(DI_er)	
-		sorted_DI_er = tools.distance_restr_sortedDI(DI_er_dup)
+		sorted_DI_er = tools.distance_restr_sortedDI(DI_er_dup,s_index = s_index)
 		print('		sorted DI: ',sorted_DI_er[0:10])
 
 		# other two methods
 		DI_dca_dup = dp.delete_sorted_DI_duplicates(DI_dca)	
-		sorted_DI_dca = tools.distance_restr_sortedDI(DI_dca_dup)
+		sorted_DI_dca = tools.distance_restr_sortedDI(DI_dca_dup,s_index = s_index)
 		DI_plm_dup = dp.delete_sorted_DI_duplicates(DI_plm)	
-		sorted_DI_plm = tools.distance_restr_sortedDI(DI_plm_dup)
+		sorted_DI_plm = tools.distance_restr_sortedDI(DI_plm_dup,s_index = s_index)
 
 		#print(cols_removed)
 		file_obj = open("%s/DI_sorted.pickle"%(pfam_id),"wb")
