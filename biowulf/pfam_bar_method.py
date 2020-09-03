@@ -15,11 +15,12 @@ xtick_params = {'xtick.labelsize':'small'}
 pylab.rcParams.update(xtick_params)
 print('using backend: ',matplotlib.get_backend())
 
-finding_best_method = True
 finding_best_method = False
-method_list = ['covER','PLM','MF']
+finding_best_method = True
 method_list = ['covER','coupER','ER','PLM','MF']
+method_list = ['covER','PLM','MF']
 method_list = ['ER','PLM','MF']
+method_list = ['ER','MF']
 print('\n\n\nFinding best method of: ',method_list)
 print('\n\n\n')
 
@@ -145,9 +146,22 @@ print(df_diff.columns)
 
 plot_best_method_only = True
 if plot_best_method_only:
+	er_mean = df_diff_full.loc[df_diff_full['method']=='ER']['AUC'].mean()
+	mf_mean = df_diff_full.loc[df_diff_full['method']=='MF']['AUC'].mean()
+	plm_mean = df_diff_full.loc[df_diff_full['method']=='PLM']['AUC'].mean()
 	df_diff = df_diff.loc[df_diff['best_method'] == df_diff['method']]
 	df_diff_full = df_diff_full.loc[df_diff_full['best_method'] == df_diff_full['method']]
 	print(df_diff.head())
+
+	print("#----------------------------------------------------------------------#")
+	print("\n\n\n%d Proteins"%(len(df_diff_full['Pfam'].unique())))
+	print('ER best in %d Proteins'%(len(df_diff_full.loc[df_diff_full['method']=='ER'])))
+	print('ER mean: %f'%(er_mean))
+	print('MF best in %d Proteins'%(len(df_diff_full.loc[df_diff_full['method']=='MF'])))
+	print('MF mean: %f'%(mf_mean))
+	print('PLM best in %d Proteins\n\n\n'%(len(df_diff_full.loc[df_diff_full['method']=='PLM'])))
+	print('PLM mean: %f'%(plm_mean))
+	print("#----------------------------------------------------------------------#")
 
 df_diff['num_seq_range'] = pd.cut(df_diff['num_seq'],np.arange(min(df_diff['num_seq']),max(df_diff['num_seq']),step=10000))
 df_diff_full['num_seq_range'] = pd.cut(df_diff_full['num_seq'],np.arange(min(df_diff_full['num_seq']),max(df_diff_full['num_seq']),step=10000))
@@ -179,6 +193,7 @@ if logging_x:
 	x,y,hue = 'log_num_seq_range', 'method','best_method' 
 else:
 	x,y,hue = 'num_seq_range', 'method','best_method' 
+	x,y,hue = 'seq_len_range', 'method','best_method' 
 value_y = 'AUC'
 value_y = 'Score'
 value_hue = 'method'
@@ -198,8 +213,12 @@ df_seq_range_count_full= (df_diff_full[x].groupby(df_diff_full[hue]).value_count
 
 # For the first plot only keep sequence number ranges where there are > 10 proteins
 if not logging_x:
-	num_seq_order = df_seq_range_count_full.loc[df_seq_range_count_full['method']>10]['num_seq_range'].sort_values().unique()
-	print('only plotting sequence number ranges with counts > 10: \n',num_seq_order)
+	if x == 'num_seq_range':
+		num_seq_order = df_seq_range_count_full.loc[df_seq_range_count_full['method']>10]['num_seq_range'].sort_values().unique()
+		print('only plotting sequence number ranges with counts > 10: \n',num_seq_order)
+	if x == 'seq_len_range':
+		seq_len_order = df_seq_range_count_full.loc[df_seq_range_count_full['method']>10]['seq_len_range'].sort_values().unique()
+		print('only plotting sequence number ranges with counts > 10: \n',seq_len_order)
 else:
 	num_seq_order = df_seq_range_count_full.loc[df_seq_range_count_full['method']>10]['log_num_seq_range'].sort_values().unique()
 	print('only plotting sequence number ranges with counts > 10: \n',num_seq_order)
@@ -280,8 +299,12 @@ if 0:
 
 #-- plot pfam count --#
 f, axes = plt.subplots(1, 2)
-sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
-sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count,ax=axes[1])
+if x =='num_seq_range':
+	sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
+	sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
+if x == 'seq_len_range':
+	sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=axes[1])
+	sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=axes[1])
 for ax in axes:
 	ax.set_ylabel('Protein Count')
 	for label in ax.xaxis.get_ticklabels()[0::2]:

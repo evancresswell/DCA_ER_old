@@ -19,7 +19,7 @@ def add_ROC(df,filepath):
 	pfams =[]
 	seq_lens = []
 	num_seqs = []
-	ERR = []
+	ERRs = []
 	for i,row in df.iterrows():
 		pfam_id = row['Pfam'] 
 		pfams.append(pfam_id)
@@ -51,15 +51,15 @@ def add_ROC(df,filepath):
 		seq_row =s_ipdb 
 		subject_seq = dp.convert_number2letter(s0[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
-		print('Example DF row for %s\n'%pfam_id,df.loc[df.Pfam== pfam_id])
-		
+		print('\n\n\nAnalysing  %s\n'%pfam_id,df.loc[df.Pfam== pfam_id])
+			
 		# Load Contact Map
 		try:
 			print(pfam_id, ': subject msa sequence')
-			ct = tools.contact_map(pdb,ipdb,cols_removed,s_index)
+			ct,ct_full,n_amino_full = tools.contact_map(pdb,ipdb,cols_removed,s_index)
 			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
 			print('subject MSA sequence:\n',subject_seq)
-			print(len(subject_seq))
+			print(len(subject_seq),'\n\n')
 			#---------------------- Load DI -------------------------------------#
 			#print("Unpickling DI pickle files for %s"%(pfam_id))
 			if filepath[:3] =="cou":
@@ -87,18 +87,22 @@ def add_ROC(df,filepath):
 				sys.exit()
 
 			DI_dup = dp.delete_sorted_DI_duplicates(DI)	
-			sorted_DI = tools.distance_restr_sortedDI(DI_dup)
+			print('Deleted DI index duplicates')
+			sorted_DI = tools.distance_restr_sortedDI(DI_dup,s_index)
+			print('Distance restraint enforced')
 			#--------------------------------------------------------------------#
 			
 			#--------------------- Generate DI Matrix ---------------------------#
-			n_amino = max([coupling[0][0] for coupling in sorted_DI]) 
-			di = np.zeros((n_var,n_var))
+			#n_amino = max([coupling[0][0] for coupling in sorted_DI]) 
+			di = np.zeros((n_amino_full,n_amino_full))
 			for coupling in sorted_DI:
 				#print(coupling[1])
 				di[coupling[0][0],coupling[0][1]] = coupling[1]
 				di[coupling[0][1],coupling[0][0]] = coupling[1]
 			#--------------------------------------------------------------------#
+
 			print("%s s_index: "%(pfam_id),len(s_index),"DI shape: ",di.shape[0])
+			print("s_index max index: %d, DI max index: %d"%(s_index[-1],max([coupling[0][0] for coupling in sorted_DI])))
 			
 			#----------------- Generate Optimal ROC Curve -----------------------#
 			# find optimal threshold of distance for both DCA and ER
@@ -108,12 +112,13 @@ def add_ROC(df,filepath):
 			auc = np.zeros(n)
 			
 			for i in range(n):
-				p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
+				#p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
+				p,tp,fp = tools.roc_curve(ct_full,di,ct_thres[i])
 				auc[i] = tp.sum()/tp.shape[0]
 			i0 = np.argmax(auc)
 			
 			# set true positivies, false positives and predictions for optimal distance
-			p0,tp0,fp0 = tools.roc_curve(ct_distal,di,ct_thres[i0])
+			p0,tp0,fp0 = tools.roc_curve(ct_full,di,ct_thres[i0])
 			
 			
 			Ps.append(p0)	
@@ -122,7 +127,7 @@ def add_ROC(df,filepath):
 			AUCs.append(auc[i0])	
 			DIs.append(sorted_DI)
 			ODs.append(ct_thres[i0])
-			ERR.append('None')
+			ERRs.append('None')
 			# Fill Data Frame with relavent info
 			#print("adding TP =",tp0)
 			#df.loc[i,'TP'] = tp0.tolist()
@@ -138,12 +143,12 @@ def add_ROC(df,filepath):
 			print(str(e))
 			#<Example file>'/data/cresswellclayec/DCA_ER/biowulf/uz/pdb5uz5.ent'
 			if '.ent' in str(e):
-				ERR.append('No PDB')
+				ERRs.append('No PDB')
 			#<Example file>'DI/ER/er_DI_PF17859.pickle'
 			elif '.pickle' in str(e):
-				ERR.append('No DI')
+				ERRs.append('No DI')
 			else:
-				ERR.append(str(e))
+				ERRs.append(str(e))
 			print("\n\nAdding empty row\n\n")
 			Ps.append([])	
 			TPs.append([])	
@@ -156,7 +161,7 @@ def add_ROC(df,filepath):
 			print("ERROR!!\n Prediction:max() arg is an empty sequence")
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
-			ERR.append('ValueErr')
+			ERRs.append('ValueErr')
 			Ps.append([])	
 			TPs.append([])	
 			FPs.append([])	
@@ -164,23 +169,25 @@ def add_ROC(df,filepath):
 			DIs.append([])
 			ODs.append(-1)
 		except IndexError as e:
+			print("\n\n!!ERROR\n Indexing error, check DI or PDB for %s"%(pfam_id))
 			print('MSA subject: ',subject_seq)
 			print(len(subject_seq))
-			print("!!ERROR\n Indexing error, check DI or PDB for %s"%(pfam_id))
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
 			print('\n\n\n')
-			ERR.append('Indexing_CT')
+			ERRs.append('Indexing_CT')
 			Ps.append([])	
 			TPs.append([])	
 			FPs.append([])	
 			AUCs.append(-1)	
 			DIs.append([])
 			ODs.append(-1)
+			sys.exit()
 		
 
 	#print("df: ",len(df))
 	#print("P vec: ",len(Ps))
+	df = df.assign(ERR = ERRs)
 	df = df.assign(P = Ps)
 	df = df.assign(TP = TPs)
 	df = df.assign(FP = FPs)

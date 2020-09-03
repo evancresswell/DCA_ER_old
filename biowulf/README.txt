@@ -74,12 +74,12 @@ on Biowulf
   RUN: ./16_gen_ROC_df.script <----> swarm simulation
 	- uses gen_ROC_jobID_df.py to 
 	- creates indidvidual swarm dfs in directory: job_ROC_dfs/
-  ---> move into job_ROC_dfs/
+  ---> cd into job_ROC_dfs/
   RUN: sinteractive --mem=150g --cpus-per-task=4
   RUN: module load singularity
   RUN: singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python concat_dfs.py <JOBIDA>
   	- this creates dataframe for full swarm simulation: ../<METHOD>_<JOBID>_full.pkl 
-  ---> move back up to biowulf/
+  ---> cd back up to biowulf/
   RUN: singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/Pfam-A.full/ /data/cresswellclayec/DCA_ER/dca_er.simg python gen_PR_df.py <METHOD1>_<JOBID1>_full.pkl <METHOD2>_<JOBID2>_full.pkl ...
 	- this creates two dataframe types
 		- a summary dataframe (used in pfam_bar_method for final plots)
