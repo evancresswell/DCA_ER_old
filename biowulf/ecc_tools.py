@@ -140,17 +140,19 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
             print(poly_seq)
             print('peptide seq len: ',len(poly_seq))
             print('s_index len: ',len(s_index))
-        good_coords = []
-        coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
-        ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
-        ca_coords = coords_all[ca_residues]
-        good_coords = ca_coords[pdb_start-1:pdb_end]
-        n_amino = len(good_coords)
-        print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
-        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d' % (len(coords_all),len(ca_coords),len(good_coords)))
-        #for i,a in enumerate(chain.get_atoms()):
-        #    if a.get_name() == 'CA':
-        #        good_coords.append(a.get_coord())		
+            good_coords = []
+            coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
+            ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
+            ca_coords = coords_all[ca_residues]
+            good_coords = ca_coords[pdb_start-1:pdb_end]
+            n_amino = len(good_coords)
+            print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
+            print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d' % (len(coords_all),len(ca_coords),len(good_coords)))
+            #for i,a in enumerate(chain.get_atoms()):
+            #    if a.get_name() == 'CA':
+            #        good_coords.append(a.get_coord())		
+
+            ct_full = distance_matrix(good_coords,good_coords)
         """
         for i,ca in enumerate(ppb[0].get_ca_list()):		
            #print(ca.get_coord())
@@ -172,9 +174,10 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
     
 
     ct = distance_matrix(coords_remain,coords_remain)
-    ct_full = distance_matrix(good_coords,good_coords)
-
-    return ct,ct_full,n_amino
+    if use_old:
+        return ct
+    else:
+        return ct,ct_full,n_amino
 
 def roc_curve(ct,di,ct_thres):
     ct1 = ct.copy()
@@ -230,7 +233,7 @@ def roc_curve(ct,di,ct_thres):
     return pbin,tpbin,fpbin
 
 
-on_pc = False
+on_pc = True
 if on_pc:
 	from IPython.display import HTML
 	def hide_toggle(for_next=False):
