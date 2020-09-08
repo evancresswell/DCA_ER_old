@@ -646,7 +646,7 @@ def data_processing_covid(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,pro
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
 
-def generate_pfam_data(data_path,pfam_id):
+def generate_pfam_data(data_path,pfam_id,ipdb):
     pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))
 
     # Pre-Process Structure Data
@@ -667,7 +667,6 @@ def generate_pfam_data(data_path,pfam_id):
                                          'pdb_id','chain','pdb_start','pdb_end'])
         print(df.head())
 
-        ipdb = 0
         print('seq:',int(pdb[ipdb,1]))
         
         try:
@@ -699,7 +698,7 @@ def generate_pfam_data(data_path,pfam_id):
                 data_fail.write("%s\n"% pfam_id)
                 data_fail.close()
         return
-    return pf_dict,pdb    
+    return pf_dict,pdb,ipdb    
 #-------------------------------
 
 
