@@ -137,9 +137,12 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
             poly_seq = [char for char in str(pp.get_sequence())]
             #poly_seq = poly_seq[pdb_start-1:pdb_end]
             poly_seq = np.delete(poly_seq,cols_removed)
-            print(poly_seq)
+            print('poly_seq: \n', poly_seq)
+            if(len(poly_seq)>= s_index[-1]-1):
+                print('poly_seq[s_index]:\n',poly_seq[s_index],'\n\n')
             print('peptide seq len: ',len(poly_seq))
             print('s_index len: ',len(s_index))
+            print('s_index largest index: ',s_index[-1])
             good_coords = []
             coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
             ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
@@ -314,6 +317,28 @@ def distance_restr(di,s_index,make_large=False):
 				di_distal[i][j] = di[i][j]
 
 	return di_distal
+#=========================================================================================
+def distance_restr_ct(ct,s_index,make_large=False):
+	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
+	if ct.shape[0] < s_index[-1]:
+		print("Distance restraint cannot be imposed, bad input")
+		#IndexError: index 0 is out of bounds for axis 0 with size 0
+		print("s_index max index: ",s_index[-1],"ct shape: ",ct.shape[0])
+		#print('di:\n',di[0])
+		raise IndexError("matrix input dimensions do not matchup with simulation n_var")
+	ct_distal = np.zeros(ct.shape)
+	for i in range(ct.shape[0]):
+		for j in range(ct.shape[1]):
+			if(abs(i-j<5)):
+				if make_large:
+					ct_distal[i][j]=35.
+				else:	
+					ct_distal[i][j]=0.
+			else:
+				ct_distal[i][j] = ct[i][j]
+
+	return ct_distal
+
 
 # ER coupling setup 6/20/2020
 def compute_sequences_weight(alignment_data=None, seqid=None):

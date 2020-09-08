@@ -52,12 +52,15 @@ def add_ROC(df,filepath):
 		subject_seq = dp.convert_number2letter(s0[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		print('\n\n\nAnalysing  %s\n'%pfam_id,df.loc[df.Pfam== pfam_id])
+		print('\n s_index',s_index,'\n')
 			
 		# Load Contact Map
 		try:
 			print(pfam_id, ': subject msa sequence')
 			ct,ct_full,n_amino_full = tools.contact_map(pdb,ipdb,cols_removed,s_index)
-			ct_distal = tools.distance_restr(ct,s_index,make_large=True)
+			print('contact map shape: ',ct.shape)
+			print('contact map (full) shape: ',ct_full.shape)
+			ct_distal = tools.distance_restr_ct(ct_full,s_index,make_large=True)
 			print('subject MSA sequence:\n',subject_seq)
 			print(len(subject_seq),'\n\n')
 			#---------------------- Load DI -------------------------------------#
@@ -171,7 +174,7 @@ def add_ROC(df,filepath):
 		except IndexError as e:
 			print("\n\n!!ERROR\n Indexing error, check DI or PDB for %s"%(pfam_id))
 			print('MSA subject: ',subject_seq)
-			print(len(subject_seq))
+			print('MSA subject length: ',len(subject_seq))
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
 			print('\n\n\n')
