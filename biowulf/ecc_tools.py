@@ -138,8 +138,6 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
             #poly_seq = poly_seq[pdb_start-1:pdb_end]
             poly_seq = np.delete(poly_seq,cols_removed)
             print('poly_seq: \n', poly_seq)
-            if(len(poly_seq)>= s_index[-1]-1):
-                print('poly_seq[s_index]:\n',poly_seq[s_index],'\n\n')
             print('peptide seq len: ',len(poly_seq))
             print('s_index len: ',len(s_index))
             print('s_index largest index: ',s_index[-1])
