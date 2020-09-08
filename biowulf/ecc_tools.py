@@ -273,6 +273,7 @@ if on_pc:
 
 #=========================================================================================
 def distance_restr_sortedDI(sorted_DI_in, s_index=None):
+        # if s_index is passes the resulting tuple list will be properly indexed
 	sorted_DI = sorted_DI_in.copy()
 	count = 0
 	for site_pair, score in sorted_DI_in:

@@ -92,6 +92,7 @@ def add_ROC(df,filepath):
 			DI_dup = dp.delete_sorted_DI_duplicates(DI)	
 			print('Deleted DI index duplicates')
 			sorted_DI = tools.distance_restr_sortedDI(DI_dup,s_index)
+			# sorted_DI has no duplicates, incorporates s_index and distance restraint
 			print('Distance restraint enforced')
 			#--------------------------------------------------------------------#
 			
@@ -106,7 +107,10 @@ def add_ROC(df,filepath):
 
 			print("%s s_index: "%(pfam_id),len(s_index),"DI shape: ",di.shape[0])
 			print("s_index max index: %d, DI max index: %d"%(s_index[-1],max([coupling[0][0] for coupling in sorted_DI])))
-			
+			print('DI matrix shape: ',di.shape)
+			print('contact matrix shape: ',ct_full.shape)
+			print('\n\n #------------------ Calculating ROC Curve --------------------#\n\n')
+		
 			#----------------- Generate Optimal ROC Curve -----------------------#
 			# find optimal threshold of distance for both DCA and ER
 			ct_thres = np.linspace(1.5,10.,18,endpoint=True)
@@ -185,7 +189,6 @@ def add_ROC(df,filepath):
 			AUCs.append(-1)	
 			DIs.append([])
 			ODs.append(-1)
-			sys.exit()
 		
 
 	#print("df: ",len(df))
