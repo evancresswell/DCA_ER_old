@@ -1,6 +1,8 @@
 ## 2018.12.24: replace 'Z', 'X', and gap by elements in the same columns and with probability
 ## 2018.12.26: separate remove gaps (first) and remove conserved positions (last)
 import numpy as np
+import pandas as pd
+import pickle
 #from scipy.stats import itemfreq #removed due to warning
 import os,sys
 
@@ -669,23 +671,23 @@ def generate_pfam_data(data_path,pfam_id,ipdb):
 
         print('seq:',int(pdb[ipdb,1]))
         
-        try:
-            # data processing
-            s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
-                            gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
+        #try:
+        # data processing
+        s0,cols_removed,s_index,s_ipdb = data_processing(data_path,pfam_id,ipdb,\
+                        gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
 
-            # Save processed data
-            msa_outfile, ref_outfile = dp.write_FASTA(s0,pfam_id,s_ipdb,path='pfam_ecc/')    
-            pf_dict = {}
-            pf_dict['s0'] = s0
-            pf_dict['s_index'] = s_index
-            pf_dict['s_ipdb'] = s_ipdb
-            pf_dict['cols_removed'] = cols_removed
+        # Save processed data
+        msa_outfile, ref_outfile = write_FASTA(s0,pfam_id,s_ipdb,path='pfam_ecc/')    
+        pf_dict = {}
+        pf_dict['s0'] = s0
+        pf_dict['s_index'] = s_index
+        pf_dict['s_ipdb'] = s_ipdb
+        pf_dict['cols_removed'] = cols_removed
 
-            with open('pfam_ecc/%s_DP.pickle'%(pfam_id), 'wb') as f:
-                pickle.dump(pf_dict, f)
-            f.close
-
+        with open('pfam_ecc/%s_DP.pickle'%(pfam_id), 'wb') as f:
+            pickle.dump(pf_dict, f)
+        f.close()
+        """
         except:
             print("Could not generate data for %s: "%(pfam_id),sys.exc_info())
 
@@ -698,7 +700,8 @@ def generate_pfam_data(data_path,pfam_id,ipdb):
                 data_fail.write("%s\n"% pfam_id)
                 data_fail.close()
         return
-    return pf_dict,pdb,ipdb    
+        """
+    return pf_dict,pdb
 #-------------------------------
 
 
