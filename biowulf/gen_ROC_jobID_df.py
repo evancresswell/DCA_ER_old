@@ -20,6 +20,7 @@ def add_ROC(df,filepath):
 	seq_lens = []
 	num_seqs = []
 	ERRs = []
+	bad_index_ref_seqs = []
 	for i,row in df.iterrows():
 		pfam_id = row['Pfam'] 
 		pfams.append(pfam_id)
@@ -34,7 +35,6 @@ def add_ROC(df,filepath):
 
 		# ONLY CONSIDERING FIRST PDB-ID IN PFAM (FOR NOW)
 		ipdb = 0
-
 		input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
 		with open(input_data_file,"rb") as f:
 			pfam_dict = pickle.load(f)
@@ -49,15 +49,25 @@ def add_ROC(df,filepath):
 		num_seqs.append(s0.shape[0]) 
 		pdb_id = pdb[ipdb,5]
 		seq_row =s_ipdb 
+ 
+		tpdb = int(pdb[ipdb,1])
+		# load ORIGINAL MSA, without any preprocessing
+		s = dp.load_msa(data_path,pfam_id)
+		gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
+		ref_seq = s[tpdb,~gap_pdb] # removes gaps  
+
+
 		subject_seq = dp.convert_number2letter(s0[int(seq_row)][:])
+		subject_seq = dp.convert_number2letter(s0_alt[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
-		print('\n\n\nAnalysing  %s\n'%pfam_id,df.loc[df.Pfam== pfam_id])
+		print('\n\n\n\n\n\n#-----------------------------------------------------------------------#\nAnalysing  %s\n#-----------------------------------------------------------------------#\n'%pfam_id,df.loc[df.Pfam== pfam_id])
 		print('\n s_index',s_index,'\n')
 			
 		# Load Contact Map
 		try:
-			print(pfam_id, ': subject msa sequence')
-			ct,ct_full,n_amino_full = tools.contact_map(pdb,ipdb,cols_removed,s_index)
+			print(pfam_id, ': curated ref sequence\n',subject_seq,'\nlen %d\n'%len(subject_seq))
+			print(pfam_id, ': original ref sequence\n',ref_seq,'\nlen %d\n'%len(ref_seq))
+			ct,ct_full,n_amino_full = tools.contact_map(pdb,ipdb,cols_removed,s_index,ref_seq=ref_seq)
 			print('contact map shape: ',ct.shape)
 			print('contact map (full) shape: ',ct_full.shape)
 			ct_distal = tools.distance_restr_ct(ct_full,s_index,make_large=True)
@@ -109,7 +119,7 @@ def add_ROC(df,filepath):
 			print("s_index max index: %d, DI max index: %d"%(s_index[-1],max([coupling[0][0] for coupling in sorted_DI])))
 			print('DI matrix shape: ',di.shape)
 			print('contact matrix shape: ',ct_full.shape)
-			print('\n\n #------------------ Calculating ROC Curve --------------------#\n\n')
+			print('\n\n #------------------ Calculating ROC Curve --------------------#')
 		
 			#----------------- Generate Optimal ROC Curve -----------------------#
 			# find optimal threshold of distance for both DCA and ER
@@ -176,12 +186,13 @@ def add_ROC(df,filepath):
 			DIs.append([])
 			ODs.append(-1)
 		except IndexError as e:
-			print("\n\n!!ERROR\n Indexing error, check DI or PDB for %s"%(pfam_id))
+			print("\n\n#--------------------ERROR------------------------#\n Indexing error, check DI or PDB for %s"%(pfam_id))
 			print('MSA subject: ',subject_seq)
 			print('MSA subject length: ',len(subject_seq))
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
-			print('\n\n\n')
+			bad_index_ref_seqs.append(ref_seq)
+			print("\n\n#-------------------------------------------------#\n")
 			ERRs.append('Indexing_CT')
 			Ps.append([])	
 			TPs.append([])	
@@ -203,6 +214,8 @@ def add_ROC(df,filepath):
 	df = df.assign(seq_len = seq_lens)
 	df = df.assign(num_seq = num_seqs)
 
+	for bad_seq in bad_index_ref_seqs:
+		print(bad_seq)
 	# Print duplicate Pfams rows
 	print("Duplicates:")
 	print(df[df.duplicated(['Pfam'])])
@@ -214,7 +227,6 @@ def add_ROC(df,filepath):
 #------------------------------- Create Pandas DataFrame ---------------------------#
 #----------------------------------- Single DI Swarm Job ---------------------------#
 #-----------------------------------------------------------------------------------#
-
 # Jobload info from text file 
 prep_df_file = sys.argv[1]
 job_id = sys.argv[2]

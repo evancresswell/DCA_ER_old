@@ -359,6 +359,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     	print("pdb (after UTF-8 decode, removing 'b'):\n",pdb)
 
     tpdb = int(pdb[ipdb,1])
+    print('tpdb (s_ipdb) is : ',tpdb)
     #tpdb is the sequence #
     #print(tpdb)
 
@@ -381,17 +382,16 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     	print("#--------------------------------------------------------------#\n\n")
   
 
-    #print(s.shape)
-    #print(s)
-
     lower_cols = np.array([i for i in range(s.shape[1]) if s[tpdb,i].islower()])
-    #print("lower_cols: ",lower_cols)
-    
-    #upper = np.array([x.isupper() for x in s[tpdb]])
+    print("removing non aligned (lower case) columns in subject sequence:\n ",lower_cols,'\n')
+    #lower case removal reference: https://onlinelibrary.wiley.com/doi/full/10.1002/1097-0134%2820001101%2941%3A2%3C224%3A%3AAID-PROT70%3E3.0.CO%3B2-Z 
 
+
+    #upper = np.array([x.isupper() for x in s[tpdb]])
     #print('select only column presenting as uppercase at the first row')
     #upper = np.array([x.isupper() for x in s[0]])
     #s = s[:,upper]
+
     if printing:
     	print(s.shape)
 
@@ -400,6 +400,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #print('remove sequences containing too many gaps')
     s, tpdb = remove_bad_seqs(s,tpdb,gap_seqs) # removes all sequences (rows) with >gap_seqs gap %
     if printing:
+    	print('\nAfter removing bad sequences...\ntpdb (s_ipdb) is : ',tpdb)
     	print(s.shape)
 
 
@@ -477,6 +478,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     #mi = number_residues(s)
     #print(mi.mean())
     np.save("%s_removed_cols.npy"%pfam_id,removed_cols)
+
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
 

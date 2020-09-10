@@ -8,15 +8,15 @@ import pickle
 pfam_id = sys.argv[1]
 
 # create pfam folder
-if not os.path.exists('pfam_ecc')
+if not os.path.exists('pfam_ecc'):
 	os.system('mkdir pfam_ecc/')
-if not os.path.exists('DI')
+if not os.path.exists('DI'):
 	os.system('mkdir DI')
-if not os.path.exists('DI/MF')
+if not os.path.exists('DI/MF'):
 	os.system('mkdir DI/MF')
-if not os.path.exists('DI/ER')
+if not os.path.exists('DI/ER'):
 	os.system('mkdir DI/ER')
-if not os.path.exists('pfam_ecc')
+if not os.path.exists('pfam_ecc'):
 	os.system('mkdir DI/PLM')
 
 print("Generating Data for Protein:\n",pfam_id)
@@ -81,6 +81,7 @@ def generate_pfam_data(pfam_id):
 				data_fail.write("%s\n"% pfam_id)
 				data_fail.close()
 		return
+
 #-------------------------------
 
 

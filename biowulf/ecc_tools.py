@@ -108,7 +108,8 @@ def gen_DI_matrix(DI):
     return di
 
 
-def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
+def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
+    print('#---------------------------------------------------#\nGenerating Contact Map\n#--------------------------------------------------#\n')
     print(pdb[ipdb,:])
     pdb_id = pdb[ipdb,5]
     pdb_chain = pdb[ipdb,6]
@@ -135,25 +136,47 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
 	
         for i,pp in enumerate(ppb):
             poly_seq = [char for char in str(pp.get_sequence())]
-            #poly_seq = poly_seq[pdb_start-1:pdb_end]
+            print('original poly_seq: \n', poly_seq,'\n length: ',len(poly_seq))
             poly_seq = np.delete(poly_seq,cols_removed)
-            print('poly_seq: \n', poly_seq)
-            print('peptide seq len: ',len(poly_seq))
-            print('s_index len: ',len(s_index))
-            print('s_index largest index: ',s_index[-1])
-            good_coords = []
-            coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
-            ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
-            ca_coords = coords_all[ca_residues]
-            good_coords = ca_coords[pdb_start-1:pdb_end]
-            n_amino = len(good_coords)
-            print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
-            print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d' % (len(coords_all),len(ca_coords),len(good_coords)))
-            #for i,a in enumerate(chain.get_atoms()):
-            #    if a.get_name() == 'CA':
-            #        good_coords.append(a.get_coord())		
+            print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+            if len(poly_seq) < len(s_index):
+                print('ppb structure not big enough\nmust be at least length ',cols_removed[-1])
+                continue
+            if ref_seq is not None:
+                bad_seq = False
+                # check polypeptide sequence against reference sequence
+                if len(poly_seq) == len(ref_seq):
+                    for indx,a in enumerate(poly_seq):
+                        if a != ref_seq[indx]:
+                            print("\n Polypeptide Sequence does not match at index %d (%s != %s)"%(indx,a,ref_seq[indx]))
+                            bad_seq=True
+                            break
+                    if bad_seq:
+                        continue
+                else:
+                   continue
+                    
+            print('\n\nPolypeptide Sequence Matched Reference Sequence !!!\n\n')
+            print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+            break
 
-            ct_full = distance_matrix(good_coords,good_coords)
+        print('\n\ns_index len: ',len(s_index))
+        print('s_index largest index: ',s_index[-1])
+        good_coords = []
+        coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
+        ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
+        ca_coords = coords_all[ca_residues]
+        good_coords = ca_coords[pdb_start-1:pdb_end]
+        n_amino = len(good_coords)
+        curated_coords = np.delete(good_coords,cols_removed,axis=0)
+        print("\n\n#---------#\nNumber of good amino acid coords: %d should be same as sum of s_index and cols_removed"%n_amino)
+        print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
+        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d curated_coords len: %d\n#----------#\n\n' % (len(coords_all),len(ca_coords),len(good_coords),len(curated_coords)))
+        #for i,a in enumerate(chain.get_atoms()):
+        #    if a.get_name() == 'CA':
+        #        good_coords.append(a.get_coord())		
+
+        ct_full = distance_matrix(good_coords,good_coords)
         """
         for i,ca in enumerate(ppb[0].get_ca_list()):		
            #print(ca.get_coord())
@@ -161,7 +184,6 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
            good_coords.append(ca.get_coord())
         """
         coords = np.array(good_coords)
-    
     #---------------------------------------------------------------------------------------------------------------------#
 
     #print('original pdb:')
@@ -175,6 +197,7 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False):
     
 
     ct = distance_matrix(coords_remain,coords_remain)
+    print('\n#---------------------------------------------------#\nContact Map Generated \n#--------------------------------------------------#\n')
     if use_old:
         return ct
     else:
