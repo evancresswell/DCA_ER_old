@@ -223,36 +223,39 @@ def add_ROC(df,filepath):
 	return df.copy()
 #-----------------------------------------------------------------------------------#
 
-#-----------------------------------------------------------------------------------#
-#------------------------------- Create Pandas DataFrame ---------------------------#
-#----------------------------------- Single DI Swarm Job ---------------------------#
-#-----------------------------------------------------------------------------------#
-# Jobload info from text file 
-prep_df_file = sys.argv[1]
-job_id = sys.argv[2]
+def main():
+	#-----------------------------------------------------------------------------------#
+	#------------------------------- Create Pandas DataFrame ---------------------------#
+	#----------------------------------- Single DI Swarm Job ---------------------------#
+	#-----------------------------------------------------------------------------------#
+	# Jobload info from text file 
+	prep_df_file = sys.argv[1]
+	job_id = sys.argv[2]
 
-# Get dataframe of job_id
-df_prep = pickle.load(open(prep_df_file,"rb")) 
-df_jobID = df_prep.copy()
-df_jobID = df_jobID.loc[df_jobID.Jobid == job_id]
-print(df_jobID)
+	# Get dataframe of job_id
+	df_prep = pickle.load(open(prep_df_file,"rb")) 
+	df_jobID = df_prep.copy()
+	df_jobID = df_jobID.loc[df_jobID.Jobid == job_id]
+	print(df_jobID)
 
-roc_jobID_df = add_ROC(df_jobID,prep_df_file)
-
-
-#print(df_roc)
-if not os.path.exists('./job_ROC_dfs/'): 
-	print('job_ROC_dfs/ DNE.. Make directory and rerun')
-	sys.exit()
-
-df_jobID_filename = 'job_ROC_dfs/%s.pkl'%job_id
-print ('saving file: ' + df_jobID_filename)
-
-roc_jobID_df.to_pickle(df_jobID_filename)
+	roc_jobID_df = add_ROC(df_jobID,prep_df_file)
 
 
-#-----------------------------------------------------------------------------------#
-#-----------------------------------------------------------------------------------#
-#-----------------------------------------------------------------------------------#
+	#print(df_roc)
+	if not os.path.exists('./job_ROC_dfs/'): 
+		print('job_ROC_dfs/ DNE.. Make directory and rerun')
+		sys.exit()
 
+	df_jobID_filename = 'job_ROC_dfs/%s.pkl'%job_id
+	print ('saving file: ' + df_jobID_filename)
+
+	roc_jobID_df.to_pickle(df_jobID_filename)
+
+
+	#-----------------------------------------------------------------------------------#
+	#-----------------------------------------------------------------------------------#
+	#-----------------------------------------------------------------------------------#
+
+if __name__ == '__main__':
+	main()
 
