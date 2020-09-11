@@ -129,6 +129,12 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
         print(len(coords_all))
         coords = coords_all[pdb_start-1:pdb_end]
     else:
+        good_coords = []
+        coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
+        ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
+        ca_coords = coords_all[ca_residues]
+        good_coords = ca_coords[pdb_start-1:pdb_end]
+        n_amino = len(good_coords)
         # Correct Method
         ppb = PPBuilder().build_peptides(chain)
         #    print(pp.get_sequence())
@@ -136,12 +142,22 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
 	
         for i,pp in enumerate(ppb):
             poly_seq = [char for char in str(pp.get_sequence())]
+
             print('original poly_seq: \n', poly_seq,'\n length: ',len(poly_seq))
             poly_seq = np.delete(poly_seq,cols_removed)
             print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+
+            poly_seq_ca_atoms = pp.get_ca_list()
+            print('Polypeptide Ca Coord list: ',len(poly_seq_ca_atoms))
+            pp_ca_coords = [a.get_coord() for a in poly_seq_ca_atoms]
+            if 0:
+                for index,ca_coord in enumerate(pp_ca_coords):
+                    print(ca_coord,' and ',ca_coords[index])
+
             if len(poly_seq) < len(s_index):
                 print('ppb structure not big enough\nmust be at least length ',cols_removed[-1])
                 continue
+
             if ref_seq is not None:
                 bad_seq = False
                 # check polypeptide sequence against reference sequence
@@ -155,23 +171,19 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
                         continue
                 else:
                    continue
-                    
+
             print('\n\nPolypeptide Sequence Matched Reference Sequence !!!\n\n')
             print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+                   
             break
 
         print('\n\ns_index len: ',len(s_index))
         print('s_index largest index: ',s_index[-1])
-        good_coords = []
-        coords_all = np.array([a.get_coord() for a in chain.get_atoms()])
-        ca_residues = np.array([a.get_name()=='CA' for a in chain.get_atoms()])
-        ca_coords = coords_all[ca_residues]
-        good_coords = ca_coords[pdb_start-1:pdb_end]
-        n_amino = len(good_coords)
-        curated_coords = np.delete(good_coords,cols_removed,axis=0)
+        curated_coords = np.delete(pp_ca_coords,cols_removed,axis=0)
+
         print("\n\n#---------#\nNumber of good amino acid coords: %d should be same as sum of s_index and cols_removed"%n_amino)
         print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
-        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d curated_coords len: %d\n#----------#\n\n' % (len(coords_all),len(ca_coords),len(good_coords),len(curated_coords)))
+        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d, pp ca coords: %d pp ca curated coords len: %d\n#----------#\n\n' % (len(coords_all),len(ca_coords),len(good_coords),len(pp_ca_coords),len(curated_coords)))
         #for i,a in enumerate(chain.get_atoms()):
         #    if a.get_name() == 'CA':
         #        good_coords.append(a.get_coord())		

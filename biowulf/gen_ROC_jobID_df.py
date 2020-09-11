@@ -61,7 +61,7 @@ def add_ROC(df,filepath):
 		subject_seq = dp.convert_number2letter(s0_alt[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		print('\n\n\n\n\n\n#-----------------------------------------------------------------------#\nAnalysing  %s\n#-----------------------------------------------------------------------#\n'%pfam_id,df.loc[df.Pfam== pfam_id])
-		print('\n s_index',s_index,'\n')
+		print('\n s_index',s_index,'\nlen(s_index)=%d\n'%len(s_index))
 			
 		# Load Contact Map
 		try:
