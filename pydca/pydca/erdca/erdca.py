@@ -48,26 +48,6 @@ class ERDCA:
     algorithm.
     """
     def __init__(self, msa_file, biomolecule, num_threads = None, pseudocount=None, seqid=None):
-        """
-        ERDCA object class initializer
-        Parameters
-        ----------
-            msa_file : str
-                Name of the FASTA formatted file containing alignmnet
-            biomolecule : str
-                Type of biomolecule (must be protein or RNA, lower or
-                upper case)
-            pseudocount : float
-                Parameter for regularizing data before DCA analysis.
-                Default value is 0.5
-            seqid : float
-                This parameter's value measure the maximum
-                similarity two or more sequences can have so that they can be
-                considered distinct, or lumped together otherwise.
-        Returns
-        -------
-            None : None
-        """
         self.__pseudocount = pseudocount  if pseudocount is not None else 0.5
         self.__seqid = seqid if seqid is not None else 0.8
         #Validate the value of pseudo count incase user provide an invalid one

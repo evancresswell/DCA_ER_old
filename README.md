@@ -7,8 +7,8 @@
 # 	$ sudo docker build -t ubuntu-er .
 
 ### In DCA_ER/ (where the .simg files must be stored)
-#	$ sudo docker tag #IMAGE ID# #REPO#:#TAG#
-#	$ sudo docker push evancresswell/#REPO#:#TAG#
+#	$ sudo docker tag <IMAGE ID> <REPO>:<TAG>
+#	$ sudo docker push evancresswell/<REPO>:<TAG>
 
 	#--- Singularity: Build .simg file from Docker ---#
 	#	$ sudo singularity pull docker://evancresswell/#REPO#:#TAG#
