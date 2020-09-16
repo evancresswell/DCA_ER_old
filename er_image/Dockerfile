@@ -15,7 +15,9 @@ RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/DCA
 COPY --from=intermediate /home/DCA_ER/pydca /home/DCA_ER/pydca
-RUN pip install --no-dependencies /home/DCA_ER/pydca/
+
+RUN pip install -v /home/DCA_ER/pydca/
+#RUN pip install --no-dependencies /home/DCA_ER/pydca/
 
 
 #FROM ubuntu:latest as intermediate
