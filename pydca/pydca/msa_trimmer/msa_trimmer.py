@@ -167,12 +167,14 @@ class MSATrimmer:
         )
         matching_seqs, matching_seqs_indx = seqbackmapper.find_matching_seqs_from_alignment()
         print('sequence indices which match ref seq: \n',matching_seqs_indx)
+        print('sequences which match ref seq: \n',matching_seqs,'\n\n#------------------------------------------------#\n')
+        #print('self.__alignment[%d] =  '%matching_seqs_indx[0],seqbackmabber.__alignment[matching_seqs_indx[0]],'\n\n#------------------------------------------------#\n')
         logger.info('\n\tRemoving gapped columns corresponding to best'
             ' matching sequence to the reference'
         )
         first_matching_seq = matching_seqs[0]
         first_matching_indx = matching_seqs_indx[0]
-        self.__s_ipdb = first_matching_indx+1
+        self.__s_ipdb = first_matching_indx
         # adding one because find_matching_seqs_from_alignment indexes on pairwise comparison
         logger.info('\n\tSequence in MSA (seq num {}) that matches the reference'
             '\n\t{}'.format(first_matching_indx,first_matching_seq)
@@ -425,7 +427,7 @@ class MSATrimmer:
             #trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
             trimmed_seq = list(seq)
             s.append(trimmed_seq)
-            if ii == self.__s_ipdb:
+            if ii == self.__s_ipdb-1:
                 print('s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
         s = np.asarray(s)
  
