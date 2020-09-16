@@ -144,7 +144,8 @@ class SequenceBackmapper:
         ]
         for res in self.__ref_sequence:
             if res not in standard_residues:
-                logger.error('\n\tReference sequence should only contain standard residues')
+                print('reference_sequence cannot be validated: \n',self.__ref_sequence)
+                logger.error('\n\tReference sequence should only contain standard residues (%s does not work)'%res)
                 raise ValueError
         return None
 
@@ -283,7 +284,7 @@ class SequenceBackmapper:
             logger.warning('\n\tFound {} sequences in MSA that match the reference'
                 '\n\tThe first sequence is taken as matching'.format(num_matching_seqs)
             )
-        return best_matching_seqs
+        return best_matching_seqs, matching_seqs_indx
 
     @staticmethod
     def align_subsequences(ref_middle_subseq = None,

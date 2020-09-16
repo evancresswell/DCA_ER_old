@@ -13,9 +13,63 @@ from Bio import BiopythonWarning
 warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
 warnings.simplefilter('ignore', DeprecationWarning)
+warnings.simplefilter('ignore', FutureWarning)
 from matplotlib import colors as mpl_colors
 
 import random
+
+#--------------------------------------
+# write basic fasta file for given list
+def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = './'):
+	# Processed MSA to file in FASTA format
+	msa_outfile = 'MSA_'+pfam_id+'.fa'
+	# Reference sequence to file in FASTA format
+	ref_outfile = 'PP_ref_'+pfam_id+'.fa'
+
+	#print("Reference Sequence (shape=",msa[ref_seq].shape,"):\n",msa[ref_seq])
+
+	if number_form:
+		msa_letters = convert_number2letter(msa)
+		ref_array = convert_numer2letter(ref_seq)
+		if not processed:
+			gap_ref = ref_array == '-' # remove gaps from reference array
+			ref_letters = msa_letters[ref_seq][~gap_ref]
+		else:
+			ref_letters = msa_letters[ref_seq]
+	else: 
+		msa_letters = msa
+		ref_array = np.asarray(ref_seq)
+		gap_ref = ref_array == '-' # remove gaps from reference array
+		ref_letters = ref_array[~gap_ref]
+		msa_letters = np.delete(msa_letters,gap_ref,axis=0)
+	# First save reference sequence to FASTA file
+	ref_str = ''
+	ref_list = ref_letters.tolist()
+	ref_str = ref_str.join(ref_list)
+	if processed:
+		with open(path+ref_outfile, 'w') as fh:
+			fh.write('>{}\n{}\n'.format(pfam_id+' | PP REFERENCE',ref_str ))
+	else:
+		ref_outfile = 'PP_orig_ref_'+pfam_id+'.fa'
+		with open(path+ref_outfile, 'w') as fh:
+			fh.write('>{}\n{}\n'.format(pfam_id+' | PP REFERENCE',ref_str ))
+
+	# Next save MSA to FAST file
+
+	with open(path+msa_outfile, 'w') as fh:
+		for seq_num,seq in enumerate(msa_letters):
+			msa_list = seq.tolist()
+			msa_str = ''
+			msa_str = msa_str.join(msa_list)
+			fasta_header = pfam_id 
+			fh.write('>{}\n{}\n'.format(fasta_header,msa_str))
+
+	# Return MSA and Reference FASTA file names
+	return msa_outfile, ref_outfile
+#--------------------------------------
+
+
+
 def split_and_shift_contact_pairs(list_of_contacts):
 	"""Separating contacting site pairs into two lists: One containing all
 	first entries (xdata), and the other containing all second entries (ydata).

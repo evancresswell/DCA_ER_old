@@ -1,4 +1,3 @@
-"""
-Expectation reflection direct coupling analysis (erDCA) module for 
-protein multiple sequence alignments. 
+"""Implements Expectation Reflection algorithm of direct coupling analysis (DCA) for protein
+and RNA families.
 """

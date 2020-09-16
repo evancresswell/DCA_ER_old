@@ -136,6 +136,36 @@ def mfdca_param_metadata(mfdca_instance):
     ]
     return metadata
 
+def erdca_param_metadata(erdca_instance):
+    """Generates a list of expectation reflectrion DCA metadata that can be 
+    added as an output file header.
+
+    Parameters
+    ----------
+        mfdca_instance : MeanfieldDCA
+            An instance of MeanFieldDCA class.
+
+    Returns
+    -------
+        metadata : list
+            A list of metadata related to DCA parameters used.
+    """
+    metadata = [
+        '# PARAMETERS USED FOR THIS COMPUTATION: ',
+        '#      Sequence type: {}'.format(erdca_instance.biomolecule),
+        '#      Total number of sequences in alignment data: {}'.format(
+            erdca_instance.num_sequences),
+        '#      Length of sequences in alignment data: {}'.format(
+            erdca_instance.sequences_len),
+        '#      Effective number of sequences: {}'.format(
+            erdca_instance.effective_num_sequences),
+        '#      Value of sequence identity: {}'.format(
+            erdca_instance.sequence_identity),
+        '#      Value of relative pseudocount: {}'.format(
+            erdca_instance.pseudocount),
+    ]
+    return metadata
+
 
 def plmdca_param_metadata(plmdca_instance):
     """Generates a list of  plmDCA metadata that can be added as

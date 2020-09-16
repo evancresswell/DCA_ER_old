@@ -961,6 +961,7 @@ class DCAVisualizer:
             biomolecule : str
                 Type of biomolecule (protein or RNA), case insensitive.
         """
+        print('NEW VERSION')
         self.__biomolecule = biomolecule.strip().upper()
         if self.__biomolecule not in ('PROTEIN', 'RNA'):
             logger.error('\n\t{} is invalid input. Must be protein (PROTEIN) or'
@@ -1786,6 +1787,7 @@ class DCAVisualizer:
         false_positives = contact_categories_dict['fp']
         missing_pairs = contact_categories_dict['missing']
         pdb_contacts =  contact_categories_dict['pdb']
+        print('tp len %d, fp len %d,missing len %d, pdb contacts: %d' %(len(true_positives),len(false_positives),len(missing_pairs),len(pdb_contacts))) 
 
         filtered_pdb_contacts_list = [ 
            site_pair for site_pair, metadata in pdb_contacts.items() if abs(site_pair[1] - site_pair[0]) > self.__linear_dist  

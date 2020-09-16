@@ -6,8 +6,8 @@ import numpy as np
 import data_processing as dp
 from multiprocessing import Pool
 #------------------------------- Create ROC Curves ---------------------------------#
-def add_ROC(df,filepath):
-	data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full',pfam_id_focus = None):
+	
 
 	Ps = []
 	TPs = []
@@ -23,6 +23,10 @@ def add_ROC(df,filepath):
 	bad_index_ref_seqs = []
 	for i,row in df.iterrows():
 		pfam_id = row['Pfam'] 
+		if pfam_id_focus is not None:
+			if pfam_id != pfam_id_focus:
+				print('Only want %s, %s is not it'%(pfam_id_focus,pfam_id))
+				continue
 		pfams.append(pfam_id)
 
 		# Load or generate structural information
@@ -200,26 +204,28 @@ def add_ROC(df,filepath):
 			AUCs.append(-1)	
 			DIs.append([])
 			ODs.append(-1)
-		
+			
 
 	#print("df: ",len(df))
 	#print("P vec: ",len(Ps))
-	df = df.assign(ERR = ERRs)
-	df = df.assign(P = Ps)
-	df = df.assign(TP = TPs)
-	df = df.assign(FP = FPs)
-	df = df.assign(DI = DIs)
-	df = df.assign(AUC = AUCs)
-	df = df.assign(OptiDist = ODs)
-	df = df.assign(seq_len = seq_lens)
-	df = df.assign(num_seq = num_seqs)
+	if pfam_id_focus is None:
 
-	for bad_seq in bad_index_ref_seqs:
-		print(bad_seq)
-	# Print duplicate Pfams rows
-	print("Duplicates:")
-	print(df[df.duplicated(['Pfam'])])
-	#print(df)
+		df = df.assign(ERR = ERRs)
+		df = df.assign(P = Ps)
+		df = df.assign(TP = TPs)
+		df = df.assign(FP = FPs)
+		df = df.assign(DI = DIs)
+		df = df.assign(AUC = AUCs)
+		df = df.assign(OptiDist = ODs)
+		df = df.assign(seq_len = seq_lens)
+		df = df.assign(num_seq = num_seqs)
+
+		for bad_seq in bad_index_ref_seqs:
+			print(bad_seq)
+		# Print duplicate Pfams rows
+		print("Duplicates:")
+		print(df[df.duplicated(['Pfam'])])
+		#print(df)
 	return df.copy()
 #-----------------------------------------------------------------------------------#
 

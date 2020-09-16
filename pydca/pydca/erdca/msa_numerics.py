@@ -1,16 +1,26 @@
-import numpy as np 
-from numba import jit 
-from numba import prange as parallel_range
+from scipy import linalg
+import numpy as np
+from scipy.spatial import distance
+from joblib import Parallel, delayed
+from sklearn.preprocessing import OneHotEncoder
 
-"""Computes the direct information (DI) for pseudolikelihood maximization direct
-coupling analysis.
 
-Author: Mehari B. Zerihun
+"""This module implements computationally costly routines while performing
+Direct Coupling Analysis.
+
+Author : Mehari B. Zerihun
 """
+def compute_sequence_weight(i0,alignment_data, seqs_len,num_seqs,seqs_weight,seqid):
+    seq_i = alignment_data[i0]
+    for j in range(num_seqs):
+        seq_j = alignment_data[j]
+        iid = np.sum(seq_i==seq_j)
+        if np.float64(iid)/np.float64(seqs_len) > seqid:
+            seqs_weight[i0] += 1
 
-
-@jit(nopython=True, parallel=True)
-def compute_sequences_weight(alignment_data=None, sequence_identity=None):
+# joblib parallelized compute_sequences_weight from orginal Numba PYDCA version
+#@jit(nopython=True, parallel=True)
+def compute_sequences_weight(alignment_data=None, seqid=None,num_threads=1):
     """Computes weight of sequences. The weights are calculated by lumping
     together sequences whose identity is greater that a particular threshold.
     For example, if there are m similar sequences, each of them will be assigned
@@ -37,276 +47,224 @@ def compute_sequences_weight(alignment_data=None, sequence_identity=None):
     seqs_len = alignment_shape[1]
     seqs_weight = np.zeros((num_seqs,), dtype=np.float64)
     #count similar sequences
-    for i in parallel_range(num_seqs):
-        seq_i = alignment_data[i]
-        for j in range(num_seqs):
-            seq_j = alignment_data[j]
-            iid = np.sum(seq_i==seq_j)
-            if np.float64(iid)/np.float64(seqs_len) > sequence_identity:
-                seqs_weight[i] += 1
+    print('seqs_weight.shape: ',seqs_weight.shape)
+    print('seqs_weight: ',seqs_weight[0])
+     
+    seqs_weight = Parallel(n_jobs = num_threads)(delayed(compute_sequence_weight)\
+              (i0,alignment_data, seqs_len,num_seqs,seqs_weight,seqid)\
+              for i0 in range(num_seqs))
+    print('seqs_weight.shape: ',np.shape(seqs_weight))
+    print('seqs_weight: ',seqs_weight[0])
+
     #compute the weight of each sequence in the alignment
     for i in range(num_seqs): seqs_weight[i] = 1.0/float(seqs_weight[i])
     return seqs_weight
 
 
-@jit(nopython=True)
-def compute_single_site_freqs(alignment_data=None,
-        num_site_states=None, seqs_weight=None):
-    """Computes single site frequency counts for a particular aligmnet data.
+#========================================================================================================#
+#------------------------------------- Expextation Reflection -------------------------------------------#
+#========================================================================================================#
+# ------- Author: Evan Cresswell-Clay ---------- Date: 8/24/2020 ----------------------------------------#
+#========================================================================================================#
 
-    Parameters
-    ----------
-        alignment_data : np.array()
-            A 2d numpy array of alignment data represented in integer form.
 
-        num_site_states : int
-            An integer value fo the number of states a sequence site can have
-            including a gap state. Typical value is 5 for RNAs and 21 for
-            proteins.
 
-        seqs_weight : np.array()
-            A 1d numpy array of sequences weight
+def er_fit(x,y_onehot,niter_max,l2,couplings= None):       
+    l,n = x.shape
+    m = y_onehot.shape[1] # number of categories
+    
+    x_av = np.mean(x,axis=0)
+    dx = x - x_av
+    c = np.cov(dx,rowvar=False,bias=True)
 
-    Returns
-    -------
-        single_site_freqs : np.array()
-            A 2d numpy array of of data type float64. The shape of this array is
-            (seqs_len, num_site_states) where seqs_len is the length of sequences
-            in the alignment data.
+    c += l2*np.identity(n)/(2*l)
+    c_inv = linalg.pinvh(c)
+
+    H0 = np.zeros(m)
+    W = np.zeros((n,m))
+
+    for i in range(m):
+        y = y_onehot[:,i]  # y = {0,1}
+        y1 = 2*y - 1       # y1 = {-1,1}
+        # initial values
+        h0 = 0.
+
+        # If couplings (ie initial weight state) is passed, use it otherwise random.
+        if couplings is not None: 
+            w = couplings[:,i]
+        else: 
+            w = np.random.normal(0.0,1./np.sqrt(n),size=(n))
+        
+        cost = np.full(niter_max,100.)
+        for iloop in range(niter_max):
+            h = h0 + x.dot(w)
+            y1_model = np.tanh(h/2.)    
+
+            cost[iloop] = ((y1[:]-y1_model[:])**2).mean()
+
+            if iloop > 0 and cost[iloop] >= cost[iloop-1] : break
+                        
+            # update local field
+            t = h!=0    
+            h[t] *= y1[t]/y1_model[t]
+            h[~t] = 2*y1[~t]
+
+            # find w from h    
+            h_av = h.mean()
+            dh = h - h_av 
+            dhdx = dh[:,np.newaxis]*dx[:,:]
+
+            dhdx_av = dhdx.mean(axis=0)
+            w = c_inv.dot(dhdx_av)
+            h0 = h_av - x_av.dot(w)
+
+        H0[i] = h0
+        W[:,i] = w
+    
+    return H0,W  
+
+def predict_w(s,i0,i1i2,niter_max,l2):
+    #print('i0:',i0)
+    i1,i2 = i1i2[i0,0],i1i2[i0,1]
+
+    x = np.hstack([s[:,:i1],s[:,i2:]])
+    y = s[:,i1:i2]
+
+    h01,w1 = er_fit(x,y,niter_max,l2)
+
+    return h01,w1
+
+
+def compute_er_weights(n_var,s,i1i2,num_threads=1,couplings=None):
+    # parallel
+    # parallel
+    print('Compute ER weights in parallel using %d threads'%num_threads)
+    res = Parallel(n_jobs = num_threads)(delayed(predict_w)\
+            (s, i0, i1i2, niter_max=10, l2=100.0)\
+            for i0 in range(n_var))
+    return res 
+
+# direct information from w, ONLY apply for our method, NOT DCA since w is converted to 2D
+def direct_info_value(w2d,fi,q,i1i2):
+    # w2d[nm,nm], fi[l,n],q[n]
+    n = q.shape[0]
+
+
+    #ew_all = np.exp(w2d)
+
+    # dealing with RuntimeWarning
+    try:
+        ew_all = np.exp(w2d)
+    except(RuntimeWarning):
+        max_w2d = max([max(w) for w in w2d])
+        print('subtracting max w2d value: ',max_w2d)
+        w2d = w2d - max_w2d
+        ew_all = np.exp(w2d)
+   
+ 
+    di = np.zeros((n,n))
+    tiny = 10**(-100.)
+    diff_thres = 10**(-4.)
+
+    for i in range(n-1):
+        i1,i2 = i1i2[i,0],i1i2[i,1]
+        for j in range(i+1,n):
+            j1,j2 = i1i2[j,0],i1i2[j,1]
+            #ew = ew_all[i,j,:q[i],:q[j]]
+            ew = ew_all[i1:i2,j1:j2]
+            #------------------------------------------------------
+            # find h1 and h2:
+
+            # initial value
+            diff = diff_thres + 1.
+            eh1 = np.full(q[i],1./q[i])
+            eh2 = np.full(q[j],1./q[j])
+
+            #fi0 = fi[i,0:q[i]]
+            #fj0 = fi[j,0:q[j]]
+            fi0 = fi[i1:i2]
+            fj0 = fi[j1:j2]
+                
+            for iloop in range(100):
+                eh_ew1 = eh2.dot(ew.T)
+                eh_ew2 = eh1.dot(ew)
+
+                eh1_new = fi0/(eh_ew1+tiny) # ecc added tiny
+                eh1_new /= eh1_new.sum()
+
+                eh2_new = fj0/(eh_ew2+tiny) # ecc added tiny
+                eh2_new /= eh2_new.sum()
+
+                diff = max(np.max(np.abs(eh1_new - eh1)),np.max(np.abs(eh2_new - eh2)))
+
+                eh1,eh2 = eh1_new,eh2_new    
+                if diff < diff_thres: break        
+
+            # direct information
+            eh1eh2 = eh1[:,np.newaxis]*eh2[np.newaxis,:]
+            pdir = ew*(eh1eh2)
+            pdir /= (pdir.sum()+tiny) # ecc added tiny
+
+            fifj = fi0[:,np.newaxis]*fj0[np.newaxis,:]
+
+            dijab = pdir*np.log((pdir+tiny)/(fifj+tiny))
+            di[i,j] = dijab.sum()
+
+    # symmetrize di
+    di = di + di.T
+    return di
+
+def frequency(s0,q,i1i2,theta=0.2,pseudo_weight=0.5):
+    n = s0.shape[1]
+    # hamming distance
+    dst = distance.squareform(distance.pdist(s0, 'hamming'))
+    ma_inv = 1/(1+(dst < theta).sum(axis=1).astype(float))
+    meff = ma_inv.sum() 
+
+    onehot_encoder = OneHotEncoder(sparse=False,categories='auto')
+    s = onehot_encoder.fit_transform(s0)
+
+    # fi_true:
+    fi_true = (ma_inv[:,np.newaxis]*s[:,:]).sum(axis=0)
+    fi_true /= meff
+
+    # fi, fij
+    fi = np.zeros(q.sum())
+    for i in range(n):
+        i1,i2 = i1i2[i,0],i1i2[i,1]
+        fi[i1:i2] = (1 - pseudo_weight)*fi_true[i1:i2] + pseudo_weight/q[i]
+
+    return fi
+
+def direct_info(s0,w):
+    w = (w+w.T)/2
+
+    l,n = s0.shape
+    mx = np.array([len(np.unique(s0[:,i])) for i in range(n)])
+    #mx = np.array([m for i in range(n)])
+    mx_cumsum = np.insert(mx.cumsum(),0,0)
+    i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T
+
+    q = mx   # just for convenience
+    fi = frequency(s0,q,i1i2)
+    di = direct_info_value(w,fi,q,i1i2)
+     
+    return di
+
+def sort_di(di):
     """
-    alignment_shape = alignment_data.shape
-    #num_seqs = alignment_shape[0]
-    seqs_len = alignment_shape[1]
-    m_eff = np.sum(seqs_weight)
-    single_site_freqs = np.zeros(shape = (seqs_len, num_site_states),
-        dtype = np.float64)
-    for i in range(seqs_len):
-        for a in range(1, num_site_states + 1):#we need gap states single site freqs too
-            column_i = alignment_data[:,i]
-            freq_ia = np.sum((column_i==a)*seqs_weight)
-            single_site_freqs[i, a-1] = freq_ia/m_eff
-    return single_site_freqs
-
-
-@jit(nopython=True)
-def get_reg_single_site_freqs(single_site_freqs = None, seqs_len = None,
-        num_site_states = None, pseudocount = None):
-    """Regularizes single site frequencies.
-
-    Parameters
-    ----------
-        single_site_freqs : np.array()
-            A 2d numpy array of single site frequencies of shape
-            (seqs_len, num_site_states). Note that gap state frequencies are
-            included in this data.
-        seqs_len : int
-            The length of sequences in the alignment data
-        num_site_states : int
-            Total number of states that a site in a sequence can accommodate. It
-            includes gap states.
-        pseudocount : float
-            This is the value of the relative pseudo count of type float.
-            theta = lambda/(meff + lambda), where meff is the effective number of
-            sequences and lambda is the real pseudo count.
-
-    Returns
-    -------
-        reg_single_site_freqs : np.array()
-            A 2d numpy array of shape (seqs_len, num_site_states) of single site
-            frequencies after they are regularized.
+    Returns array of sorted DI values
     """
-    reg_single_site_freqs = single_site_freqs
-    theta_by_q = np.float64(pseudocount)/np.float64(num_site_states)
-    for i in range(seqs_len):
-        for a in range(num_site_states):
-            reg_single_site_freqs[i, a] = theta_by_q + \
-                (1.0 - pseudocount)*reg_single_site_freqs[i, a]
-    return reg_single_site_freqs
+    ind = np.unravel_index(np.argsort(di,axis=None),di.shape)    
+    tuple_list = [((indices[0],indices[1]),di[indices[0],indices[1]]) for i,indices in enumerate(np.transpose(ind))]    
+    tuple_list = tuple_list[::-1]
+    return tuple_list
 
-
-@jit(nopython=True)
-def slice_couplings(couplings = None, site_pair=None, num_site_states=None, seqs_len = None):
-    """Constructs couplings array suitable for computing two-site-model fields as well 
-    as DI scores. 
-
-    Parameters
-    ----------
-        couplings : np.array
-            A 1 array of couplings excluding gap state couplings
-        site_pair : tuple
-            Site pair (i, j) such that j > i with o <= i < seqs_len
-        num_site_states : int 
-            Number of site states for sequence 
-        seqs_len : int 
-            Length of sequences in MSA data 
-    """
-    i, j = site_pair[0], site_pair[1]
-    q = num_site_states
-    qm1 = q - 1
-    pair_loc = int((seqs_len * (seqs_len - 1)/2) - (seqs_len - i) * ((seqs_len - i) - 1)/2  + j  - i - 1)
-    start_indx = pair_loc * qm1 * qm1  
-    end_indx = start_indx + qm1 * qm1
-    couplings_ij = np.zeros((q, q), dtype = np.float64)
-    couplings_tmp = couplings[start_indx:end_indx]
-    couplings_ij[:q-1, :q-1]  = np.reshape(couplings_tmp, shape = (q-1, q-1))
-    return couplings_ij 
-
-
-@jit(nopython=True)
-def compute_two_site_model_fields(couplings = None, reg_fi = None,
-        seqs_len = None, num_site_states = None):
-    """Computes two-site model fields iteratively.
-
-    Parameters
-    ----------
-        couplings : np.array
-            A numpy array of couplings of shape (N, N) where
-            N = seqs_len * (num_site_states - 1)
-
-        reg_fi : np.array
-            A numpy array of regularized single site frequncies of shape
-            (seqs_len, num_site_states)
-
-        seqs_len : int
-            Length of sequences in alignment data
-
-        num_site_states : int
-            Total number of states a site in a sequence can accommodate,
-            including gap state.
-
-    Returns
-    -------
-        two_site_model_fields : np.array
-            A numpy array of shape (P, 2, num_site_states), where P is the number
-            of unique site pairs excluding self pairings.
-            P = seqs_len * (seqs_len - 1)/2.
-    """
-    num_unique_pairs = seqs_len * (seqs_len -1)
-    num_unique_pairs /= 2
-    q = num_site_states
-    two_site_model_fields = np.zeros((np.int64(num_unique_pairs), 2, q), dtype=np.float64)
-    TOLERANCE = 1.0e-4
-    pair_counter = 0
-    for i in range(seqs_len - 1):
-        freq_i = np.reshape(reg_fi[i], (q, 1))
-        for j in range(i + 1, seqs_len):
-            site_pair = (i, j)
-            freq_j = np.reshape(reg_fi[j], (q, 1))
-            couplings_ij = np.exp(slice_couplings(couplings = couplings,
-                site_pair = site_pair, num_site_states = q, seqs_len=seqs_len)
-            )
-            fields_i_old = np.full((q, 1), 1.0/np.float64(q))
-            fields_j_old = np.full((q, 1), 1.0/np.float64(q))
-            max_fields_change = 10.0
-            while max_fields_change > TOLERANCE:
-                x_i = np.dot(couplings_ij , fields_j_old)
-                x_j = np.dot(np.transpose(couplings_ij), fields_i_old)
-
-                fields_i_new =  freq_i / x_i
-                fields_i_new /= np.sum(fields_i_new)
-                fields_j_new = freq_j / x_j
-                fields_j_new /= np.sum(fields_j_new)
-
-                delta_fields_i = np.max(np.absolute(fields_i_new - fields_i_old))
-                delta_fields_j = np.max(np.absolute(fields_j_new - fields_j_old))
-                max_fields_change = np.max(np.array([delta_fields_i, delta_fields_j]))
-
-                fields_i_old = fields_i_new
-                fields_j_old = fields_j_new
-            #capture computed fields after iteration is converged
-            two_site_model_fields[pair_counter][0] = fields_i_new.T
-            two_site_model_fields[pair_counter][1] = fields_j_new.T
-            pair_counter += 1
-    return two_site_model_fields
-
-
-@jit(nopython=True)
-def compute_direct_info(couplings = None, fields_ij = None, reg_fi = None,
-        seqs_len = None, num_site_states = None):
-    """Computes the direct information from direct probabilities.
-
-    Parameters
-    ----------
-        couplings : np.array
-            A 2d numpy array of shape (L(q-1), L(q-1)), where L and q are the
-            length of sequences in MSA and number of site-states respectively.
-            Note that the couplings are the negative of the inverse of the
-            correlation matrix.
-
-        fields_ij : np.array
-            A 3d numpy array of two-site model fields. The shape of this array
-            is (P, 2, q). Where P is the number of unique site pairs and q is the
-            total number of site states. The ordering of site-pairs is very
-            important. For example index P=0 refers to site pairs (0, 1), and
-            as p increase the pairs are (0, 2), ... ,(0, L-1), (1, 2), ...,
-            (1, L-1), ..., (L-2, L-1). the first index of the second dimension
-            refers to the first site in site pair. Example, fields_ij[0][0]
-            contains the fields of site 0 when its paired with site 1, and
-            fields_ij[0][1] contains those of site 1 in the same pair, and so on.
-
-        reg_fi : np.array
-            A 2d numpy array of regularized single site frequencies. It has
-            a shape of (L, q) where L and q are the length of the sequences
-            in alignment data and number of total site states respectively.
-            Example, reg_fi[0] contains the frequencies of the first column in
-            MSA.
-
-        seqs_len : int
-            The length of sequences in MSA.
-
-        num_site_states : int
-            The total number of residues plus gap.
-
-    Returns
-    -------
-        unsorted_DI : np.array
-            A 1d numpy array of shape (P, ) containing the values of
-            direct informations (DI).  P is the total number of unique site pairs.
-            Example, index P = 0 contains DI of pair (0, 1),index P = 1 that
-            of (0, 2) and so on. The last pair is (L-2, L-1).  Note that the
-            direct information is computed from couplings and fields that involve
-            residues, although the direct probability is computed for all couplings
-            and new fields. The couplings involving a gap are set to 0. The fields
-            of gap states are not necessarily zero, they are  the new fields as
-            computed by two site model. If Pdir is the direct probabiliy of shape
-            (q, q), we use Pdir[:q-1, :q-1] when computing the direct information.
-    """
-    num_unique_pairs = np.int64(seqs_len * (seqs_len - 1)/2)
-    unsorted_DI = np.zeros(num_unique_pairs, dtype=np.float64)
-    q = num_site_states
-    EPSILON = 1.0e-20
-    pair_counter = 0
-    for i in range(seqs_len - 1):
-        fi = reg_fi[i]
-        for j in range(i + 1, seqs_len):
-            site_pair = (i, j)
-            fj = reg_fi[j]
-            #h_i = fields_ij[pair_counter][0]
-            #h_j = fields_ij[pair_counter][1]
-            hij = np.dot(np.reshape(fields_ij[pair_counter][0], (q, 1)),
-                np.transpose(np.reshape(fields_ij[pair_counter][1], (q, 1))),
-            )
-
-            couplingsij = np.exp(slice_couplings(couplings = couplings,
-                site_pair = site_pair, num_site_states = q, seqs_len = seqs_len)
-            )
-            #Compute direct information
-            pdir_ij = couplingsij * hij
-            pdir_ij /= np.sum(pdir_ij)
-            #Compute product of single site frequencies
-            fij = np.dot(np.reshape(fi, (q, 1)),
-                np.transpose(np.reshape(fj, (q, 1)))
-            )
-            #Only take into account residue residue interactions for computing
-            #direct information
-            fij_residues = fij[:q-1, :q-1] + EPSILON # + operator creats a copy
-            pdir_ij_residues = pdir_ij[:q-1, :q-1] + EPSILON
-            pdir_by_fij_residues =  pdir_ij_residues/fij_residues
-            #Compute direct information
-            DI_ij = np.sum(pdir_ij_residues * np.log(pdir_by_fij_residues))
-            unsorted_DI[pair_counter] = DI_ij
-            #Move to the next site pair
-            pair_counter += 1
-
-    return unsorted_DI
+def sindex_di(sorted_di,s_index):
+    s_index_di = []
+    for di_tuple in sorted_di:
+        #print(di_tuple ,"-->",((s_index[di_tuple[0][0]], s_index[di_tuple[0][1]]),di_tuple[1]))
+        s_index_di.append(((s_index[di_tuple[0][0]], s_index[di_tuple[0][1]]),di_tuple[1]))     
+    return s_index_di
+        
 

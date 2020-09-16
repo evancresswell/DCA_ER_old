@@ -36,11 +36,11 @@ plmdca_ext = Extension(
 
 setup(
     name="pydca",
-    version="1.22",
+    version="2.0",
     author="Mehari B. Zerihun",
     author_email="mbzerihun@gmail.com",
     python_requires=">=3.5",
-    description="Direct couplings analysis (DCA) for protein and RNA sequences",
+    description="Direct couplings analysis (DCA) for protein and RNA sequences, Adding ER DCA by Evan Cresswell-Clay",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/KIT-MBS/pydca",
@@ -67,6 +67,7 @@ setup(
     entry_points={
         "console_scripts":[
             "mfdca = pydca.mfdca_main:run_meanfield_dca",
+            "erdca = pydca.erdca_main:run_er_dca",
             "plmdca = pydca.plmdca_main:run_plm_dca",
             "pydca = pydca.main:run_pydca",
         ],
