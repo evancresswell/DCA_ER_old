@@ -212,7 +212,6 @@ class MSATrimmer:
             seq, seqid = record.seq, record.id
             trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
             id_seq_pair = seqid, ''.join(trimmed_seq) 
-            print(id_seq_pair)
             trimmed_msa.append(id_seq_pair)
         return trimmed_msa
 
@@ -416,21 +415,26 @@ class MSATrimmer:
 
     def preprocess_msa(self, printing = False, gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8):
         # get msa trimmed by ref_seq || as above
-        columns_to_remove = self.trim_by_refseq(remove_all_gaps=True)
-
+        #columns_to_remove = self.trim_by_refseq(remove_all_gaps=True)
+  
         s_trimmed = self.get_msa_trimmed_by_refseq(remove_all_gaps=True)
+
        	s = list()
-        for record in s_trimmed:
-            seq, seqid = record.seq, record.id
-            trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
+        for ii,record in enumerate(s_trimmed):
+            pfam, seq =record 
+            #trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
+            trimmed_seq = list(seq)
             s.append(trimmed_seq)
+            if ii == self.__s_ipdb:
+                print('s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
         s = np.asarray(s)
+ 
         if printing:
             print('MSA trimmed by internal function\n')
             print('\n\nstarting shape: ',s.shape)
             print("\n\n#-------------------------Remove Gaps--------------------------#")
             #print("s = \n",s_pydca)
-   
+  
 
         # no pdb_ref structure for covid proteins, ref strucutre is always s[0]
         gap_pdb = s[self.__s_ipdb] =='-' # returns True/False for gaps/no gaps
