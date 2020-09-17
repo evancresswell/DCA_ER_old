@@ -8,9 +8,9 @@ FROM continuumio/anaconda3:latest
 
 RUN conda install biopython joblib scipy scikit-learn 
 RUN apt-get update
-RUN apt-get install -y curl grep sed dpkg 
+RUN apt-get install -y curl grep sed dpkg
 RUN apt-get install -y libzmq3-dev python3-pip
-RUN apt-get install build-essential
+RUN apt-get install build-essential muscle
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/DCA

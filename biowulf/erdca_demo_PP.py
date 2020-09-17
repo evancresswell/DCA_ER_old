@@ -33,6 +33,7 @@ pfam_id = 'PF00186'
 
 data_path = '../../../Pfam-A.full'
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+data_path = '/home/eclay/Pfam-A.full'
 
 # Read in Reference Protein Structure
 pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))                                                                                                                   

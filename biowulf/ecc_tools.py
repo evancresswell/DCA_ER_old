@@ -14,6 +14,8 @@ warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
 warnings.simplefilter('ignore', DeprecationWarning)
 warnings.simplefilter('ignore', FutureWarning)
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 from matplotlib import colors as mpl_colors
 
 import random
@@ -323,7 +325,7 @@ def roc_curve(ct,di,ct_thres):
     return pbin,tpbin,fpbin
 
 
-on_pc = True
+on_pc = False
 if on_pc:
 	from IPython.display import HTML
 	def hide_toggle(for_next=False):
