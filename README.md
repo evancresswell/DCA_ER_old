@@ -6,6 +6,9 @@
 ### In DCA_ER/er_images/ (location of Dockerfile)
 # 	$ sudo docker build -t ubuntu-er .
 
+# Make sure that you are not ssh or vpn connected
+#	$ sudo docker build --no-cache --rm -t erdca-muscle .
+
 ### In DCA_ER/ (where the .simg files must be stored)
 #	$ sudo docker tag <IMAGE ID> <REPO>:<TAG>
 #	$ sudo docker push evancresswell/<REPO>:<TAG>
@@ -13,6 +16,7 @@
 	#--- Singularity: Build .simg file from Docker ---#
 	#	$ sudo singularity pull docker://evancresswell/#REPO#:#TAG#
 	#	$ sudo singularity build dca_er-DCA.simg #REPO#_#TAG#.sif 
+	#		ex: $ sudo singularity build erdca-muscle.simg erdca_muscle.sif 
 	#-------------------------------------------------#
 
 #------------------------------------------------------#

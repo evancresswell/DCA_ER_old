@@ -9,12 +9,18 @@ FROM continuumio/anaconda3:latest
 RUN conda install biopython joblib scipy scikit-learn 
 RUN apt-get update
 RUN apt-get install -y curl grep sed dpkg
+
 RUN apt-get install -y libzmq3-dev python3-pip
-RUN apt-get install -y build-essential muscle
+RUN apt-get install -y build-essential
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /home/DCA
 COPY --from=intermediate /home/DCA_ER/pydca /home/DCA_ER/pydca
+
+WORKDIR /home/DCA/biowulf
+RUN curl https://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz | tar -xz
+RUN mv muscle3.8.31_i86linux64 muscle
+RUN chmod +x muscle
 
 RUN pip install --no-dependencies /home/DCA_ER/pydca/
 

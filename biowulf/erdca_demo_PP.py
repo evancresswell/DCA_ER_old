@@ -106,7 +106,7 @@ else:
     #https://www.drive5.com/muscle/manual/addtomsa.html
     #https://www.drive5.com/muscle/downloads.htmL
     muscle_msa_file = 'PP_muscle_msa_'+pfam_id+'.fa'
-    os.system("~/muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
+    os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
     print("PP sequence added to alignment via MUSCLE")
 
 
