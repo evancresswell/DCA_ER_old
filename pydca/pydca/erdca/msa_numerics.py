@@ -139,6 +139,7 @@ def compute_er_weights(n_var,s,i1i2,num_threads=1,couplings=None):
     # parallel
     # parallel
     print('Compute ER weights in parallel using %d threads'%num_threads)
+    print('matrix s: shape: ',s.shape)
     res = Parallel(n_jobs = num_threads)(delayed(predict_w)\
             (s, i0, i1i2, niter_max=10, l2=100.0)\
             for i0 in range(n_var))

@@ -509,12 +509,12 @@ class MSATrimmer:
         for i in range(s.shape[1]):
             s[:,i] = self.replace_lower_by_higher_prob(s[:,i],prob_low)
     	
-        return removed_cols,s_index
+        return removed_cols,s_index,s
 
     def get_preprocessed_msa(self, printing,saving):
         """
         """
-        cols_removed,s_index  = self.preprocess_msa(printing=printing)
+        cols_removed,s_index,s  = self.preprocess_msa(printing=printing)
         if saving:
             np.save("%s/removed_cols.npy"%pfam_id,removed_cols)
 
@@ -522,9 +522,10 @@ class MSATrimmer:
         for record in self.__alignment_data:
             seq, seqid = record.seq, record.id
             trimmed_seq = [seq[i] for i in range(len(seq)) if i not in cols_removed]
+            print('trimmed_seq: ',trimmed_seq)
             id_seq_pair = seqid, ''.join(trimmed_seq) 
             trimmed_msa.append(id_seq_pair)
-        return trimmed_msa, s_index, cols_removed, self.__s_ipdb
+        return trimmed_msa, s_index, cols_removed, self.__s_ipdb,s
 
 
     #=========================================================================================

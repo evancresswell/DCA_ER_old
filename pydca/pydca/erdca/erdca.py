@@ -620,52 +620,6 @@ class ERDCA:
     #========================================================================================================#
     #========================================================================================================#
     #========================================================================================================#
-
-
-    def compute_sorted_DI_APC(self, seqbackmapper=None):
-        """Computes the average DI score for every site.
-
-        Parameters
-        ----------
-            self : ERDCA
-                An instance of ERDCA class
-            seqbackmapper : SequenceBackmapper
-                An instance of SequenceBackmapper class.
-        Returns
-        -------
-            sorted_DI_APC : list
-                A list of tuples containing site pairs and DCA score, i.e., the
-                contents of sorted_DI are [((i, j), score), ...] for all unique
-                site pairs (i, j) such that j > i. These DI scores are average 
-                product corrected.
-        """
-
-        sorted_DI = self.compute_sorted_DI() # we must not supply seqbackmapper at this point. 
-        # the backmapping is done at the end of APC step
-        logger.info('\n\tPerforming average product correction (APC) of DI scores')
-        # compute the average score of each site
-        av_score_sites = list()
-        N = self.__sequences_len
-        for i in range(N):
-            i_scores = [score for pair, score in sorted_DI if i in pair]
-            assert len(i_scores) == N - 1
-            i_scores_sum = sum(i_scores)
-            i_scores_ave = i_scores_sum/float(N - 1)
-            av_score_sites.append(i_scores_ave)
-        # compute average product corrected DI
-        av_all_scores = sum(av_score_sites)/float(N)
-        sorted_DI_APC = list()
-        for pair, score in sorted_DI:
-            i, j = pair
-            score_apc = score - av_score_sites[i] * (av_score_sites[j]/av_all_scores)
-            sorted_DI_APC.append((pair, score_apc))
-        # sort the scores as doing APC may have disrupted the ordering
-        sorted_DI_APC = sorted(sorted_DI_APC, key = lambda k : k[1], reverse=True)
-        # Now we must do backmapping if seqbackmapper is provided.
-        if seqbackmapper is not None:
-            sorted_DI_APC = self.get_mapped_site_pairs_dca_scores(sorted_DI_APC, seqbackmapper)
-        return sorted_DI_APC
-
 if __name__ == '__main__':
     """
     """
