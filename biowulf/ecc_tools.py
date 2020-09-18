@@ -195,9 +195,49 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
         ppb = PPBuilder().build_peptides(chain)
         #    print(pp.get_sequence())
         print('peptide build of chain produced %d elements'%(len(ppb)))
-	
-        for i,pp in enumerate(ppb):
-            poly_seq = [char for char in str(pp.get_sequence())]
+
+        if 0:    # breaks up ppb fragments into different poly_seqs
+            for i,pp in enumerate(ppb):
+                poly_seq = [char for char in str(pp.get_sequence())]
+
+                print('original poly_seq: \n', poly_seq,'\n length: ',len(poly_seq))
+                poly_seq = np.delete(poly_seq,cols_removed)
+                print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+
+                poly_seq_ca_atoms = pp.get_ca_list()
+                print('Polypeptide Ca Coord list: ',len(poly_seq_ca_atoms))
+                pp_ca_coords = [a.get_coord() for a in poly_seq_ca_atoms]
+                if 0:
+                    for index,ca_coord in enumerate(pp_ca_coords):
+                        print(ca_coord,' and ',ca_coords[index])
+
+                if len(poly_seq) < len(s_index):
+                    print('ppb structure not big enough\nmust be at least length ',cols_removed[-1])
+                    continue
+
+                if ref_seq is not None:
+                    bad_seq = False
+                    # check polypeptide sequence against reference sequence
+                    if len(poly_seq) == len(ref_seq):
+                        for indx,a in enumerate(poly_seq):
+                            if a != ref_seq[indx]:
+                                print("\n Polypeptide Sequence does not match at index %d (%s != %s)"%(indx,a,ref_seq[indx]))
+                                bad_seq=True
+                                break
+                    if bad_seq:
+                        continue
+                    else:
+                        continue
+
+            print('\n\nPolypeptide Sequence Matched Reference Sequence !!!\n\n')
+            print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+        	   
+            break
+        else: # combines ppb fragments into poly_seq
+            poly_seq = list()
+            for i,pp in enumerate(ppb):
+                for char in str(pp.get_sequence()):
+                    poly_seq.append(char)                                     
 
             print('original poly_seq: \n', poly_seq,'\n length: ',len(poly_seq))
             poly_seq = np.delete(poly_seq,cols_removed)
@@ -206,32 +246,7 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
             poly_seq_ca_atoms = pp.get_ca_list()
             print('Polypeptide Ca Coord list: ',len(poly_seq_ca_atoms))
             pp_ca_coords = [a.get_coord() for a in poly_seq_ca_atoms]
-            if 0:
-                for index,ca_coord in enumerate(pp_ca_coords):
-                    print(ca_coord,' and ',ca_coords[index])
 
-            if len(poly_seq) < len(s_index):
-                print('ppb structure not big enough\nmust be at least length ',cols_removed[-1])
-                continue
-
-            if ref_seq is not None:
-                bad_seq = False
-                # check polypeptide sequence against reference sequence
-                if len(poly_seq) == len(ref_seq):
-                    for indx,a in enumerate(poly_seq):
-                        if a != ref_seq[indx]:
-                            print("\n Polypeptide Sequence does not match at index %d (%s != %s)"%(indx,a,ref_seq[indx]))
-                            bad_seq=True
-                            break
-                    if bad_seq:
-                        continue
-                else:
-                   continue
-
-            print('\n\nPolypeptide Sequence Matched Reference Sequence !!!\n\n')
-            print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
-                   
-            break
 
         print('\n\ns_index len: ',len(s_index))
         print('s_index largest index: ',s_index[-1])

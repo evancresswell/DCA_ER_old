@@ -521,8 +521,7 @@ class MSATrimmer:
         trimmed_msa = list()
         for record in self.__alignment_data:
             seq, seqid = record.seq, record.id
-            trimmed_seq = [seq[i] for i in range(len(seq)) if i not in cols_removed]
-            print('trimmed_seq: ',trimmed_seq)
+            trimmed_seq = [seq[i] for i in range(len(seq)) if i not in cols_removed] # array of chars
             id_seq_pair = seqid, ''.join(trimmed_seq) 
             trimmed_msa.append(id_seq_pair)
         return trimmed_msa, s_index, cols_removed, self.__s_ipdb,s

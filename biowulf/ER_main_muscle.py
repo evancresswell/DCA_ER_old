@@ -100,8 +100,15 @@ if using_PP:
         for seqid, seq in preprocessed_data:
            fh.write('>{}\n{}\n'.format(seqid, seq))
 
-    print('Reference sequence (poly_seq): ',poly_seq) 
+    print('\n\nReference sequence (poly_seq): ',poly_seq) 
+    print('Reference sequence (preprocessed_data[%d])'%s_ipdb,preprocessed_data[s_ipdb])
     print('Reference sequence (s0[%d])'%s_ipdb,s0[s_ipdb])
+    print('Reference sequence (s0[%d]) char form '%s_ipdb,dp.convert_number2letter(s0[s_ipdb]))
+
+    print('\n\npoly_seq shape',np.shape(poly_seq))
+    print('preprocessed_data shape ',np.shape(preprocessed_data))
+    print('s0 shape',np.shape(s0))
+
     s0 = np.asarray(s0)
 
 
@@ -114,6 +121,9 @@ n_var = s0.shape[1]
 mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
 mx_cumsum = np.insert(mx.cumsum(),0,0)
 i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
+
+print('mx: ',mx)
+sys.exit()
 
 #onehot_encoder = OneHotEncoder(sparse=False,categories='auto')
 onehot_encoder = OneHotEncoder(sparse=False)
