@@ -123,7 +123,6 @@ mx_cumsum = np.insert(mx.cumsum(),0,0)
 i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
 
 print('mx: ',mx)
-sys.exit()
 
 #onehot_encoder = OneHotEncoder(sparse=False,categories='auto')
 onehot_encoder = OneHotEncoder(sparse=False)
