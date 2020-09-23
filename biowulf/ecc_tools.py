@@ -229,10 +229,10 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
                     else:
                         continue
 
-            print('\n\nPolypeptide Sequence Matched Reference Sequence !!!\n\n')
-            print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+                print('\n\nPolypeptide Sequence Matched Reference Sequence !!!\n\n')
+                print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
         	   
-            break
+                break
         else: # combines ppb fragments into poly_seq
             poly_seq = list()
             for i,pp in enumerate(ppb):

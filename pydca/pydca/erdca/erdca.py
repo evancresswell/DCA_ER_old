@@ -567,13 +567,18 @@ class ERDCA:
                 contents of sorted_DI are [((i, j), score), ...] for all unique
                 site pairs (i, j) such that j > i.
         """
+        print('Computing site pair DI scores')
         unsorted_DI = self.get_site_pair_di_score()
+        print('Sorting DI scores')
         sorted_DI = sorted(unsorted_DI.items(), key = lambda k : k[1], reverse=True)
         if seqbackmapper is not None:
+            print('Mapping site pair DCA scores')
             sorted_DI = self.get_mapped_site_pairs_dca_scores(sorted_DI, seqbackmapper)
         #print(sorted_DI)
 
+        print('Imposing Distance Restraint')
         sorted_DI = self.distance_restr_sortedDI(sorted_DI)
+        print('Deleting DI duplicates')
         sorted_DI = self.delete_sorted_DI_duplicates(sorted_DI)
 
         return sorted_DI

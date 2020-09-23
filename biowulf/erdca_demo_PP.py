@@ -18,6 +18,7 @@ from pydca.sequence_backmapper import sequence_backmapper
 from pydca.msa_trimmer import msa_trimmer
 from pydca.dca_utilities import dca_utilities
 import numpy as np
+import pickle
 
 # Import Bio data processing features 
 import Bio.PDB, warnings
@@ -84,30 +85,36 @@ print('PDB Polypeptide Sequence: \n',poly_seq)
 pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False)
 # Incorporate SequenceBackmapper to see if PP sequence is in the MSA already. 
 #Or if theres a close enough match
-    
-#just add using muscle:
-#https://www.drive5.com/muscle/manual/addtomsa.html
-#https://www.drive5.com/muscle/downloads.htmL
-muscle_msa_file = 'PP_muscle_msa_'+pfam_id+'.fa'
-os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
-print("PP sequence added to alignment via MUSCLE")
+muscling  = False
+trimming = False
+preprocessing = False
+if muscling:    
+	#just add using muscle:
+	#https://www.drive5.com/muscle/manual/addtomsa.html
+	#https://www.drive5.com/muscle/downloads.htmL
+	muscle_msa_file = 'PP_muscle_msa_'+pfam_id+'.fa'
+	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
+	print("PP sequence added to alignment via MUSCLE")
 
+if trimming:
+	# create MSATrimmer instance 
+	trimmer = msa_trimmer.MSATrimmer(
+	    muscle_msa_file, biomolecule='protein', 
+	    refseq_file=pp_ref_file
+	)
 
-# create MSATrimmer instance 
-trimmer = msa_trimmer.MSATrimmer(
-    muscle_msa_file, biomolecule='protein', 
-    refseq_file=pp_ref_file
-)
+if preprocessing:
+	# Adding the data_processing() curation from tools to erdca.
+	preprocessed_data,s_index, cols_removed,s_ipdb = trimmer.get_preprocessed_msa(printing=True, saving = False)
 
-# Adding the data_processing() curation from tools to erdca.
-preprocessed_data,s_index, cols_removed,s_ipdb = trimmer.get_preprocessed_msa(printing=True, saving = False)
-
-#write trimmed msa to file in FASTA format
-preprocessed_data_outfile = 'MSA_PF00186_PreProcessed.fa'
-with open(preprocessed_data_outfile, 'w') as fh:
-    for seqid, seq in preprocessed_data:
-        fh.write('>{}\n{}\n'.format(seqid, seq))
-        
+	#write trimmed msa to file in FASTA format
+	preprocessed_data_outfile = 'MSA_PF00186_PreProcessed.fa'
+	with open(preprocessed_data_outfile, 'w') as fh:
+	    for seqid, seq in preprocessed_data:
+	        fh.write('>{}\n{}\n'.format(seqid, seq))
+else:
+	preprocessed_data_outfile = 'MSA_PF00186_PreProcessed.fa'
+		
 
 
 # Compute DI scores using Expectation Reflection algorithm
@@ -115,7 +122,7 @@ erdca_inst = erdca.ERDCA(
     preprocessed_data_outfile,
     'protein',
     pseudocount = 0.5,
-    num_threads = 20,
+    num_threads = 4,
     seqid = 0.8)
 
 # Compute average product corrected Frobenius norm of the couplings
@@ -128,23 +135,16 @@ for site_pair, score in erdca_DI[:5]:
     print(site_pair, score)
 
 with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(sorted_DI_er, f)
+    pickle.dump(erdca_DI, f)
 f.close()
 
-
+plotting = False
 if plotting:
     ipdb = 0
 
     #------------------------ Load PDB--------------------------#
-    pdb = np.load('PF00186_pdb_refs.npy')
     # Pre-Process Structure Data
     # delete 'b' in front of letters (python 2 --> python 3)
-    pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0])          for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
-    print(pdb[ipdb,:])
-    pdb_id = pdb[ipdb,5]
-    pdb_chain = pdb[ipdb,6]
-    seq_num = int(pdb[ipdb,1])
-    pdb_start,pdb_end = int(pdb[ipdb,7]),int(pdb[ipdb,8])
     #-----------------------------------------------------------#
     # Print Details of protein PDB structure Info for contact visualizeation
     print('Using chain ',pdb_chain)
@@ -153,7 +153,7 @@ if plotting:
     from pydca.contact_visualizer import contact_visualizer
 
     erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
-        refseq_file = protein_refseq_file,
+        refseq_file = pp_ref_file,
         sorted_dca_scores = erdca_DI,
         linear_dist = 4,
         contact_dist = 8.0)

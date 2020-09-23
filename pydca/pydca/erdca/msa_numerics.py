@@ -124,7 +124,7 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     return H0,W  
 
 def predict_w(s,i0,i1i2,niter_max,l2):
-    #print('i0:',i0)
+    print('i0:',i0)
     i1,i2 = i1i2[i0,0],i1i2[i0,1]
 
     x = np.hstack([s[:,:i1],s[:,i2:]])
@@ -138,11 +138,12 @@ def predict_w(s,i0,i1i2,niter_max,l2):
 def compute_er_weights(n_var,s,i1i2,num_threads=1,couplings=None):
     # parallel
     # parallel
-    print('Compute ER weights in parallel using %d threads'%num_threads)
-    print('matrix s: shape: ',s.shape)
+    print('Compute ER weights in parallel using %d threads for %d variables'%(num_threads,n_var))
+    print('matrix s: shape: ',s.shape,'\n\n')
     res = Parallel(n_jobs = num_threads)(delayed(predict_w)\
             (s, i0, i1i2, niter_max=10, l2=100.0)\
             for i0 in range(n_var))
+    print('Done Parallel processing')
     return res 
 
 # direct information from w, ONLY apply for our method, NOT DCA since w is converted to 2D
