@@ -508,21 +508,29 @@ class MSATrimmer:
         # replace lower probs by higher probs 
         for i in range(s.shape[1]):
             s[:,i] = self.replace_lower_by_higher_prob(s[:,i],prob_low)
+
+
+	# generate preprocessed alignment file
     	
         return removed_cols,s_index,s
+
 
     def get_preprocessed_msa(self, printing,saving):
         """
         """
         cols_removed,s_index,s  = self.preprocess_msa(printing=printing)
-        if saving:
-            np.save("%s/removed_cols.npy"%pfam_id,removed_cols)
 
         trimmed_msa = list()
-        for record in self.__alignment_data:
-            seq, seqid = record.seq, record.id
-            trimmed_seq = [seq[i] for i in range(len(seq)) if i not in cols_removed] # array of chars
+        for i,seq in enumerate(s):
+            if i==self.__s_ipdb:
+                seqid = 'REFERENCE'
+            else:
+                seqid = self.__biomolecule+' SEQUENCE'
+            #trimmed_seq = [seq[i] for i in range(len(seq)) if i not in cols_removed] # array of chars
+            trimmed_seq = self.convert_number2letter(seq)
             id_seq_pair = seqid, ''.join(trimmed_seq) 
+            if i==self.__s_ipdb:
+                print(id_seq_pair)
             trimmed_msa.append(id_seq_pair)
         return trimmed_msa, s_index, cols_removed, self.__s_ipdb,s
 
