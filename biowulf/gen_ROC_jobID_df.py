@@ -44,7 +44,6 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 			pfam_dict = pickle.load(f)
 		f.close()
 		s0 = pfam_dict['s0']	
-		s0_alt = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id))
 		s_index = pfam_dict['s_index']	
 		s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
 		cols_removed = pfam_dict['cols_removed']
@@ -62,7 +61,6 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 
 
 		subject_seq = dp.convert_number2letter(s0[int(seq_row)][:])
-		subject_seq = dp.convert_number2letter(s0_alt[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		print('\n\n\n\n\n\n#-----------------------------------------------------------------------#\nAnalysing  %s\n#-----------------------------------------------------------------------#\n'%pfam_id,df.loc[df.Pfam== pfam_id])
 		print('\n s_index',s_index,'\nlen(s_index)=%d\n'%len(s_index))

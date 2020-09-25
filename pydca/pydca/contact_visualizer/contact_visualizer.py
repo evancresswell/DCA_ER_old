@@ -1579,6 +1579,7 @@ class DCAVisualizer:
         mapped_pdb_contacts, missing_residues = self.get_mapped_pdb_contacts()
         # take the top L (refseq_len) DCA ranked pairs
         top_dca_ranked_pairs = self.dca_ranked_pairs_filtered_by_linear_dist()
+        print(top_dca_ranked_pairs)
 
         logger.info('\n\tCategorizing contacts')
         logger.info('\n\tTaking top {} DCA ranked pairs for contact'
@@ -1606,12 +1607,11 @@ class DCAVisualizer:
                 metadata = mapped_pdb_contacts[p1]
             except KeyError: # if residues are missing in PDB, they had not been mapped
                 pass
+            if metadata[-1] < self.__contact_dist:
+                true_positives[p1] = metadata
             else:
-                if metadata[-1] < self.__contact_dist:
-                    true_positives[p1] = metadata
-                else:
-                    if p1 not in missing_dca_contacts:
-                        false_positives[p1] = metadata
+                if p1 not in missing_dca_contacts:
+                    false_positives[p1] = metadata
         missing_dca_contacts_filtered = OrderedDict()
         for pair in missing_dca_contacts:
             if abs(pair[0] - pair[1]) > self.__linear_dist:

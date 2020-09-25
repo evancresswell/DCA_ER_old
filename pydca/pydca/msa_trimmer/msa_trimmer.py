@@ -174,8 +174,28 @@ class MSATrimmer:
         )
         first_matching_seq = matching_seqs[0]
         first_matching_indx = matching_seqs_indx[0]
+        print('first matching indx in alignment: ',self.__s_ipdb)
+        print('first matching seq: in alignment: ',first_matching_seq)
+
+        alignment_ref_seq = [char for char in first_matching_seq ]
+        ref_gap_cols = [a == '-' for a in alignment_ref_seq ]
+        alignment_ref_seq = [alignment_ref_seq[ii] for ii in range(len(alignment_ref_seq)) if not ref_gap_cols[ii]]
+
         self.__s_ipdb = first_matching_indx
-        # adding one because find_matching_seqs_from_alignment indexes on pairwise comparison
+        # find out which indx in alignment_data corresponds with s_ipdb
+        for ii,record in enumerate(self.__alignment_data):
+            seq, seqid = record.seq, record.id
+            alignment_seq = [char for char in seq]
+            seq_gap_cols = [a == '-' for a in alignment_seq ]
+            seq_no_gaps = [alignment_seq[ii] for ii in range(len(alignment_seq)) if not seq_gap_cols[ii]]
+            if len(alignment_ref_seq) ==len(seq_no_gaps):
+                if all([char == alignment_ref_seq[iii] for iii,char in enumerate(seq_no_gaps)]):
+                    print(seq_no_gaps)
+                    print(alignment_ref_seq)
+                    self.__s_ipdb = ii
+                    print('s_ipdb is now %w ', self.__s_ipdb)
+        
+
         logger.info('\n\tSequence in MSA (seq num {}) that matches the reference'
             '\n\t{}'.format(first_matching_indx,first_matching_seq)
         )
@@ -210,9 +230,11 @@ class MSATrimmer:
         """
         columns_to_remove = self.trim_by_refseq(remove_all_gaps=remove_all_gaps)
         trimmed_msa = list()
-        for record in self.__alignment_data:
+        for ii,record in enumerate(self.__alignment_data):
             seq, seqid = record.seq, record.id
             trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
+            if ii == self.__s_ipdb:
+                print('in get_msa_trimmed: s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
             id_seq_pair = seqid, ''.join(trimmed_seq) 
             trimmed_msa.append(id_seq_pair)
         return trimmed_msa
@@ -230,6 +252,7 @@ class MSATrimmer:
         bad_seq = [t for t in range(l) if frequency[t] > fgs]
         new_s = np.delete(s,bad_seq,axis=0)
     	# Find new sequence index of Reference sequence tpdb
+        print('removing %d bad sequences'%(len(bad_seq)))
         seq_index = np.arange(s.shape[0])
         seq_index = np.delete(seq_index,bad_seq)
         new_tpdb = np.where(seq_index==tpdb)
@@ -302,7 +325,7 @@ class MSATrimmer:
     
         number2letter = {0:'A', 1:'C', 2:'D', 3:'E', 4:'F', 5:'G', 6:'H', 7:'I', 8:'K', 9:'L',\
     	 				10:'M', 11:'N', 12:'P', 13:'Q', 14:'R', 15:'S', 16:'T', 17:'V', 18:'W', 19:'Y', 20:'-'} 
-        print('converting s with shape : ',s.shape)
+        #print('converting s with shape : ',s.shape)
         try:
             l,n = s.shape
             return np.array([number2letter[s[t,i]] for t in range(l) for i in range(n)]).reshape(l,n)
@@ -427,8 +450,8 @@ class MSATrimmer:
             #trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
             trimmed_seq = list(seq)
             s.append(trimmed_seq)
-            if ii == self.__s_ipdb-1:
-                print('s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
+            if ii == self.__s_ipdb:
+                print('in preprocess s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
         s = np.asarray(s)
  
         if printing:
@@ -532,6 +555,7 @@ class MSATrimmer:
             if i==self.__s_ipdb:
                 print(id_seq_pair)
             trimmed_msa.append(id_seq_pair)
+
         return trimmed_msa, s_index, cols_removed, self.__s_ipdb,s
 
 

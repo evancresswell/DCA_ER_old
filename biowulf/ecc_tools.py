@@ -235,31 +235,38 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
                 break
         else: # combines ppb fragments into poly_seq
             poly_seq = list()
+            pp_ca_coords_full = list()
             for i,pp in enumerate(ppb):
                 for char in str(pp.get_sequence()):
                     poly_seq.append(char)                                     
+                poly_seq_ca_atoms = pp.get_ca_list()
+                pp_ca_coords_full.extend( [a.get_coord() for a in poly_seq_ca_atoms])
+             
+            n_amino_full = len(pp_ca_coords_full)
 
+            # Get full list of CA coords from poly_seq
             print('original poly_seq: \n', poly_seq,'\n length: ',len(poly_seq))
-            poly_seq = np.delete(poly_seq,cols_removed)
-            print('poly_seq[~cols_removed]: \n', poly_seq,'\n length: ',len(poly_seq))
+            print('Polypeptide Ca Coord list: ',len(pp_ca_coords_full),'\n length: ',len(pp_ca_coords_full))
 
-            poly_seq_ca_atoms = pp.get_ca_list()
-            print('Polypeptide Ca Coord list: ',len(poly_seq_ca_atoms))
-            pp_ca_coords = [a.get_coord() for a in poly_seq_ca_atoms]
+            # Get curated polypeptide sequence (using cols_removed) & Get coords of curated pp seq
+            poly_seq_curated = np.delete(poly_seq,cols_removed)
+            print('poly_seq[~cols_removed] (poly_seq_curated): \n', poly_seq_curated,'\n length: ',len(poly_seq_curated))
+            pp_ca_coords_curated = np.delete(pp_ca_coords_full,cols_removed,axis=0)
+            print('Curated Polypeptide Ca Coord list: ',len(pp_ca_coords_curated),'\n length: ',len(pp_ca_coords_curated))
 
 
         print('\n\ns_index len: ',len(s_index))
         print('s_index largest index: ',s_index[-1])
-        curated_coords = np.delete(pp_ca_coords,cols_removed,axis=0)
 
         print("\n\n#---------#\nNumber of good amino acid coords: %d should be same as sum of s_index and cols_removed"%n_amino)
         print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
-        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d, pp ca coords: %d pp ca curated coords len: %d\n#----------#\n\n' % (len(coords_all),len(ca_coords),len(good_coords),len(pp_ca_coords),len(curated_coords)))
+        print('all coords %d, all ca coords: %d , protein rangs ca coords len: %d, pp ca coords: %d pp ca curated coords len: %d\n#----------#\n\n' % (len(coords_all),len(ca_coords),len(good_coords),len(pp_ca_coords_full),len(pp_ca_coords_curated)))
         #for i,a in enumerate(chain.get_atoms()):
         #    if a.get_name() == 'CA':
         #        good_coords.append(a.get_coord())		
 
         ct_full = distance_matrix(good_coords,good_coords)
+        ct_full = distance_matrix(pp_ca_coords_full,pp_ca_coords_full)
         """
         for i,ca in enumerate(ppb[0].get_ca_list()):		
            #print(ca.get_coord())
@@ -280,11 +287,12 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
     
 
     ct = distance_matrix(coords_remain,coords_remain)
+    ct = distance_matrix(pp_ca_coords_curated,pp_ca_coords_curated)
     print('\n#---------------------------------------------------#\nContact Map Generated \n#--------------------------------------------------#\n')
     if use_old:
         return ct
     else:
-        return ct,ct_full,n_amino
+        return ct,ct_full,n_amino_full
 
 def roc_curve(ct,di,ct_thres):
     ct1 = ct.copy()

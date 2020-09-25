@@ -67,7 +67,7 @@ def generate_pfam_data(pfam_id):
 
 			with open('pfam_ecc/%s_DP.pickle'%(pfam_id), 'wb') as f:
 				pickle.dump(pf_dict, f)
-			f.close
+			f.close()
 
 		except:
 			print("Could not generate data for %s: "%(pfam_id),sys.exc_info())
