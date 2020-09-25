@@ -251,6 +251,10 @@ class MSATrimmer:
         frequency = [(s[t,:] == '-').sum()/float(n) for t in range(l)]
         bad_seq = [t for t in range(l) if frequency[t] > fgs]
         new_s = np.delete(s,bad_seq,axis=0)
+        if new_s.shape[0] <= 1:
+            logger.error('\n\tCannot match Reference sequence to MSA structure\n  -->MSA curated by ref-seq loses all sequences')
+            raise MSATrimmerException
+
     	# Find new sequence index of Reference sequence tpdb
         print('removing %d bad sequences'%(len(bad_seq)))
         seq_index = np.arange(s.shape[0])
@@ -483,7 +487,7 @@ class MSATrimmer:
     
         if printing:
             print("In Data Processing Reference Sequence (shape=",s[self.__s_ipdb].shape,"): \n",s[self.__s_ipdb])
-        
+       
         s = self.remove_bad_seqs(s,gap_seqs) # removes all sequences (rows) with >gap_seqs gap || updates self.__s_ipdb
 
         bad_cols = self.find_bad_cols(s,gap_cols)
