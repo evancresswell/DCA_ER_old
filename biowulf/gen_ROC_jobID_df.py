@@ -60,18 +60,18 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 		ref_seq = s[tpdb,~gap_pdb] # removes gaps  
 
 
-		subject_seq = dp.convert_number2letter(s0[int(seq_row)][:])
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		print('\n\n\n\n\n\n#-----------------------------------------------------------------------#\nAnalysing  %s\n#-----------------------------------------------------------------------#\n'%pfam_id,df.loc[df.Pfam== pfam_id])
 		print('\n s_index',s_index,'\nlen(s_index)=%d\n'%len(s_index))
 			
 		# Load Contact Map
 		try:
-			print(pfam_id, ': curated ref sequence\n',subject_seq,'\nlen %d\n'%len(subject_seq))
 			print(pfam_id, ': original ref sequence\n',ref_seq,'\nlen %d\n'%len(ref_seq))
-			ct,ct_full,n_amino_full = tools.contact_map(pdb,ipdb,cols_removed,s_index,ref_seq=ref_seq)
+			ct,ct_full,n_amino_full,subject_seq = tools.contact_map(pdb,ipdb,cols_removed,s_index,ref_seq=ref_seq)
+			print(pfam_id, ': curated ref sequence\n',subject_seq,'\nlen %d\n'%len(subject_seq))
 			print('contact map shape: ',ct.shape)
 			print('contact map (full) shape: ',ct_full.shape)
+			#ct_distal = tools.distance_restr_ct(ct,s_index,make_large=True)
 			ct_distal = tools.distance_restr_ct(ct_full,s_index,make_large=True)
 			print('subject MSA sequence:\n',subject_seq)
 			print(len(subject_seq),'\n\n')
@@ -101,26 +101,31 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 				print("File Method-Prefix %s of %s  not recognized"%(filepath[:6],filepath))
 				sys.exit()
 
-			DI_dup = dp.delete_sorted_DI_duplicates(DI)	
-			print('Deleted DI index duplicates')
-			sorted_DI = tools.distance_restr_sortedDI(DI_dup,s_index)
+			#DI already sorted
+			#DI_dup = dp.delete_sorted_DI_duplicates(DI)	
+			#print('Deleted DI index duplicates')
+			#sorted_DI = tools.distance_restr_sortedDI(DI_dup,s_index)
 			# sorted_DI has no duplicates, incorporates s_index and distance restraint
-			print('Distance restraint enforced')
+			#print('Distance restraint enforced')
 			#--------------------------------------------------------------------#
 			
 			#--------------------- Generate DI Matrix ---------------------------#
-			#n_amino = max([coupling[0][0] for coupling in sorted_DI]) 
 			di = np.zeros((n_amino_full,n_amino_full))
-			for coupling in sorted_DI:
+			for coupling in DI:
 				#print(coupling[1])
 				di[coupling[0][0],coupling[0][1]] = coupling[1]
 				di[coupling[0][1],coupling[0][0]] = coupling[1]
+
+			# Generate DI matrix of our predictions only	
+			di_predict = np.zeros((len(s_index),len(s_index)))
+			for coupling in DI:
+				#print(coupling[1])
+				if coupling[0][0] in s_index and coupling[0][1] in s_index:
+					di_predict[np.where(s_index==coupling[0][0]),np.where(s_index==coupling[0][1])] = coupling[1]
+					di_predict[np.where(s_index==coupling[0][1]),np.where(s_index==coupling[0][0])] = coupling[1]
+
 			#--------------------------------------------------------------------#
 
-			print("%s s_index: "%(pfam_id),len(s_index),"DI shape: ",di.shape[0])
-			print("s_index max index: %d, DI max index: %d"%(s_index[-1],max([coupling[0][0] for coupling in sorted_DI])))
-			print('DI matrix shape: ',di.shape)
-			print('contact matrix shape: ',ct_full.shape)
 			print('\n\n #------------------ Calculating ROC Curve --------------------#')
 		
 			#----------------- Generate Optimal ROC Curve -----------------------#
@@ -129,24 +134,47 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 			n = ct_thres.shape[0]
 			
 			auc = np.zeros(n)
+		
+			# Want to only ROC-analyze positions we made predictions for !!!
+			print(ct.shape)
+			ct_predict = np.asarray(tools.distance_restr(ct,s_index,make_large = True))
+			print(ct_predict.shape)
 			
 			for i in range(n):
 				#p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
-				p,tp,fp = tools.roc_curve(ct_full,di,ct_thres[i])
+				p,tp,fp = tools.roc_curve(ct_predict,di_predict,ct_thres[i])
 				auc[i] = tp.sum()/tp.shape[0]
 			i0 = np.argmax(auc)
+			print('Optimal Distance: ',ct_thres[i0])
+
 			
 			# set true positivies, false positives and predictions for optimal distance
-			p0,tp0,fp0 = tools.roc_curve(ct_full,di,ct_thres[i0])
+			p0,tp0,fp0 = tools.roc_curve(ct_predict,di_predict,ct_thres[i0])
+			print(tp0)
+			print(fp0)
 			
 			
 			Ps.append(p0)	
 			TPs.append(tp0)	
 			FPs.append(fp0)	
 			AUCs.append(auc[i0])	
-			DIs.append(sorted_DI)
+			DIs.append(DI)
 			ODs.append(ct_thres[i0])
 			ERRs.append('None')
+			if pfam_id_focus is not None:
+				df_temp = df.copy()
+				df_temp = df_temp.loc[df['Pfam']==pfam_id_focus]
+				df_temp = df_temp.assign(ERR = 'None')
+				df_temp = df_temp.assign(P = [p0])
+				df_temp = df_temp.assign(TP = [tp0])
+				df_temp = df_temp.assign(FP = [fp0])
+				df_temp = df_temp.assign(DI = [DI])
+				df_temp = df_temp.assign(AUC = [auc[i0]])
+				df_temp = df_temp.assign(OptiDist = ct_thres[i0])
+				df_temp = df_temp.assign(seq_len = [n_var])
+				df_temp = df_temp.assign(num_seq = [s0.shape[0]])
+				return df_temp.copy()
+
 			# Fill Data Frame with relavent info
 			#print("adding TP =",tp0)
 			#df.loc[i,'TP'] = tp0.tolist()
@@ -224,7 +252,9 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 		print("Duplicates:")
 		print(df[df.duplicated(['Pfam'])])
 		#print(df)
-	return df.copy()
+		return df.copy()
+               
+	
 #-----------------------------------------------------------------------------------#
 
 def main():

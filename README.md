@@ -3,14 +3,12 @@
 
 #------------------------------------------------------#
 #----- Generate Singularity Container to Run Code -----#
-### In DCA_ER/er_images/ (location of Dockerfile)
-# 	$ sudo docker build -t ubuntu-er .
-
-# Make sure that you are not ssh or vpn connected
+## In DCA_ER/er_images/ (location of Dockerfile)
+### Make sure that you are not ssh or vpn connected
 #	$ sudo docker build --no-cache --rm -t erdca-muscle .
 
-### In DCA_ER/ (where the .simg files must be stored)
-#	$ sudo docker tag <IMAGE ID> <REPO>:<TAG>
+## In DCA_ER/ (where the .simg files must be stored)
+#	$ sudo docker tag <IMAGE ID> evancresswell/<REPO>:<TAG>
 #	$ sudo docker push evancresswell/<REPO>:<TAG>
 
 	#--- Singularity: Build .simg file from Docker ---#

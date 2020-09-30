@@ -40,11 +40,11 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
 pfam_id = 'PF07073'
-pfam_id = 'PF10401'
 pfam_id = 'PF14806'
+pfam_id = 'PF03068' # MUSCLE removes all msa alignments
 pfam_id = 'PF01583'
 pfam_id = 'PF00186'
-pfam_id = 'PF03068'
+pfam_id = 'PF10401'
 
 
 data_path = '../../../Pfam-A.full'
@@ -90,14 +90,20 @@ print('PDB Polypeptide Sequence: \n',poly_seq)
 pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False)
 
 
+muscling  = False
 muscling  = True
+
+preprocessing = False
 preprocessing = True
+
+computing_DI = False
 computing_DI = True
+
+compute_ROC = False
 compute_ROC = True
 
 
 muscle_msa_file = 'PP_muscle_msa_'+pfam_id+'.fa'
-preprocessed_data_outfile = 'MSA_PF00186_PreProcessed.fa'
 if muscling:    
 	#just add using muscle:
 	#https://www.drive5.com/muscle/manual/addtomsa.html
@@ -105,17 +111,23 @@ if muscling:
 	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
 	print("PP sequence added to alignment via MUSCLE")
 
+
+preprocessed_data_outfile = 'MSA_%s_PreProcessed.fa'%pfam_id
 if preprocessing:
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    muscle_msa_file, biomolecule='protein', 
+	    muscle_msa_file, biomolecule='PROTEIN', 
 	    refseq_file=pp_ref_file
 	)
 
 
 	# Adding the data_processing() curation from tools to erdca.
-	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-
+	try:
+		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+	except(MSATrimmerException):
+		ERR = 'PPseq-MSA'
+		print('Error with MSA trimms (%s)'%ERR)
+		sys.exit()
 
 	# Save processed data dictionary and FASTA file
 	pfam_dict = {}
@@ -134,13 +146,23 @@ if preprocessing:
 	with open(preprocessed_data_outfile, 'w') as fh:
 	    for seqid, seq in preprocessed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
-	
+else:
+	input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
+	with open(input_data_file,"rb") as f:
+		pfam_dict =  pickle.load(f)
+	f.close()
+	cols_removed = pfam_dict['cols_removed']
+	s_index= pfam_dict['s_index']
+	s_ipdb = pfam_dict['s_ipdb']
+
+
 
 if computing_DI:
 	# Compute DI scores using Expectation Reflection algorithm
 	erdca_inst = erdca.ERDCA(
 	    preprocessed_data_outfile,
-	    'protein',
+ 	    'PROTEIN',
+	    s_index = s_index,
 	    pseudocount = 0.5,
 	    num_threads = 4,
 	    seqid = 0.8)
@@ -176,55 +198,83 @@ if compute_ROC:
 	"""
 
 	# Jobload info from text file 
-	prep_df_file_plm = 'PLM_job-53760928_swarm_ouput_setup.pkl'
 	prep_df_file_er = 'ER_job-53759610_swarm_ouput_setup.pkl'
-	prep_df_file_mf = 'MF_job-53760930_swarm_ouput_setup.pkl'
-
-	job_id_plm = '53760928_163'
 	job_id_er = '53759610_163'
-	job_id_mf = '53760930_163'
 
 
-	data_path = '../../Pfam-A.full'
-
-	# Get dataframe of job_id
-	df_prep_plm = pickle.load(open(prep_df_file_plm,"rb"))
-	df_jobID_plm = df_prep_plm.copy()
-	df_jobID_plm = df_jobID_plm.loc[df_jobID_plm.Jobid == job_id_plm]
-	print(df_jobID_plm)
 	# Get dataframe of job_id
 	df_prep_er = pickle.load(open(prep_df_file_er,"rb"))
 	df_jobID_er = df_prep_er.copy()
 	df_jobID_er = df_jobID_er.loc[df_jobID_er.Jobid == job_id_er]
-	print(df_jobID_er)
 	roc_jobID_df = add_ROC(df_jobID_er,prep_df_file_er,data_path=data_path,pfam_id_focus = pfam_id)
-	
+	with open('./%s_roc_DF.pickle'%(pfam_id), 'wb') as f:
+	    pickle.dump(roc_jobID_df, f)
+	f.close()
+
+else:	
+	with open('./%s_roc_DF.pickle'%(pfam_id), 'rb') as f:
+	   roc_jobID_df =  pickle.load(f)
+	f.close()
 
 plotting = True
 if plotting:
-    ipdb = 0
+	if 1:
+		# Print Details of protein PDB structure Info for contact visualizeation
+		print('Using chain ',pdb_chain)
+		print('PDB ID: ', pdb_id)
 
-    #------------------------ Load PDB--------------------------#
-    # Pre-Process Structure Data
-    # delete 'b' in front of letters (python 2 --> python 3)
-    #-----------------------------------------------------------#
-    # Print Details of protein PDB structure Info for contact visualizeation
-    print('Using chain ',pdb_chain)
-    print('PDB ID: ', pdb_id)
+		from pydca.contact_visualizer import contact_visualizer
 
-    from pydca.contact_visualizer import contact_visualizer
+		erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
+		refseq_file = pp_ref_file,
+		sorted_dca_scores = erdca_DI,
+		linear_dist = 4,
+		contact_dist = roc_jobID_df['OptiDist'])
 
-    erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
-        refseq_file = pp_ref_file,
-        sorted_dca_scores = erdca_DI,
-        linear_dist = 4,
-        contact_dist = 8.0)
+		er_contact_map_data = erdca_visualizer.plot_contact_map()
+		plt.show()
+		plt.savefig('contact_map_%s.pdf'%pfam_id)
+		plt.close()
+		er_tp_rate_data = erdca_visualizer.plot_true_positive_rates()
+		plt.show()
+		plt.savefig('TP_rate_%s.pdf'%pfam_id)
+		plt.close()
 
-    er_contact_map_data = erdca_visualizer.plot_contact_map()
-    plt.show()
-    plt.savefig('contact_map_%s.pdf'%pfam_id)
-    plt.close()
-    er_tp_rate_data = erdca_visualizer.plot_true_positive_rates()
-    plt.show()
-    plt.savefig('TP_rate_%s.pdf'%pfam_id)
-    plt.close()
+
+	tp = np.asarray(roc_jobID_df['TP'])[0]
+	fp =np.asarray(roc_jobID_df['FP'])[0]
+	p = np.asarray(roc_jobID_df['P'])[0]
+	print('len tp= %d len fp = %d '%(len(tp),len(fp)))
+	print(tp)
+	print(fp)
+	from matplotlib.backends.backend_pdf import PdfPages
+	with PdfPages("./%s_ROC.pdf"%pfam_id) as pdf:
+		plt.subplot2grid((1,2),(0,0))
+		plt.title('ROC ')
+		plt.plot(fp,tp,'b-',label="er")
+		plt.plot([0,1],[0,1],'k--')
+		plt.xlim([0,1])
+		plt.ylim([0,1])
+		plt.xlabel('False Positive Rate')
+		plt.ylabel('True Positive Rate')
+		plt.legend()
+		print('%s AUC: %f'%(pfam_id,np.asarray(roc_jobID_df['AUC'])[0]))
+
+		
+		# Plot Precision of optimal DCA and ER
+		plt.subplot2grid((1,2),(0,1))
+		plt.title('Precision')
+		plt.plot( p,tp / (tp + fp),'b-',label='er')
+		plt.xlim([0,1])
+		plt.ylim([0,1])
+		plt.ylim([.4,.8])
+		plt.xlabel('Recall (Sensitivity - P)')
+		plt.ylabel('Precision (PPV)')
+		plt.legend()
+
+		plt.tight_layout(h_pad=.25, w_pad=.1)
+		pdf.attach_note("ROC")  # you can add a pdf note to
+		plt.show()
+		plt.close()
+		#----------------------------------------------------------------------------#
+

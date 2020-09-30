@@ -47,7 +47,7 @@ class ERDCA:
     Coupling Analysis (DCA) of residue coevolution using the mean-field DCA
     algorithm.
     """
-    def __init__(self, msa_file, biomolecule, num_threads = None, pseudocount=None, seqid=None):
+    def __init__(self, msa_file, biomolecule,s_index = None, num_threads = None, pseudocount=None, seqid=None):
         self.__pseudocount = pseudocount  if pseudocount is not None else 0.5
         self.__seqid = seqid if seqid is not None else 0.8
         #Validate the value of pseudo count incase user provide an invalid one
@@ -77,7 +77,10 @@ class ERDCA:
             self.__msa_file,
             biomolecule=biomolecule,
         )
-
+        if s_index is None:
+            logger.info('S_INDEX not passed\nMake sure the indexing on DI is correct!!!\n\n')
+        else: 
+            self.__s_index = s_index
         self.__num_sequences = len(self.__sequences)
         self.__sequences_len = len(self.__sequences[0])
         self.__num_threads = 1 if num_threads is None else num_threads
@@ -442,7 +445,8 @@ class ERDCA:
                 A 2d numpy array of the same shape .
         """
 
-        # THIS IS ASSUMING UNTRIMMED?? NO S_INDEX>>>>>>>>???       
+        # THIS IS ASSUMING sequences passed in via MSA file 
+		# ---> were already preprocessed
         s0 = np.asarray(self.__sequences)
         print(s0.shape)
         
@@ -524,26 +528,16 @@ class ERDCA:
         #fields_ij = self.compute_two_site_model_fields(couplings, reg_fi)
 
         logger.info('\n\tComputing direct information')
-        if 0:
-            unsorted_DI = msa_numerics.compute_direct_info(
-            couplings = couplings,
-            fields_ij = fields_ij,
-            reg_fi = reg_fi,
-            seqs_len = self.__sequences_len,
-            num_site_states = self.__num_site_states,
-            )
 
         s0 = np.asarray(self.__sequences)
         di = msa_numerics.direct_info(s0,couplings)
         
 
         site_pair_di_score= dict()
-        pair_counter = 0
         ind = np.unravel_index(np.argsort(di,axis=None),di.shape)    
         for i,indices in enumerate(np.transpose(ind)):
             site_pair = (indices[0] , indices[1])
             site_pair_di_score[site_pair] = di[indices[0] , indices[1]]
-            pair_counter += 1
 
         return site_pair_di_score
 
@@ -574,10 +568,14 @@ class ERDCA:
         if seqbackmapper is not None:
             print('Mapping site pair DCA scores')
             sorted_DI = self.get_mapped_site_pairs_dca_scores(sorted_DI, seqbackmapper)
-        #print(sorted_DI)
+            print(sorted_DI[:10],'\n')
 
         print('Imposing Distance Restraint')
-        sorted_DI = self.distance_restr_sortedDI(sorted_DI)
+        if self.__s_index is not None:
+            sorted_DI = self.distance_restr_sortedDI(sorted_DI,s_index=self.__s_index)
+        else:
+            print('Imposing Distance Restraint\n(WITHOUT TRUE INDEXING ON PREPROCESSED DATA)')
+            sorted_DI = self.distance_restr_sortedDI(sorted_DI)
         print('Deleting DI duplicates')
         sorted_DI = self.delete_sorted_DI_duplicates(sorted_DI)
 
@@ -585,8 +583,7 @@ class ERDCA:
 
     def distance_restr_sortedDI(self,site_pair_DI_in, s_index=None):
         print(site_pair_DI_in[:10])
-        pair_counter = 0
-        sorted_DI= dict()
+        restrained_DI= dict()
         for site_pair, score in site_pair_DI_in:
             # if s_index exists re-index sorted pair
             if s_index is not None:
@@ -599,13 +596,10 @@ class ERDCA:
        	    indices = (pos_0 , pos_1)
     
             if abs(pos_0- pos_1)<5:
-                sorted_DI[indices] = 0
-                #sorted_DI[count] = (pos_0,pos_1),0
+                restrained_DI[indices] = 0
             else:
-                sorted_DI[indices] = score
-                #sorted_DI[count] = (pos_0,pos_1),score
-            pair_counter += 1
-        sorted_DI = sorted(sorted_DI.items(),reverse=True)  
+                restrained_DI[indices] = score
+        sorted_DI  = sorted(restrained_DI.items(), key = lambda k : k[1], reverse=True)
         print(sorted_DI[:10])
         return sorted_DI
     
@@ -616,7 +610,10 @@ class ERDCA:
         for (a,b), score in sorted_DI:
              if (a,b) not in temp1 and (b,a) not in temp1: #to check for the duplicate tuples
                 temp1.append(((a,b)))
-                DI_out[(a,b)]= score
+                if a>b:
+                    DI_out[(b,a)]= score
+                else:
+                    DI_out[(a,b)]= score
         DI_out = sorted(DI_out.items(), key = lambda k : k[1], reverse=True)
         #DI_out.sort(key=lambda x:x[1],reverse=True) 
         print(DI_out[:10])

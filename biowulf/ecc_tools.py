@@ -292,7 +292,7 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
     if use_old:
         return ct
     else:
-        return ct,ct_full,n_amino_full
+        return ct,ct_full,n_amino_full,poly_seq
 
 def roc_curve(ct,di,ct_thres):
     ct1 = ct.copy()
@@ -434,7 +434,7 @@ def distance_restr(di,s_index,make_large=False):
 def distance_restr_ct(ct,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
 	if ct.shape[0] < s_index[-1]:
-		print("Distance restraint cannot be imposed, bad input")
+		print("ERROR in distance_restr_ct\n\nDistance restraint cannot be imposed, bad input\n")
 		#IndexError: index 0 is out of bounds for axis 0 with size 0
 		print("s_index max index: ",s_index[-1],"ct shape: ",ct.shape[0])
 		#print('di:\n',di[0])
