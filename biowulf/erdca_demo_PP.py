@@ -43,8 +43,8 @@ pfam_id = 'PF07073'
 pfam_id = 'PF14806'
 pfam_id = 'PF03068' # MUSCLE removes all msa alignments
 pfam_id = 'PF01583'
-pfam_id = 'PF00186'
 pfam_id = 'PF10401'
+pfam_id = 'PF00186'
 
 
 data_path = '../../../Pfam-A.full'
@@ -222,6 +222,7 @@ if plotting:
 		# Print Details of protein PDB structure Info for contact visualizeation
 		print('Using chain ',pdb_chain)
 		print('PDB ID: ', pdb_id)
+		print(roc_jobID_df['OptiDist'])
 
 		from pydca.contact_visualizer import contact_visualizer
 
@@ -229,7 +230,7 @@ if plotting:
 		refseq_file = pp_ref_file,
 		sorted_dca_scores = erdca_DI,
 		linear_dist = 4,
-		contact_dist = roc_jobID_df['OptiDist'])
+		contact_dist = 4.5)
 
 		er_contact_map_data = erdca_visualizer.plot_contact_map()
 		plt.show()

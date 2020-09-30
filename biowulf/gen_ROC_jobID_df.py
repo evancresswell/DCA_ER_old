@@ -170,7 +170,7 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 				df_temp = df_temp.assign(FP = [fp0])
 				df_temp = df_temp.assign(DI = [DI])
 				df_temp = df_temp.assign(AUC = [auc[i0]])
-				df_temp = df_temp.assign(OptiDist = ct_thres[i0])
+				df_temp = df_temp.assign(OptiDist = [ct_thres[i0]])
 				df_temp = df_temp.assign(seq_len = [n_var])
 				df_temp = df_temp.assign(num_seq = [s0.shape[0]])
 				return df_temp.copy()
