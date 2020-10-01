@@ -124,7 +124,6 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     return H0,W  
 
 def predict_w(s,i0,i1i2,niter_max,l2):
-    print('i0:',i0)
     i1,i2 = i1i2[i0,0],i1i2[i0,1]
 
     x = np.hstack([s[:,:i1],s[:,i2:]])
