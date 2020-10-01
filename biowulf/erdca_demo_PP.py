@@ -16,6 +16,7 @@ import timeit
 from pydca.erdca import erdca
 from pydca.sequence_backmapper import sequence_backmapper
 from pydca.msa_trimmer import msa_trimmer
+from pydca.msa_trimmer.msa_trimmer import MSATrimmerException
 from pydca.dca_utilities import dca_utilities
 import numpy as np
 import pickle
@@ -40,11 +41,11 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 
 pfam_id = 'PF07073'
-pfam_id = 'PF14806'
 pfam_id = 'PF03068' # MUSCLE removes all msa alignments
 pfam_id = 'PF01583'
 pfam_id = 'PF10401'
 pfam_id = 'PF00186'
+pfam_id = 'PF14806'
 
 
 data_path = '../../../Pfam-A.full'
@@ -90,8 +91,8 @@ print('PDB Polypeptide Sequence: \n',poly_seq)
 pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False)
 
 
-muscling  = False
 muscling  = True
+muscling  = False
 
 preprocessing = False
 preprocessing = True
