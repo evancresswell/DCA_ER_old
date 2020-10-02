@@ -44,13 +44,13 @@ pfam_id = 'PF07073'
 pfam_id = 'PF03068' # MUSCLE removes all msa alignments
 pfam_id = 'PF01583'
 pfam_id = 'PF10401'
-pfam_id = 'PF00186'
 pfam_id = 'PF14806'
+pfam_id = 'PF00186'
 
 
 data_path = '../../../Pfam-A.full'
-data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 data_path = '/home/eclay/Pfam-A.full'
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 
 # Read in Reference Protein Structure
 pdb = np.load('%s/%s/pdb_refs.npy'%(data_path,pfam_id))                                                                                                                   
@@ -91,8 +91,8 @@ print('PDB Polypeptide Sequence: \n',poly_seq)
 pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False)
 
 
-muscling  = True
 muscling  = False
+muscling  = True
 
 preprocessing = False
 preprocessing = True
@@ -165,7 +165,7 @@ if computing_DI:
  	    'PROTEIN',
 	    s_index = s_index,
 	    pseudocount = 0.5,
-	    num_threads = 4,
+	    num_threads = 40,
 	    seqid = 0.8)
 
 	# Compute average product corrected Frobenius norm of the couplings
@@ -231,7 +231,7 @@ if plotting:
 		refseq_file = pp_ref_file,
 		sorted_dca_scores = erdca_DI,
 		linear_dist = 4,
-		contact_dist = 4.5)
+		contact_dist = 8.)
 
 		er_contact_map_data = erdca_visualizer.plot_contact_map()
 		plt.show()

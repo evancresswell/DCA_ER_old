@@ -24,9 +24,9 @@ import random
 # write basic fasta file for given list
 def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = './'):
 	# Processed MSA to file in FASTA format
-	msa_outfile = 'MSA_'+pfam_id+'.fa'
+	msa_outfile = path+'MSA_'+pfam_id+'.fa'
 	# Reference sequence to file in FASTA format
-	ref_outfile = 'PP_ref_'+pfam_id+'.fa'
+	ref_outfile = path+'PP_ref_'+pfam_id+'.fa'
 
 	#print("Reference Sequence (shape=",msa[ref_seq].shape,"):\n",msa[ref_seq])
 
@@ -49,16 +49,16 @@ def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = '.
 	ref_list = ref_letters.tolist()
 	ref_str = ref_str.join(ref_list)
 	if processed:
-		with open(path+ref_outfile, 'w') as fh:
+		with open(ref_outfile, 'w') as fh:
 			fh.write('>{}\n{}\n'.format(pfam_id+' | PP REFERENCE',ref_str ))
 	else:
 		ref_outfile = 'PP_orig_ref_'+pfam_id+'.fa'
-		with open(path+ref_outfile, 'w') as fh:
+		with open(ref_outfile, 'w') as fh:
 			fh.write('>{}\n{}\n'.format(pfam_id+' | PP REFERENCE',ref_str ))
 
 	# Next save MSA to FAST file
 
-	with open(path+msa_outfile, 'w') as fh:
+	with open(msa_outfile, 'w') as fh:
 		for seq_num,seq in enumerate(msa_letters):
 			msa_list = seq.tolist()
 			msa_str = ''
