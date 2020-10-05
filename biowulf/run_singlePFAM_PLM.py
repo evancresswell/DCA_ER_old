@@ -92,7 +92,7 @@ else:
 	print("PP sequence added to alignment via MUSCLE")
 
 
-preprocessed_data_outfile = 'MSA_%s_PreProcessed.fa'%pfam_id
+msa_data_outfile = 'MSA_%s.fa'%pfam_id
 if os.path.exists(preprocess_path+muscle_msa_file):    
 	print('Using existing pre-processed FASTA files\n')
 	input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
@@ -105,12 +105,14 @@ if os.path.exists(preprocess_path+muscle_msa_file):
 else:
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    muscle_msa_file, biomolecule='PROTEIN', 
+	    preprocess_path+muscle_msa_file, biomolecule='PROTEIN', 
 	    refseq_file=pp_ref_file
 	)
 	# Adding the data_processing() curation from tools to erdca.
 	try:
-		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+		trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
+		print(trimmed_data[:10])
+		print(np.shape(trimmed_data))
 	except(MSATrimmerException):
 		ERR = 'PPseq-MSA'
 		print('Error with MSA trimms\n%s\n'%ERR)
@@ -130,15 +132,15 @@ else:
 	f.close()
 
 	#write trimmed msa to file in FASTA format
-	with open(preprocessed_data_outfile, 'w') as fh:
-	    for seqid, seq in preprocessed_data:
+	with open(preprocess_path+msa_data_outfile, 'w') as fh:
+	    for seqid, seq in trimmed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
 
 # Compute DI scores using Expectation Reflection algorithm
 # PLM instance
 plmdca_inst = plmdca.PlmDCA(
-    preprocessed_data_outfile,
+    preprocess_path+msa_data_outfile,
     'protein',
     seqid = 0.8,
     lambda_h = 1.0,

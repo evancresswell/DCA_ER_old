@@ -3,6 +3,10 @@ import data_processing as dp
 import ecc_tools as tools
 import timeit
 # import pydca-ER module
+import matplotlib
+#matplotlib.use('QT5Agg')
+import matplotlib.pyplot as plt
+
 from pydca.erdca import erdca
 from pydca.sequence_backmapper import sequence_backmapper
 from pydca.msa_trimmer import msa_trimmer
@@ -11,7 +15,6 @@ from pydca.dca_utilities import dca_utilities
 import numpy as np
 import pickle
 from gen_ROC_jobID_df import add_ROC
-import matplotlib.pyplot as plt
 
 # Import Bio data processing features 
 import Bio.PDB, warnings
@@ -32,6 +35,7 @@ warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 #========================================================================================
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+
 #pfam_id = 'PF00025'
 pfam_id = sys.argv[1]
 cpus_per_job = int(sys.argv[2])
@@ -85,12 +89,12 @@ else:
 	#just add using muscle:
 	#https://www.drive5.com/muscle/manual/addtomsa.html
 	#https://www.drive5.com/muscle/downloads.htmL
-	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(preprocess_path+pp_msa_file,preprocess_path+pp_ref_file,preprocess_path+muscle_msa_file))
+	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,preprocess_path+muscle_msa_file))
 	print("PP sequence added to alignment via MUSCLE")
 
 
 preprocessed_data_outfile = 'MSA_%s_PreProcessed.fa'%pfam_id
-if os.path.exists(preprocess_path+muscle_msa_file):    
+if os.path.exists(preprocess_path+preprocessed_data_outfile):    
 	print('Using existing pre-processed FASTA files\n')
 	input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
 	with open(input_data_file,"rb") as f:
@@ -102,7 +106,7 @@ if os.path.exists(preprocess_path+muscle_msa_file):
 else:
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    muscle_msa_file, biomolecule='PROTEIN', 
+	    preprocess_path+muscle_msa_file, biomolecule='PROTEIN', 
 	    refseq_file=pp_ref_file
 	)
 	# Adding the data_processing() curation from tools to erdca.
@@ -127,14 +131,14 @@ else:
 	f.close()
 
 	#write trimmed msa to file in FASTA format
-	with open(preprocessed_data_outfile, 'w') as fh:
+	with open(preprocess_path+preprocessed_data_outfile, 'w') as fh:
 	    for seqid, seq in preprocessed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
 
 # Compute DI scores using Expectation Reflection algorithm
 erdca_inst = erdca.ERDCA(
-    preprocessed_data_outfile,
+    preprocess_path+preprocessed_data_outfile,
     'PROTEIN',
     s_index = s_index,
     pseudocount = 0.5,
@@ -172,5 +176,16 @@ plt.close()
 tp_rate_data = visualizer.plot_true_positive_rates()
 plt.show()
 plt.close()
+print('Contact Map: \n',contact_map_data[:10])
+print('TP Rates: \n',tp_rate_data[:10])
+
+with open(preprocess_path+'%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
+    pickle.dump(contact_map_data, f)
+f.close()
+
+with open(preprocess_path+'%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
+    pickle.dump(tp_rate_data, f)
+f.close()
+
 
 
