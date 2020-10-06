@@ -81,35 +81,38 @@ for i,pp in enumerate(ppb):
 print('PDB Polypeptide Sequence: \n',poly_seq)
 #check that poly_seq matches up with given MSA
     
-pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/')
+pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False,path=preprocess_path)
 
 
 
-muscle_msa_file = 'PP_muscle_msa_'+pfam_id+'.fa'
+muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
 if os.path.exists(preprocess_path+muscle_msa_file):    
 	print('Using existing muscled FASTA files\n')
 else:
 	#just add using muscle:
 	#https://www.drive5.com/muscle/manual/addtomsa.html
 	#https://www.drive5.com/muscle/downloads.htmL
-	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(preprocess_path+pp_msa_file,preprocess_path+pp_ref_file,preprocess_path+muscle_msa_file))
+	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
 	print("PP sequence added to alignment via MUSCLE")
 
 
-msa_data_outfile = 'MSA_%s.fa'%pfam_id
-if os.path.exists(preprocess_path+muscle_msa_file):    
-	print('Using existing pre-processed FASTA files\n')
-	input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
-	with open(input_data_file,"rb") as f:
-		pfam_dict =  pickle.load(f)
-	f.close()
-	cols_removed = pfam_dict['cols_removed']
-	s_index= pfam_dict['s_index']
-	s_ipdb = pfam_dict['s_ipdb']
+trimmed_data_outfile = preprocess_path+'MSA_%s.fa'%pfam_id
+if os.path.exists(trimmed_data_outfile):    
+	# Compute DI scores using Expectation Reflection algorithm
+	# PLM instance
+	plmdca_inst = plmdca.PlmDCA(
+	    trimmed_data_outfile,
+	    'protein',
+	    seqid = 0.8,
+	    lambda_h = 1.0,
+	    lambda_J = 20.0,
+	    num_threads = cpus_per_job-4,
+	    max_iterations = 500,
+	)
 else:
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    preprocess_path+muscle_msa_file, biomolecule='PROTEIN', 
+	    muscle_msa_file, biomolecule='PROTEIN', 
 	    refseq_file=pp_ref_file
 	)
 	# Adding the data_processing() curation from tools to erdca.
@@ -121,37 +124,20 @@ else:
 		ERR = 'PPseq-MSA'
 		print('Error with MSA trimms\n%s\n'%ERR)
 		sys.exit()
-
-	# Save processed data dictionary and FASTA file
-	pfam_dict = {}
-	pfam_dict['s0'] = s
-	pfam_dict['msa'] = preprocessed_data
-	pfam_dict['s_index'] = s_index
-	pfam_dict['s_ipdb'] = s_ipdb
-	pfam_dict['cols_removed'] = cols_removed 
-
-	input_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
-	with open(input_data_file,"wb") as f:
-		pickle.dump(pfam_dict, f)
-	f.close()
-
 	#write trimmed msa to file in FASTA format
-	with open(preprocess_path+msa_data_outfile, 'w') as fh:
+	with open(trimmed_data_outfile, 'w') as fh:
 	    for seqid, seq in trimmed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
-
-# Compute DI scores using Expectation Reflection algorithm
-# PLM instance
-plmdca_inst = plmdca.PlmDCA(
-    preprocess_path+msa_data_outfile,
-    'protein',
-    seqid = 0.8,
-    lambda_h = 1.0,
-    lambda_J = 20.0,
-    num_threads = cpus_per_job-4,
-    max_iterations = 500,
-)
+	plmdca_inst = plmdca.PlmDCA(
+	    trimmed_data_outfile,
+	    'protein',
+	    seqid = 0.8,
+	    lambda_h = 1.0,
+	    lambda_J = 20.0,
+	    num_threads = cpus_per_job-4,
+	    max_iterations = 500,
+	)
 
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()
