@@ -86,7 +86,7 @@ pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=F
 
 
 muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
-if os.path.exists(preprocess_path+muscle_msa_file):    
+if os.path.exists(muscle_msa_file):    
 	print('Using existing muscled FASTA files\n')
 else:
 	#just add using muscle:

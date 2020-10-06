@@ -86,21 +86,21 @@ pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=F
 
 
 
-muscle_msa_file = 'PP_muscle_msa_'+pfam_id+'.fa'
-if os.path.exists(preprocess_path+muscle_msa_file):    
+muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
+if os.path.exists(muscle_msa_file):    
 	print('Using existing muscled FASTA files\n')
 else:
 	#just add using muscle:
 	#https://www.drive5.com/muscle/manual/addtomsa.html
 	#https://www.drive5.com/muscle/downloads.htmL
-	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,preprocess_path+muscle_msa_file))
+	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
 	print("PP sequence added to alignment via MUSCLE")
 
 
-preprocessed_data_outfile = 'MSA_%s_PreProcessed.fa'%pfam_id
-if os.path.exists(preprocess_path+preprocessed_data_outfile):    
+preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
+input_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
+if os.path.exists(preprocessed_data_outfile):    
 	print('Using existing pre-processed FASTA files\n')
-	input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
 	with open(input_data_file,"rb") as f:
 		pfam_dict =  pickle.load(f)
 	f.close()
@@ -110,7 +110,7 @@ if os.path.exists(preprocess_path+preprocessed_data_outfile):
 else:
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    preprocess_path+muscle_msa_file, biomolecule='PROTEIN', 
+	    muscle_msa_file, biomolecule='PROTEIN', 
 	    refseq_file=pp_ref_file
 	)
 	# Adding the data_processing() curation from tools to erdca.
@@ -129,20 +129,19 @@ else:
 	pfam_dict['s_ipdb'] = s_ipdb
 	pfam_dict['cols_removed'] = cols_removed 
 
-	input_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
 	with open(input_data_file,"wb") as f:
 		pickle.dump(pfam_dict, f)
 	f.close()
 
 	#write trimmed msa to file in FASTA format
-	with open(preprocess_path+preprocessed_data_outfile, 'w') as fh:
+	with open(preprocessed_data_outfile, 'w') as fh:
 	    for seqid, seq in preprocessed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
 
 # Compute DI scores using Expectation Reflection algorithm
 erdca_inst = erdca.ERDCA(
-    preprocess_path+preprocessed_data_outfile,
+    preprocessed_data_outfile,
     'PROTEIN',
     s_index = s_index,
     pseudocount = 0.5,
