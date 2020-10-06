@@ -33,11 +33,11 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
+data_path = '/home/eclay/Pfam-A.full'
+preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 
-data_path = '/home/eclay/Pfam-A.full'
-preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 
 
 #pfam_id = 'PF00025'
@@ -175,11 +175,11 @@ linear_dist = 4,
 contact_dist = 8.)
 
 contact_map_data = visualizer.plot_contact_map()
-plt.show()
-plt.close()
+#plt.show()
+#plt.close()
 tp_rate_data = visualizer.plot_true_positive_rates()
-plt.show()
-plt.close()
+#plt.show()
+#plt.close()
 print('Contact Map: \n',contact_map_data[:10])
 print('TP Rates: \n',tp_rate_data[:10])
 
