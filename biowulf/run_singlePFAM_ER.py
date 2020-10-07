@@ -4,7 +4,7 @@ import ecc_tools as tools
 import timeit
 # import pydca-ER module
 import matplotlib
-#matplotlib.use('QT5Agg')
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 from pydca.erdca import erdca
@@ -33,10 +33,10 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
-data_path = '/home/eclay/Pfam-A.full'
-preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+data_path = '/home/eclay/Pfam-A.full'
+preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 
 
 
@@ -71,7 +71,7 @@ pdb_file = pdb_list.retrieve_pdb_file(str(pdb_id),file_format='pdb')
 chain = pdb_parser.get_structure(str(pdb_id),pdb_file)[0][pdb_chain] 
 ppb = PPBuilder().build_peptides(chain)                                                       
 #    print(pp.get_sequence())
-print('peptide build of chain produced %d elements'%(len(ppb)))                               
+print('peptide build of chain produced %d elements\n\n'%(len(ppb)))                               
 
 found_match = True
 matching_seq_dict = {}
@@ -88,7 +88,7 @@ pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=F
 
 muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
 if os.path.exists(muscle_msa_file):    
-	print('Using existing muscled FASTA files\n')
+	print('Using existing muscled FASTA files\n\n')
 else:
 	#just add using muscle:
 	#https://www.drive5.com/muscle/manual/addtomsa.html
@@ -98,9 +98,10 @@ else:
 
 
 preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
+print(preprocessed_data_outfile)
 input_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
 if os.path.exists(preprocessed_data_outfile):    
-	print('Using existing pre-processed FASTA files\n')
+	print('\n\nUsing existing pre-processed FASTA files\n\n')
 	with open(input_data_file,"rb") as f:
 		pfam_dict =  pickle.load(f)
 	f.close()
@@ -108,6 +109,7 @@ if os.path.exists(preprocessed_data_outfile):
 	s_index= pfam_dict['s_index']
 	s_ipdb = pfam_dict['s_ipdb']
 else:
+	print('\n\nPre-Processing MSA with muscle alignment\n\n')
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
 	    muscle_msa_file, biomolecule='PROTEIN', 
@@ -139,6 +141,7 @@ else:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
 
+print('Initializing ER instance\n\n')
 # Compute DI scores using Expectation Reflection algorithm
 erdca_inst = erdca.ERDCA(
     preprocessed_data_outfile,
@@ -148,6 +151,7 @@ erdca_inst = erdca.ERDCA(
     num_threads = cpus_per_job-4,
     seqid = 0.8)
 
+print('Running ER simulation\n\n')
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()
 erdca_DI = erdca_inst.compute_sorted_DI()
@@ -179,8 +183,8 @@ contact_map_data = visualizer.plot_contact_map()
 tp_rate_data = visualizer.plot_true_positive_rates()
 #plt.show()
 #plt.close()
-print('Contact Map: \n',contact_map_data[:10])
-print('TP Rates: \n',tp_rate_data[:10])
+#print('Contact Map: \n',contact_map_data[:10])
+#print('TP Rates: \n',tp_rate_data[:10])
 
 with open(preprocess_path+'%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(contact_map_data, f)

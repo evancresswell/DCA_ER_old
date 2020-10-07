@@ -167,10 +167,10 @@ linear_dist = 4,
 contact_dist = 8.)
 
 contact_map_data = visualizer.plot_contact_map()
-plt.show()
-plt.close()
+#plt.show()
+#plt.close()
 tp_rate_data = visualizer.plot_true_positive_rates()
-plt.show()
-plt.close()
+#plt.show()
+#plt.close()
 
 
