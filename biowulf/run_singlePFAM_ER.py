@@ -4,7 +4,7 @@ import ecc_tools as tools
 import timeit
 # import pydca-ER module
 import matplotlib
-matplotlib.use('agg')
+#matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
 from pydca.erdca import erdca
