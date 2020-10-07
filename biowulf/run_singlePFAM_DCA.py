@@ -2,7 +2,7 @@ import sys,os
 import data_processing as dp
 import ecc_tools as tools
 import timeit
-# import pydca-PLM module
+# import pydca-MF module
 from pydca.sequence_backmapper import sequence_backmapper
 from pydca.msa_trimmer import msa_trimmer
 from pydca.msa_trimmer.msa_trimmer import MSATrimmerException
@@ -33,11 +33,12 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
-data_path = '/home/eclay/Pfam-A.full'
-preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 
+
+data_path = '/home/eclay/Pfam-A.full'
+preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 
 #pfam_id = 'PF00025'
 pfam_id = sys.argv[1]
@@ -88,7 +89,7 @@ except(PermissionError):
 	# Processed MSA to file in FASTA format
 	pp_msa_file = preprocess_path+'MSA_'+pfam_id+'.fa'
 	# Reference sequence to file in FASTA format
-	pp_ref_file = preprocess_path+'PP_ref_'+pfam_id+'.fa'
+	pp_ref_file = preprocess_path+'PP_orig_ref_'+pfam_id+'.fa'
 
 	
 
@@ -104,16 +105,16 @@ if 0:
 		print("PP sequence added to alignment via MUSCLE")
 
 
-trimmed_data_outfile = preprocess_path+'MF_MSA_%s_Trimmed.fa'%pfam_id
+trimmed_data_outfile = preprocess_path+'MSA_%s_Trimmed.fa'%pfam_id
 if os.path.exists(trimmed_data_outfile):    
 	print('Using existing pre-processed FASTA files\n')
 	# Compute DI scores using Expectation Reflection algorithm
-	# PLM instance
+	# MF instance
 else:
 	print('Pre-Processing MSA')
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    pp_msa_file, biomolecule='PROTEIN', 
+	    pp_msa_file, biomolecule='protein', 
 	    refseq_file=pp_ref_file
 	)
 	# Adding the data_processing() curation from tools to erdca.
@@ -130,24 +131,19 @@ else:
 	    for seqid, seq in trimmed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
-print('Initializing PLM DCA\n')
+print('Initializing MF DCA\n')
 #create mean-field DCA instance 
-mfdca_inst = meanfield_dca.MeanFieldDCA(
-    trimmed_data_outfile,
-    'protein',
-    pseudocount = 0.5,
-    seqid = 0.8,
-)
+mfdca_inst = meanfield_dca.MeanFieldDCA(trimmed_data_outfile,'protein',pseudocount = 0.5,seqid = 0.8)
 
 # Compute average product corrected Frobenius norm of the couplings
-print('Running PLM DCA')
+print('Running MF DCA')
 start_time = timeit.default_timer()
 # Compute DCA scores 
 #sorted_DI_plm = plmdca_inst.compute_sorted_DI()
 # compute DCA scores summarized by Frobenius norm and average product corrected
 sorted_DI_mf = mfdca_inst.compute_sorted_FN_APC()
 run_time = timeit.default_timer() - start_time
-print('PLM run time:',run_time)
+print('MF run time:',run_time)
 
 for site_pair, score in sorted_DI_mf[:5]:
     print(site_pair, score)
@@ -176,11 +172,11 @@ tp_rate_data = visualizer.plot_true_positive_rates()
 #plt.show()
 #plt.close()
 
-with open(preprocess_path+'PLM_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
+with open(preprocess_path+'MF_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(contact_map_data, f)
 f.close()
 
-with open(preprocess_path+'PLM_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
+with open(preprocess_path+'MF_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(tp_rate_data, f)
 f.close()
 
