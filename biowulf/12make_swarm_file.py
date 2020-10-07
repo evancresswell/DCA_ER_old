@@ -15,6 +15,9 @@ s_er = np.loadtxt('test_list.txt',dtype='str')
 s_plm = np.loadtxt('test_list.txt',dtype='str')
 s_mf = np.loadtxt('test_list.txt',dtype='str')
 
+s_er = np.loadtxt('pfam_pdb_list.txt',dtype='str')
+s_plm = np.loadtxt('pfam_pdb_list.txt',dtype='str')
+
 #n = s.shape[0]
 #pfam_list = s[:,0]
 

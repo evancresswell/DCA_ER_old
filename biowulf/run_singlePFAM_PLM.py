@@ -33,10 +33,10 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
-data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
-preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/home/eclay/Pfam-A.full'
 preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 
 
 #pfam_id = 'PF00025'
@@ -140,6 +140,7 @@ plmdca_inst = plmdca.PlmDCA(
     num_threads = cpus_per_job-4,
     max_iterations = 500,
 )
+
 # Compute average product corrected Frobenius norm of the couplings
 print('Running PLM DCA')
 start_time = timeit.default_timer()
@@ -176,5 +177,15 @@ contact_map_data = visualizer.plot_contact_map()
 tp_rate_data = visualizer.plot_true_positive_rates()
 #plt.show()
 #plt.close()
+
+with open(preprocess_path+'PLM_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
+    pickle.dump(contact_map_data, f)
+f.close()
+
+with open(preprocess_path+'PLM_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
+    pickle.dump(tp_rate_data, f)
+f.close()
+
+
 
 

@@ -33,11 +33,10 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
-data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
-preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/home/eclay/Pfam-A.full'
 preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
-
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 
 
 #pfam_id = 'PF00025'
@@ -186,11 +185,11 @@ tp_rate_data = visualizer.plot_true_positive_rates()
 #print('Contact Map: \n',contact_map_data[:10])
 #print('TP Rates: \n',tp_rate_data[:10])
 
-with open(preprocess_path+'%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
+with open(preprocess_path+'ER_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(contact_map_data, f)
 f.close()
 
-with open(preprocess_path+'%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
+with open(preprocess_path+'ER_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(tp_rate_data, f)
 f.close()
 
