@@ -80,45 +80,46 @@ for i,pp in enumerate(ppb):
         poly_seq.append(char)                                     
 print('PDB Polypeptide Sequence: \n',poly_seq)
 #check that poly_seq matches up with given MSA
-    
-pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False,path=preprocess_path)
+   
+try: 
+	pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False,path=preprocess_path)
+except(PermissionError):
+	print('Using Existing Fasta Files')
+	# Processed MSA to file in FASTA format
+	pp_msa_file = preprocess_path+'MSA_'+pfam_id+'.fa'
+	# Reference sequence to file in FASTA format
+	pp_ref_file = preprocess_path+'PP_ref_'+pfam_id+'.fa'
+
+	
+
+if 0:
+	muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
+	if os.path.exists(muscle_msa_file):    
+		print('Using existing muscled FASTA files\n')
+	else:
+		#just add using muscle:
+		#https://www.drive5.com/muscle/manual/addtomsa.html
+		#https://www.drive5.com/muscle/downloads.htmL
+		os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
+		print("PP sequence added to alignment via MUSCLE")
 
 
-
-muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
-if os.path.exists(muscle_msa_file):    
-	print('Using existing muscled FASTA files\n')
-else:
-	#just add using muscle:
-	#https://www.drive5.com/muscle/manual/addtomsa.html
-	#https://www.drive5.com/muscle/downloads.htmL
-	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
-	print("PP sequence added to alignment via MUSCLE")
-
-
-trimmed_data_outfile = preprocess_path+'MSA_%s.fa'%pfam_id
+trimmed_data_outfile = preprocess_path+'MSA_%s_Trimmed.fa'%pfam_id
 if os.path.exists(trimmed_data_outfile):    
+	print('Using existing pre-processed FASTA files\n')
 	# Compute DI scores using Expectation Reflection algorithm
 	# PLM instance
-	plmdca_inst = plmdca.PlmDCA(
-	    trimmed_data_outfile,
-	    'protein',
-	    seqid = 0.8,
-	    lambda_h = 1.0,
-	    lambda_J = 20.0,
-	    num_threads = cpus_per_job-4,
-	    max_iterations = 500,
-	)
 else:
+	print('Pre-Processing MSA')
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
-	    muscle_msa_file, biomolecule='PROTEIN', 
+	    pp_msa_file, biomolecule='PROTEIN', 
 	    refseq_file=pp_ref_file
 	)
 	# Adding the data_processing() curation from tools to erdca.
 	try:
 		trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
-		print(trimmed_data[:10])
+		print('Trimmed Data: \n',trimmed_data[:10])
 		print(np.shape(trimmed_data))
 	except(MSATrimmerException):
 		ERR = 'PPseq-MSA'
@@ -129,20 +130,23 @@ else:
 	    for seqid, seq in trimmed_data:
 	        fh.write('>{}\n{}\n'.format(seqid, seq))
 
-	plmdca_inst = plmdca.PlmDCA(
-	    trimmed_data_outfile,
-	    'protein',
-	    seqid = 0.8,
-	    lambda_h = 1.0,
-	    lambda_J = 20.0,
-	    num_threads = cpus_per_job-4,
-	    max_iterations = 500,
-	)
-
+print('Initializing PLM DCA\n')
+plmdca_inst = plmdca.PlmDCA(
+    trimmed_data_outfile,
+    'protein',
+    seqid = 0.8,
+    lambda_h = 1.0,
+    lambda_J = 20.0,
+    num_threads = cpus_per_job-4,
+    max_iterations = 500,
+)
 # Compute average product corrected Frobenius norm of the couplings
+print('Running PLM DCA')
 start_time = timeit.default_timer()
 # Compute DCA scores 
-sorted_DI_plm = plmdca_inst.compute_sorted_DI()
+#sorted_DI_plm = plmdca_inst.compute_sorted_DI()
+# compute DCA scores summarized by Frobenius norm and average product corrected
+sorted_DI_plm = plmdca_inst.compute_sorted_FN_APC()
 run_time = timeit.default_timer() - start_time
 print('PLM run time:',run_time)
 
