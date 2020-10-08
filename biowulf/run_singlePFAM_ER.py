@@ -72,7 +72,6 @@ ppb = PPBuilder().build_peptides(chain)
 #    print(pp.get_sequence())
 print('peptide build of chain produced %d elements\n\n'%(len(ppb)))                               
 
-found_match = True
 matching_seq_dict = {}
 poly_seq = list()
 for i,pp in enumerate(ppb):
