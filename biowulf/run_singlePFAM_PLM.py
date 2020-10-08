@@ -158,33 +158,34 @@ with open('DI/PLM/plm_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(sorted_DI_plm, f)
 f.close()
 
+plotting = False
+if plotting:
+	# Print Details of protein PDB structure Info for contact visualizeation
+	print('Using chain ',pdb_chain)
+	print('PDB ID: ', pdb_id)
 
-# Print Details of protein PDB structure Info for contact visualizeation
-print('Using chain ',pdb_chain)
-print('PDB ID: ', pdb_id)
+	from pydca.contact_visualizer import contact_visualizer
 
-from pydca.contact_visualizer import contact_visualizer
+	visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
+	refseq_file = pp_ref_file,
+	sorted_dca_scores = sorted_DI_plm,
+	linear_dist = 4,
+	contact_dist = 8.)
 
-visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
-refseq_file = pp_ref_file,
-sorted_dca_scores = sorted_DI_plm,
-linear_dist = 4,
-contact_dist = 8.)
+	contact_map_data = visualizer.plot_contact_map()
+	#plt.show()
+	#plt.close()
+	tp_rate_data = visualizer.plot_true_positive_rates()
+	#plt.show()
+	#plt.close()
 
-contact_map_data = visualizer.plot_contact_map()
-#plt.show()
-#plt.close()
-tp_rate_data = visualizer.plot_true_positive_rates()
-#plt.show()
-#plt.close()
+	with open(preprocess_path+'PLM_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
+	    pickle.dump(contact_map_data, f)
+	f.close()
 
-with open(preprocess_path+'PLM_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(contact_map_data, f)
-f.close()
-
-with open(preprocess_path+'PLM_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(tp_rate_data, f)
-f.close()
+	with open(preprocess_path+'PLM_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
+	    pickle.dump(tp_rate_data, f)
+	f.close()
 
 
 
