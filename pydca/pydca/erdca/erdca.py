@@ -448,9 +448,12 @@ class ERDCA:
         # THIS IS ASSUMING sequences passed in via MSA file 
 		# ---> were already preprocessed
         s0 = np.asarray(self.__sequences)
+        for s in s0:
+            print(len(s))
         print(s0.shape)
+        print(len(s0[0]))
         
-        n_var = s0.shape[1]
+        n_var = len(s0[0])
 
         mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
         # use all possible states at all locations 
