@@ -448,10 +448,7 @@ class ERDCA:
         # THIS IS ASSUMING sequences passed in via MSA file 
 		# ---> were already preprocessed
         s0 = np.asarray(self.__sequences)
-        for s in s0:
-            print(len(s))
         print(s0.shape)
-        print(len(s0[0]))
         
         n_var = len(s0[0])
 

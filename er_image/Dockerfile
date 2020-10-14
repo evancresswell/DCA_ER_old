@@ -1,29 +1,113 @@
-FROM continuumio/anaconda3:latest as intermediate
+# Up to date Python version
+#FROM continuumio/anaconda3:latest as intermediate
+#
+#
+#WORKDIR /home/
+#RUN git clone https://github.com/evancresswell/DCA_ER.git
+#
+#FROM continuumio/anaconda3:latest 
+#
+#RUN conda install biopython joblib scipy scikit-learn 
+#RUN apt-get update
+#RUN apt-get install -y curl grep sed dpkg
+#
+#RUN apt-get install -y libzmq3-dev python3-pip
+#RUN apt-get install -y build-essential
+#RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+#
+#WORKDIR /home/DCA
+#COPY --from=intermediate /home/DCA_ER/pydca /home/DCA_ER/pydca
+#
+#WORKDIR /home/DCA/biowulf
+#RUN curl https://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz | tar -xz
+#RUN mv muscle3.8.31_i86linux64 muscle
+#RUN chmod +x muscle
+#
+#RUN pip install --no-dependencies /home/DCA_ER/pydca/
+#
 
+# Python 3.7 version
+FROM debian:buster-slim as intermediate
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH /opt/conda/bin:$PATH
+
+ENV PYTHON_VERSION 3.7
+
+RUN apt-get update --fix-missing && \
+    apt-get install -y wget build-essential bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion sudo && \
+    apt-get clean
+
+RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh -O ~/anaconda.sh && \
+    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
+    rm ~/anaconda.sh && \
+    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+    echo "conda activate base" >> ~/.bashrc && \
+    find /opt/conda/ -follow -type f -name '*.a' -delete && \
+    find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
+    /opt/conda/bin/conda clean -afy
+
+# conda and test dependencies
+RUN /opt/conda/bin/conda install -y -c defaults \
+    conda conda-package-handling \
+    python=$PYTHON_VERSION pycosat requests ruamel_yaml cytoolz \
+    anaconda-client nbformat make \
+    pytest pytest-cov codecov radon pytest-timeout mock responses pexpect \
+    flake8 && \
+    /opt/conda/bin/conda clean --all --yes
 
 WORKDIR /home/
 RUN git clone https://github.com/evancresswell/DCA_ER.git
 
-FROM continuumio/anaconda3:latest 
+ENV LANG=C.UTF-8 LC_ALL=C.UTF-8
+ENV PATH /opt/conda/bin:$PATH
 
-RUN conda install biopython joblib scipy scikit-learn 
-RUN apt-get update
-RUN apt-get install -y curl grep sed dpkg
+ENV PYTHON_VERSION 3.7
 
-RUN apt-get install -y libzmq3-dev python3-pip
-RUN apt-get install -y build-essential
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+RUN apt-get update --fix-missing && \
+    apt-get install -y wget build-essential bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 git mercurial subversion sudo && \
+    apt-get clean
 
-WORKDIR /home/DCA
-COPY --from=intermediate /home/DCA_ER/pydca /home/DCA_ER/pydca
+#RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-2020.07-Linux-x86_64.sh -O ~/anaconda.sh && \
+#    /bin/bash ~/anaconda.sh -b -p /opt/conda && \
+#    rm ~/anaconda.sh && \
+#    ln -s /opt/conda/etc/profile.d/conda.sh /etc/profile.d/conda.sh && \
+#    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
+#    echo "conda activate base" >> ~/.bashrc && \
+#    find /opt/conda/ -follow -type f -name '*.a' -delete && \
+#    find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
+#    /opt/conda/bin/conda clean -afy
+#
+## conda and test dependencies
+#RUN /opt/conda/bin/conda install -y -c defaults \
+#    conda conda-package-handling \
+#    python=$PYTHON_VERSION pycosat requests ruamel_yaml cytoolz \
+#    anaconda-client nbformat make \
+#    pytest pytest-cov codecov radon pytest-timeout mock responses pexpect \
+#    flake8 && \
+#    /opt/conda/bin/conda clean --all --yes
+#
+RUN sudo /opt/conda/bin/pip install llvmlite --ignore-installed
+#RUN /opt/conda/bin/pip install --no-dependencies /home/DCA_ER/pydca/
+RUN /opt/conda/bin/pip install /home/DCA_ER/pydca/
 
-WORKDIR /home/DCA/biowulf
-RUN curl https://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz | tar -xz
-RUN mv muscle3.8.31_i86linux64 muscle
-RUN chmod +x muscle
+#USER test_user
 
-RUN pip install --no-dependencies /home/DCA_ER/pydca/
+#ENTRYPOINT [ "/bin/bash" ]
+CMD [ "/bin/bash" ]
 
+
+
+
+
+
+
+
+
+
+
+
+### Old Version
 
 #FROM ubuntu:latest as intermediate
 ## old anaconda declaration.. 

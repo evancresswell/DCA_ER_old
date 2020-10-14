@@ -52,7 +52,7 @@ def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = '.
 		with open(ref_outfile, 'w') as fh:
 			fh.write('>{}\n{}\n'.format(pfam_id+' | PP REFERENCE',ref_str ))
 	else:
-		ref_outfile = path+'PP_orig_ref_'+pfam_id+'.fa'
+		print('Writing Un-processed Reference sequence..\nOriginal Reference Sequence')
 		with open(ref_outfile, 'w') as fh:
 			fh.write('>{}\n{}\n'.format(pfam_id+' | PP REFERENCE',ref_str ))
 

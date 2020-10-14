@@ -8,6 +8,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 from pydca.erdca import erdca
+from pydca.plmdca import plmdca 
+from pydca.meanfield_dca import meanfield_dca
 from pydca.sequence_backmapper import sequence_backmapper
 from pydca.msa_trimmer import msa_trimmer
 from pydca.msa_trimmer.msa_trimmer import MSATrimmerException
@@ -39,7 +41,7 @@ on_pc = True
 #========================================================================================
 # Loop Throught covid proteins
 #========================================================================================
-cpus_per_job = sys.argv[1]
+cpus_per_job = int(sys.argv[1])
 # Generate MSA numpy array
 root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins'
 if on_pc:
@@ -56,7 +58,7 @@ covid_pdb_list = []
 parser = PDBParser()
 
 pdb_ranges = { 'QHD43423':[('6M3M',50,174)], 'QHD43415_8':[('6M71',84,132)], 'QHD43415_7':[('6M71',1,83)], 'QHD43415_3':[('6W6Y',207,379),('6W9C',748,1060)],  'QHD43415_4':[('6LU7',1,306)],  'QHD43415_14':[('6VWW',1,346)], 'QHD43415_9':[('6W4B',1,113)],   'QHD43415_15':[('6W75',1,298)], 'QHD43415_11':[('6M71',1,932)], 'QHD43415_10':[('6W75',1, 139)], 'QHD43416':[('6VYB' ,1,1273),('6VXX',1,1273)]}#('6LXT',912,988,1164,1202)]} #DYNAMIC RANGE IS NOT INCORPRATED>>> NOT PLOTTING 3RD TYPE
-generating_msa = True
+generating_msa = False
 if generating_msa:
 	for pfam_dir in dir_list:
 		if on_pc:
@@ -135,7 +137,7 @@ if generating_msa:
 			#	- https://www.drive5.com/muscle/manual/addtomsa.html
 			#	- https://www.drive5.com/muscle/downloads.htmL
 			os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
-			print("PP sequence added to alignment via MUSCLE\n\n\n")
+			print("%s: PP sequence added to alignment via MUSCLE\n\n\n"%pfam_id)
 			covid_pdb_list.append(pfam_id)	
 		except(KeyError):
 			pdb_ranges[pfam_id] = [('SIM',0,0)]	
@@ -166,73 +168,113 @@ if generating_msa:
 cov_list = np.load('covid_protein_list.npy')
 cov_pdb_list = np.load('covid_pdb_list.npy')
 print('There as %d proteins with MSA and %d with PDB structures'%(len(cov_list),len(cov_pdb_list)))
-for pfam_id in cov_list:
-	msa_dir = root_dir+'/'+pfam_id+'/MSA/'
+preprocessing_data = False
+if preprocessing_data:
+	for pfam_id in cov_list:
+		msa_dir = root_dir+'/'+pfam_id+'/MSA/'
 
-	msa_outfile = msa_dir+'MSA_'+pfam_id+'.fa'
-	ref_outfile = msa_dir+'PP_ref_'+pfam_id+'.fa'
-	muscle_msa_file = msa_dir+'PP_muscle_msa_'+pfam_id+'.fa'
+		msa_outfile = msa_dir+'MSA_'+pfam_id+'.fa'
+		ref_outfile = msa_dir+'PP_ref_'+pfam_id+'.fa'
+		muscle_msa_file = msa_dir+'PP_muscle_msa_'+pfam_id+'.fa'
 
-	print('\n\n\n',pfam_id,'\n')
-	# data processing
-	ipdb =0
-	if pfam_id in cov_pdb_list:
-		trimmer = msa_trimmer.MSATrimmer(
-		    muscle_msa_file, biomolecule='PROTEIN', 
-		    refseq_file=pp_ref_file
-		)
-	else:
-		trimmer = msa_trimmer.MSATrimmer(
-		    msa_outfile, biomolecule='PROTEIN', 
-		    refseq_file=pp_ref_file
-		)
-		
-	# Adding the data_processing() curation from tools to erdca.
-	try:
-		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-	except(MSATrimmerException):
-		ERR = 'PPseq-MSA'
-		print('Error with MSA trimms\n%s\n'%ERR)
-		sys.exit()
+		print('\n\n\n',pfam_id,'\n',msa_outfile,'\n',ref_outfile)
+		# data processing
+		ipdb =0
+		if pfam_id in cov_pdb_list:
+			trimmer = msa_trimmer.MSATrimmer(
+			    muscle_msa_file, biomolecule='PROTEIN', 
+			    refseq_file=ref_outfile
+			)
+		else:
+			try:
+				trimmer = msa_trimmer.MSATrimmer(
+				    msa_outfile, biomolecule='PROTEIN', 
+				    refseq_file=ref_outfile
+				)
+			except(ValueError):
+				print('\n\n%s: Empty protein.aln! Moving On ..\n\n'%pfam_id)
+				continue
+		# Adding the data_processing() curation from tools to erdca.
+		try:
+			preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+		except(MSATrimmerException):
+			ERR = 'PPseq-MSA'
+			print('Error with MSA trimms\n%s\nUsing MSA[0]'%ERR)
+			if pfam_id not in cov_pdb_list:
+				print('%s: BAD MSA\n\n\n'%pfam_id)
+				continue
 
-	# Save processed data dictionary and FASTA file
-	pfam_dict = {}
-	pfam_dict['s0'] = s
-	pfam_dict['msa'] = preprocessed_data
-	pfam_dict['s_index'] = s_index
-	pfam_dict['s_ipdb'] = s_ipdb
-	pfam_dict['cols_removed'] = cols_removed 
+			# Because MUSCLED MSA yields uselfss 
+			with open(msa_dir+"protein.aln", 'r') as infile:
+				MSA = infile.readlines()
+			infile.close()
+			msa = []
+			for i,line in enumerate(MSA):
+				msa.append(list(line)[:-1])
+			subject = msa[0]
+			print('\n%s: New subject sequence (msa[0]): '%pfam_id, subject)
+			msa_file, ref_file = tools.write_FASTA(subject, msa, pfam_id, number_form=False,processed=False,path=msa_dir)
 
-	input_data_file = msa_dir+"%s_DP.pickle"%(pfam_id)
-	with open(input_data_file,"wb") as f:
-		pickle.dump(pfam_dict, f)
-	f.close()
+			trimmer = msa_trimmer.MSATrimmer(
+			    msa_file, biomolecule='PROTEIN', 
+			    refseq_file=ref_file
+			)
+			preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+			
 
-	preprocessed_data_outfile = msa_dir+'MSA_%s_PreProcessed.fa'%pfam_id
-	#write trimmed msa to file in FASTA format
-	with open(preprocessed_data_outfile, 'w') as fh:
-	    for seqid, seq in preprocessed_data:
-	        fh.write('>{}\n{}\n'.format(seqid, seq))
+		# Save processed data dictionary and FASTA file
+		pfam_dict = {}
+		pfam_dict['s0'] = s
+		pfam_dict['msa'] = preprocessed_data
+		pfam_dict['s_index'] = s_index
+		pfam_dict['s_ipdb'] = s_ipdb
+		pfam_dict['cols_removed'] = cols_removed 
+
+		input_data_file = msa_dir+"%s_DP.pickle"%(pfam_id)
+		with open(input_data_file,"wb") as f:
+			pickle.dump(pfam_dict, f)
+		f.close()
+
+		preprocessed_data_outfile = msa_dir+'MSA_%s_PreProcessed.fa'%pfam_id
+		#write trimmed msa to file in FASTA format
+		with open(preprocessed_data_outfile, 'w') as fh:
+			for seqid, seq in preprocessed_data:
+				fh.write('>{}\n{}\n'.format(seqid, seq))
 
 
-simulating = True
-np.random.seed(1)
+simulating = False
 if simulating:
 	for pfam_id in cov_list:
+		msa_dir = root_dir+'/'+pfam_id+'/MSA/'
+		preprocessed_data_outfile = msa_dir+'MSA_%s_PreProcessed.fa'%pfam_id
 
 		print("RUNNING SIM FOR %s"%(pfam_id))
 
 		#------- DCA Run -------#
-		msa_outfile = '%s/MSA_%s.fa'%(pfam_id,pfam_id) 
+		msa_outfile = msa_dir+'MSA_'+pfam_id+'.fa'
+		ref_outfile = msa_dir+'PP_ref_'+pfam_id+'.fa'
+		muscle_msa_file = msa_dir+'PP_muscle_msa_'+pfam_id+'.fa'
 
-		# MF instance 
-		mfdca_inst = meanfield_dca.MeanFieldDCA(
-		    msa_outfile,
-		    'protein',
-		    pseudocount = 0.5,
-		    seqid = 0.8,
-		)
-
+		if pfam_id in cov_pdb_list:
+			# MF instance 
+			mfdca_inst = meanfield_dca.MeanFieldDCA(
+			    muscle_msa_file,
+			    'protein',
+			    pseudocount = 0.5,
+			    seqid = 0.8,
+			)
+		else:
+			try:
+				# MF instance 
+				mfdca_inst = meanfield_dca.MeanFieldDCA(
+				    msa_outfile,
+				    'protein',
+				    pseudocount = 0.5,
+				    seqid = 0.8,
+				)
+			except(ValueError):
+				print('\n\n%s: Empty protein.aln! Moving On ..\n\n'%pfam_id)
+				continue
 		# Compute DCA scores 
 		sorted_DI_mf = mfdca_inst.compute_sorted_DI()
 
@@ -242,17 +284,30 @@ if simulating:
 		#-----------------------#
 		#------- PLM Run -------#
 
-		# PLM instance
-		plmdca_inst = plmdca.PlmDCA(
-		    msa_outfile,
-		    'protein',
-		    seqid = 0.8,
-		    lambda_h = 1.0,
-		    lambda_J = 20.0,
-		    num_threads = cpus_per_job-4,
-		    max_iterations = 500,
-		)
+		if pfam_id in cov_pdb_list:
+			# PLM instance
+			plmdca_inst = plmdca.PlmDCA(
+			    msa_outfile,
+			    'protein',
+			    seqid = 0.8,
+			    lambda_h = 1.0,
+			    lambda_J = 20.0,
+			    num_threads = cpus_per_job-4,
+			    max_iterations = 500,
+			)
 
+		else:
+			# PLM instance
+			plmdca_inst = plmdca.PlmDCA(
+			    msa_outfile,
+			    'protein',
+			    seqid = 0.8,
+			    lambda_h = 1.0,
+			    lambda_J = 20.0,
+			    num_threads = cpus_per_job-4,
+			    max_iterations = 500,
+			)
+		
 		# Compute DCA scores 
 		sorted_DI_plm = plmdca_inst.compute_sorted_DI()
 
@@ -260,8 +315,19 @@ if simulating:
 		    pickle.dump(sorted_DI_plm, f)
 		f.close()
 
+		input_data_file = msa_dir+"%s_DP.pickle"%(pfam_id)
+		with open(input_data_file,"rb") as f:
+			pfam_dict = pickle.load(f)
+		f.close()
+		# Save processed data dictionary and FASTA file
+		s = pfam_dict['s0']
+		preprocessed_data = pfam_dict['msa']
+		s_index = pfam_dict['s_index']
+		s_ipdb = pfam_dict['s_ipdb']
+		cols_removed = pfam_dict['cols_removed']
+
+
 		print('Initializing ER instance\n\n')
-		# Compute DI scores using Expectation Reflection algorithm
 		erdca_inst = erdca.ERDCA(
 		    preprocessed_data_outfile,
 		    'PROTEIN',
@@ -270,6 +336,7 @@ if simulating:
 		    num_threads = cpus_per_job-4,
 		    seqid = 0.8)
 
+		# Compute DI scores using Expectation Reflection algorithm
 		print('Running ER simulation\n\n')
 		# Compute average product corrected Frobenius norm of the couplings
 		start_time = timeit.default_timer()
@@ -280,5 +347,48 @@ if simulating:
 		with open('%s/DI_ER.pickle'%(pfam_id), 'wb') as f:
 		    pickle.dump(erdca_DI, f)
 		f.close()
+
+plotting = True
+if plotting:
+	pfam_id = 'QHD43415_5'
+	pdb_chain = 'A'
+	pdb_id = '6LU7'
+
+	#------- Data Files ----#
+	msa_dir = root_dir+'/'+pfam_id+'/MSA/'
+
+	msa_outfile = msa_dir+'MSA_'+pfam_id+'.fa'
+	ref_outfile = msa_dir+'PP_ref_'+pfam_id+'.fa'
+	muscle_msa_file = msa_dir+'PP_muscle_msa_'+pfam_id+'.fa'
+	zhang_pdb_file = pfam_id+'.pdb'
+
+	preprocessed_data_outfile = msa_dir+'MSA_%s_PreProcessed.fa'%pfam_id
+	#-----------------------#
+
+	# Print Details of protein PDB structure Info for contact visualizeation
+	print('Using chain ',pdb_chain)
+	print('PDB ID: ', pdb_id)
+
+	from pydca.contact_visualizer import contact_visualizer
+
+	with open('%s/DI.pickle'%(pfam_id), 'rb') as f:
+	    erdca_DI = pickle.load(f)
+	f.close()
+
+	zhang_visualizer = contact_visualizer.DCAVisualizer('protein',pdb_chain,pdb_id,
+		refseq_file = ref_outfile,
+		sorted_dca_scores = erdca_DI,
+		linear_dist = 4,
+		contact_dist = 8.0)
+
+	contact_map_data = zhang_visualizer.plot_contact_map()
+	plt.show()
+	plt.close()
+	tp_rate_data = zhang_visualizer.plot_true_positive_rates()
+	plt.show()
+	plt.close()
+	#print('Contact Map: \n',contact_map_data[:10])
+	#print('TP Rates: \n',tp_rate_data[:10])
+
 
 
