@@ -1,6 +1,7 @@
 #!/bin/bash
 
 swarm -f er.swarm -t 20 -g 25.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f er_large.swarm -t 20 -g 150.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
 #swarm -f plm.swarm -t 20 -g 15.0 --time=1-10:00:00 --partition norm --module singularity --logdir swarm_output  #  quick # norm
 #swarm -f mf.swarm -t 20 -g 15.0 --time=1-0:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
 #swarm -f er_coupling.swarm -t 20 -g 650.0 --time=0-10:00:00 --partition largemem --module singularity --logdir swarm_output #  quick # norm
