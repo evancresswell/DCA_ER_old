@@ -99,7 +99,7 @@ def number_residues(s):
 #------------------------------
 def covert_letter2number(s):
     letter2number = {'A':0, 'C':1, 'D':2, 'E':3, 'F':4, 'G':5, 'H':6, 'I':7, 'K':8,'L':9,\
-     'M':10, 'N':11, 'P':12, 'Q':13, 'R':14, 'S':15,'T':16, 'V':17, 'W':18, 'Y':19, '-':20}
+     'M':10, 'N':11, 'P':12, 'Q':13, 'R':14, 'S':15,'T':16, 'V':17, 'W':18, 'Y':19, '-':20, 'U':21}
      #,'B':20, 'Z':21, 'X':22}
 
     l,n = s.shape
@@ -108,7 +108,7 @@ def covert_letter2number(s):
 def convert_number2letter(s):
 
     number2letter = {0:'A', 1:'C', 2:'D', 3:'E', 4:'F', 5:'G', 6:'H', 7:'I', 8:'K', 9:'L',\
-	 				10:'M', 11:'N', 12:'P', 13:'Q', 14:'R', 15:'S', 16:'T', 17:'V', 18:'W', 19:'Y', 20:'-'} 
+	 				10:'M', 11:'N', 12:'P', 13:'Q', 14:'R', 15:'S', 16:'T', 17:'V', 18:'W', 19:'Y', 20:'-', 21:'U'} 
     print('converting s with shape : ',s.shape)
     try:
         l,n = s.shape
@@ -422,7 +422,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     # replace 'X' as amino acids with prob
     #print('replace X by other aminoacids')
     amino_acids = np.array(['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S',\
-    'T','V','W','Y'])
+    'T','V','W','Y','U'])
     s = find_and_replace(s,'X',amino_acids)
 
     # remove conserved cols
@@ -588,7 +588,7 @@ def data_processing_covid(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,pro
     # replace 'X' as amino acids with prob
     #print('replace X by other aminoacids')
     amino_acids = np.array(['A','C','D','E','F','G','H','I','K','L','M','N','P','Q','R','S',\
-    'T','V','W','Y'])
+    'T','V','W','Y','U'])
     s = find_and_replace(s,'X',amino_acids)
 
     # remove conserved cols

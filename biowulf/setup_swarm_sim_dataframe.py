@@ -34,8 +34,25 @@ for i,job_id in enumerate(jobs):
 		#print(job_id)
 		with open("swarm_output/swarm_%s.o"%(job_id)) as f:
 			families = re.findall(r'PF+\d+',f.read())
-		df = df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
+			f.close()
+		families = np.unique(families)
+		print('\n\nSetting up DF for families: ',families,' \nlen: %d\n'%(len(families)-1))\
+		df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
+		print(df.head())
 		df.loc[df.Jobid == job_id,'Pfam'] = families
+		print(df.head())
+		# Find MM-Seq
+		muscle_error = "PPseq-MSA"
+		with open("swarm_output/swarm_%s.o"%(job_id)) as f:
+			for line in f:
+				if line[:18] == "Calculating DI for":
+					current_pfam = line[19:26]
+				if line[:len(muscle_error)] == muscle_error:
+					df.loc[df.Pfam == current_pfam,'ERR'] = muscle_error 
+			
+			f.close()
+		print(df.head())
+		sys.exit()
 	except(FileNotFoundError): 
 		print("No swarm output file for %s, assume there are no corresponding DI"%job_id)
 

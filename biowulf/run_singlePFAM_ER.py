@@ -33,10 +33,10 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
-data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
-preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/home/eclay/Pfam-A.full'
 preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 
 
 #pfam_id = 'PF00025'
@@ -82,17 +82,17 @@ print('PDB Polypeptide Sequence: \n',poly_seq)
     
 pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/')
 
-
-
-muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
-if os.path.exists(muscle_msa_file):    
-	print('Using existing muscled FASTA files\n\n')
-else:
-	#just add using muscle:
-	#https://www.drive5.com/muscle/manual/addtomsa.html
-	#https://www.drive5.com/muscle/downloads.htmL
-	os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
-	print("PP sequence added to alignment via MUSCLE")
+muscling = False
+if muscling:
+	muscle_msa_file = preprocess_path+'PP_muscle_msa_'+pfam_id+'.fa'
+	if os.path.exists(muscle_msa_file):    
+		print('Using existing muscled FASTA files\n\n')
+	else:
+		#just add using muscle:
+		#https://www.drive5.com/muscle/manual/addtomsa.html
+		#https://www.drive5.com/muscle/downloads.htmL
+		os.system("./muscle -profile -in1 %s -in2 %s -out %s"%(pp_msa_file,pp_ref_file,muscle_msa_file))
+		print("PP sequence added to alignment via MUSCLE")
 
 
 preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
@@ -109,10 +109,17 @@ if os.path.exists(preprocessed_data_outfile):
 else:
 	print('\n\nPre-Processing MSA with muscle alignment\n\n')
 	# create MSATrimmer instance 
-	trimmer = msa_trimmer.MSATrimmer(
-	    muscle_msa_file, biomolecule='PROTEIN', 
-	    refseq_file=pp_ref_file
-	)
+	if muscling:
+		trimmer = msa_trimmer.MSATrimmer(
+		    muscle_msa_file, biomolecule='PROTEIN', 
+		    refseq_file=pp_ref_file
+		)
+	else:
+		# create MSATrimmer instance 
+		trimmer = msa_trimmer.MSATrimmer(
+		    pp_msa_file, biomolecule='protein', 
+		    refseq_file=pp_ref_file
+		)
 	# Adding the data_processing() curation from tools to erdca.
 	try:
 		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
@@ -163,34 +170,36 @@ with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(erdca_DI, f)
 f.close()
 
-# Print Details of protein PDB structure Info for contact visualizeation
-print('Using chain ',pdb_chain)
-print('PDB ID: ', pdb_id)
+plotting = False
+if plotting:
+	# Print Details of protein PDB structure Info for contact visualizeation
+	print('Using chain ',pdb_chain)
+	print('PDB ID: ', pdb_id)
 
-from pydca.contact_visualizer import contact_visualizer
+	from pydca.contact_visualizer import contact_visualizer
 
-visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
-refseq_file = pp_ref_file,
-sorted_dca_scores = erdca_DI,
-linear_dist = 4,
-contact_dist = 8.)
+	visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
+	refseq_file = pp_ref_file,
+	sorted_dca_scores = erdca_DI,
+	linear_dist = 4,
+	contact_dist = 8.)
 
-contact_map_data = visualizer.plot_contact_map()
-#plt.show()
-#plt.close()
-tp_rate_data = visualizer.plot_true_positive_rates()
-#plt.show()
-#plt.close()
-#print('Contact Map: \n',contact_map_data[:10])
-#print('TP Rates: \n',tp_rate_data[:10])
+	contact_map_data = visualizer.plot_contact_map()
+	#plt.show()
+	#plt.close()
+	tp_rate_data = visualizer.plot_true_positive_rates()
+	#plt.show()
+	#plt.close()
+	#print('Contact Map: \n',contact_map_data[:10])
+	#print('TP Rates: \n',tp_rate_data[:10])
 
-with open(preprocess_path+'ER_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(contact_map_data, f)
-f.close()
+	with open(preprocess_path+'ER_%s_contact_map_data.pickle'%(pfam_id), 'wb') as f:
+	    pickle.dump(contact_map_data, f)
+	f.close()
 
-with open(preprocess_path+'ER_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(tp_rate_data, f)
-f.close()
+	with open(preprocess_path+'ER_%s_tp_rate_data.pickle'%(pfam_id), 'wb') as f:
+	    pickle.dump(tp_rate_data, f)
+	f.close()
 
 
 
