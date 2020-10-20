@@ -66,6 +66,43 @@ def find_and_replace(s,z,a):
 	return s 
 
 
+nucleotide_letters_full = np.array(['A','C','G','T','N','R','Y','S','W','K','M','B','D','H','V'])
+def sequuence_alignment_prep(fasta_file):
+	# Create our hash table to add the sequences
+	sequences = {}
+	sequence_list = []
+	# Using the Biopython fasta parse we can read our fasta input
+	for seq_record in SeqIO.parse(fasta_file, "fasta"):
+		bad_seq = False
+		# Take the current sequence
+		sequence = str(seq_record.seq).upper()
+		sequence_list.append( [char for char in sequence])
+
+	sequence_array = np.array(sequence_list)
+	for i,char in sequence_list:
+		if char not in nucleotide_letters_full:
+			print('bad character!!: at pos %d '%i,char)
+			print(seq_record)
+			bad_seq = True
+			sequence_array = find_and_replace(sequence_list, char, np.array(['N']))
+
+	sequence = ''.join(sequence_array)
+	# hash table, the sequence and its id are going to be in the hash
+	if sequence not in sequences:
+		sequences[sequence] = seq_record.id
+		
+
+	# Write the clean sequences
+
+	# Create a file in the same directory where you ran this script
+	with open("cleaned_" + fasta_file, "w+") as output_file:
+		# Just read the hash table and write on the file as a fasta format
+		for sequence in sequences:
+			output_file.write(">" + sequences[sequence] + "\n" + sequence + "\n")
+		
+		print("CLEAN!!!\nPlease check clear_" + fasta_file)
+
+	return "cleaned_" + fasta_file
 
 def sequence_cleaner(fasta_file, min_length=0, por_n=100):
 	# Create our hash table to add the sequences
@@ -124,7 +161,9 @@ def sequence_cleaner(fasta_file, min_length=0, por_n=100):
 
 
 print('\n\nCleaning File\n\n')
-clean_file = sequence_cleaner("covid_genome_sequences.fasta")
+#clean_file = sequence_cleaner("covid_genome_sequences.fasta")
+clean_file = sequuence_alignment_prep("covid_genome_sequences.fasta")
+
 
 print('\n\nAligning Cleaned File\n\n')
 
