@@ -87,10 +87,11 @@ RUN apt-get update --fix-missing && \
 #    flake8 && \
 #    /opt/conda/bin/conda clean --all --yes
 #
-WORKDIR /home/DCA/biowulf
-RUN curl https://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz | tar -xz
-RUN mv muscle3.8.31_i86linux64 muscle
-RUN chmod +x muscle
+
+#WORKDIR /home/DCA/biowulf
+#RUN curl https://www.drive5.com/muscle/downloads3.8.31/muscle3.8.31_i86linux64.tar.gz | tar -xz
+#RUN mv muscle3.8.31_i86linux64 muscle
+#RUN chmod +x muscle
 
 RUN sudo /opt/conda/bin/pip install llvmlite --ignore-installed
 #RUN /opt/conda/bin/pip install --no-dependencies /home/DCA_ER/pydca/
