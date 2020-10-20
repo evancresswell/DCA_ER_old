@@ -31,7 +31,7 @@ on Biowulf
   RUN: ./111swarm_generate_input_data.script
 	- This requires files -> [ pfam_pdb_list.swarm, ../dca_er.simg, Pfam-A.full/ ]
 		- pfam_pdb_list.swarm example line (for Pfam PF00001):
-			singlesingularity exec -B /path/to/current/dir,path/to/Pfam-A.full/ path/to/dca_er.simg python gen_1PFAM_input_data.py PF00001
+			singularity exec -B /path/to/current/dir,path/to/Pfam-A.full/ path/to/dca_er.simg python gen_1PFAM_input_data.py PF00001
 		- ../dca_er.simg 
 			- see ../README.md section: Generate Singularity Container to Run Code
 #-----------------------#
@@ -68,13 +68,18 @@ on Biowulf
   - Can also just use jobhist <JOB-NUM> and then curate
 
 - Create DataFrame from txt output # SWARM RUN
-  RUN: sinuglairty exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python setup_swarm_sim_dataframe.py <METHOD>_job-<JOBID>_swarm_ouput.txt
+
+  STEP 1 --> Create individual ROC dataframes
+  RUN: sinteractive --mem=15g
+  RUN: singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/erdca.simg python setup_swarm_sim_dataframe.py <METHOD>_job-<JOBID>_swarm_ouput.txt
 	- The text file generated with 15sim_summary.py
 	- you can use jobhist <JOBID> and remove info manually (first row should be column names)
   RUN: ./16_gen_ROC_df.script <----> swarm simulation
 	- uses gen_ROC_jobID_df.py to 
 	- creates indidvidual swarm dfs in directory: job_ROC_dfs/
   ---> cd into job_ROC_dfs/
+
+
   RUN: sinteractive --mem=150g --cpus-per-task=4
   RUN: module load singularity
   RUN: singularity exec -B /data/cresswellclayec/DCA_ER/ /data/cresswellclayec/DCA_ER/dca_er.simg python concat_dfs.py <JOBIDA>

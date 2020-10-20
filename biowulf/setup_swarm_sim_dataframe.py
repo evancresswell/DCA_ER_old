@@ -36,11 +36,16 @@ for i,job_id in enumerate(jobs):
 			families = re.findall(r'PF+\d+',f.read())
 			f.close()
 		families = np.unique(families)
-		print('\n\nSetting up DF for families: ',families,' \nlen: %d\n'%(len(families)-1))\
-		df.append([df.loc[df['Jobid']==job_id]]*(len(families)-1), ignore_index=True)	
-		print(df.head())
+
+		#print('\n\nSetting up DF for families: ',families,' \nlen: %d\n'%(len(families)-1))
+		#print(df.loc[df['Jobid']==job_id],'\n\n')
+		df_jobid = pd.DataFrame(np.repeat(df.loc[df['Jobid']==job_id].values,int(len(families)-1),axis=0))
+		df_jobid.columns = df.columns
+		df = pd.concat([df,df_jobid], ignore_index=True)	
+
 		df.loc[df.Jobid == job_id,'Pfam'] = families
-		print(df.head())
+		#print(df.loc[df['Jobid']==job_id],'\n\n')
+
 		# Find MM-Seq
 		muscle_error = "PPseq-MSA"
 		with open("swarm_output/swarm_%s.o"%(job_id)) as f:
@@ -51,17 +56,29 @@ for i,job_id in enumerate(jobs):
 					df.loc[df.Pfam == current_pfam,'ERR'] = muscle_error 
 			
 			f.close()
-		print(df.head())
-		sys.exit()
 	except(FileNotFoundError): 
 		print("No swarm output file for %s, assume there are no corresponding DI"%job_id)
 
-print(df)
+print(df.head())
+print("\ndf dataframe has %d jobs with %d Pfams\n\n"%(len(df.Jobid.unique()),len(df.Pfam.unique())))
 
-job_count = len(df.Jobid.unique())
-pfam_count = len(df.Pfam.unique())
-print("df dataframe has %d jobs with %d Pfams"%(job_count,pfam_count))
+if df['Pfam'].isnull().values.any():
+	print('There are %d missing Pfam rows in dataframe\n\n'%df['Pfam'].isnull().sum())
 
+if 0:
+	# Removes all rows for some reason.. trying to remove rows with pfam lt 6	
+	print("df dataframe has %d jobs with %d Pfams"%(len(df.Jobid.unique()),len(df.Pfam.unique())))
+	print('\n\nThere are %d duplicate rows'%(df.duplicated(subset='Pfam').sum()))
+	df = df[df['Pfam'].str.split().str.len().gt(4)]
+	print('There are now %d duplicate rows\n\n'%(df.duplicated(subset='Pfam').sum()))
+	print(df.head())
+
+if df.duplicated(subset='Pfam').sum() > 0:
+	print(df[df.duplicated(subset='Pfam')] )
+	print('Removing duplicate rows')
+	df = df[~df.duplicated(subset = 'Pfam')]
+
+print("\n\ndf dataframe has %d jobs with %d Pfams\n\n"%(len(df.Jobid.unique()),len(df.Pfam.unique())))
 
 # Generate Swarm File
 if filepath[-4:] == ".txt":

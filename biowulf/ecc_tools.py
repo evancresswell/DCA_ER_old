@@ -432,23 +432,29 @@ def distance_restr(di,s_index,make_large=False):
 #=========================================================================================
 def distance_restr_ct(ct,s_index,make_large=False):
 	# Hamstring DI matrix by setting all DI values st |i-j|<5 to 0
-	if ct.shape[0] < s_index[-1]:
-		print("ERROR in distance_restr_ct\n\nDistance restraint cannot be imposed, bad input\n")
-		#IndexError: index 0 is out of bounds for axis 0 with size 0
-		print("s_index max index: ",s_index[-1],"ct shape: ",ct.shape[0])
-		#print('di:\n',di[0])
-		raise IndexError("matrix input dimensions do not matchup with simulation n_var")
+	if 0:
+		if ct.shape[0] <= s_index[-1]:
+			print("ERROR in distance_restr_ct\n\nDistance restraint cannot be imposed, bad input\n")
+			#IndexError: index 0 is out of bounds for axis 0 with size 0
+			print("s_index max index: ",s_index[-1],"ct shape: ",ct.shape[0])
+			#print('di:\n',di[0])
+			raise IndexError("matrix input dimensions do not matchup with simulation n_var")
 	ct_distal = np.zeros(ct.shape)
-	for i in range(ct.shape[0]):
-		for j in range(ct.shape[1]):
-			if(abs(i-j<5)):
-				if make_large:
-					ct_distal[i][j]=35.
-				else:	
-					ct_distal[i][j]=0.
-			else:
-				ct_distal[i][j] = ct[i][j]
-
+	print('contact map shape: ',ct_distal.shape)
+	try:
+		for i in range(ct.shape[0]):
+			for j in range(ct.shape[1]):
+				if(abs(s_index[i]-s_index[j]<5)):
+					if make_large:
+						ct_distal[i][j]=35.
+					else:	
+						ct_distal[i][j]=0.
+				else:
+					ct_distal[i][j] = ct[i][j]
+	except(IndexError):
+		print('ct shape: ',ct.shape, '  s_index length: ', len(s_index))
+		print('INDEX ERROR IN ECC_TOOLS:DISTANCE_RESTR_CT')
+		raise IndexError("matrix input dimensions do not matchup with simulation n_var")
 	return ct_distal
 
 

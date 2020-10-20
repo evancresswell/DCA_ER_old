@@ -5,6 +5,10 @@ import ecc_tools as tools
 import numpy as np
 import data_processing as dp
 from multiprocessing import Pool
+data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+
+
 #------------------------------- Create ROC Curves ---------------------------------#
 def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full',pfam_id_focus = None):
 	
@@ -39,11 +43,14 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 
 		# ONLY CONSIDERING FIRST PDB-ID IN PFAM (FOR NOW)
 		ipdb = 0
-		input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
+
+		input_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
 		with open(input_data_file,"rb") as f:
 			pfam_dict = pickle.load(f)
 		f.close()
+
 		s0 = pfam_dict['s0']	
+		processed_msa = pfam_dict['msa']
 		s_index = pfam_dict['s_index']	
 		s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
 		cols_removed = pfam_dict['cols_removed']
@@ -54,27 +61,26 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 		seq_row =s_ipdb 
  
 		tpdb = int(pdb[ipdb,1])
-		# load ORIGINAL MSA, without any preprocessing
-		s = dp.load_msa(data_path,pfam_id)
-		gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
-		ref_seq = s[tpdb,~gap_pdb] # removes gaps  
+		#ref_seq = s[s_ipdb,~gap_pdb] # removes gaps  ## MSA ref seq is no longer necessary. we use polyseq.
 
 
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		print('\n\n\n\n\n\n#-----------------------------------------------------------------------#\nAnalysing  %s\n#-----------------------------------------------------------------------#\n'%pfam_id,df.loc[df.Pfam== pfam_id])
 		print('\n s_index',s_index,'\nlen(s_index)=%d\n'%len(s_index))
+		print('\n cols_removed',cols_removed,'\nlen(s_index)=%d\n'%len(cols_removed))
 			
 		# Load Contact Map
 		try:
-			print(pfam_id, ': original ref sequence\n',ref_seq,'\nlen %d\n'%len(ref_seq))
-			ct,ct_full,n_amino_full,subject_seq = tools.contact_map(pdb,ipdb,cols_removed,s_index,ref_seq=ref_seq)
-			print(pfam_id, ': curated ref sequence\n',subject_seq,'\nlen %d\n'%len(subject_seq))
+			ct,ct_full,n_amino_full,poly_seq = tools.contact_map(pdb,ipdb,cols_removed,s_index)	
+			poly_seq_curated = np.delete(poly_seq,cols_removed)
+			print(pfam_id, ': Full PP sequence\n',poly_seq,'\nlen %d\n'%len(poly_seq))
+			print('		Curated PP sequence\n',poly_seq_curated,'\nlen %d\n'%len(poly_seq_curated))
+			ref_seq = [char for char in processed_msa[s_ipdb][1]]
+			print('		curated ref sequence\n',ref_seq,'\nlen %d\n'%len(ref_seq))
 			print('contact map shape: ',ct.shape)
 			print('contact map (full) shape: ',ct_full.shape)
 			#ct_distal = tools.distance_restr_ct(ct,s_index,make_large=True)
-			ct_distal = tools.distance_restr_ct(ct_full,s_index,make_large=True)
-			print('subject MSA sequence:\n',subject_seq)
-			print(len(subject_seq),'\n\n')
+			#ct_distal = tools.distance_restr_ct(ct_full,s_index,make_large=True)
 			#---------------------- Load DI -------------------------------------#
 			#print("Unpickling DI pickle files for %s"%(pfam_id))
 			if filepath[:3] =="cou":
@@ -115,15 +121,6 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 				#print(coupling[1])
 				di[coupling[0][0],coupling[0][1]] = coupling[1]
 				di[coupling[0][1],coupling[0][0]] = coupling[1]
-
-			# Generate DI matrix of our predictions only	
-			di_predict = np.zeros((len(s_index),len(s_index)))
-			for coupling in DI:
-				#print(coupling[1])
-				if coupling[0][0] in s_index and coupling[0][1] in s_index:
-					di_predict[np.where(s_index==coupling[0][0]),np.where(s_index==coupling[0][1])] = coupling[1]
-					di_predict[np.where(s_index==coupling[0][1]),np.where(s_index==coupling[0][0])] = coupling[1]
-
 			#--------------------------------------------------------------------#
 
 			print('\n\n #------------------ Calculating ROC Curve --------------------#')
@@ -134,11 +131,21 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 			n = ct_thres.shape[0]
 			
 			auc = np.zeros(n)
-		
+
+
+			# Generate DI matrix of our predictions only	
+			di_predict = np.zeros((len(s_index),len(s_index)))
+			for coupling in DI:
+				#print(coupling[1])
+				if coupling[0][0] in s_index and coupling[0][1] in s_index:
+					di_predict[np.where(s_index==coupling[0][0]),np.where(s_index==coupling[0][1])] = coupling[1]
+					di_predict[np.where(s_index==coupling[0][1]),np.where(s_index==coupling[0][0])] = coupling[1]
+
+
+			print('before distance restr on contact map predicitons\ncontact map shape: ',ct.shape)
 			# Want to only ROC-analyze positions we made predictions for !!!
-			print(ct.shape)
-			ct_predict = np.asarray(tools.distance_restr(ct,s_index,make_large = True))
-			print(ct_predict.shape)
+			ct_predict = np.asarray(tools.distance_restr_ct(ct,s_index,make_large = True))
+			print('Prediction Contact map shape (distance enforced): ',ct_predict.shape)
 			
 			for i in range(n):
 				#p,tp,fp = tools.roc_curve(ct_distal,di,ct_thres[i])
@@ -217,13 +224,20 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 			ODs.append(-1)
 		except IndexError as e:
 			print("\n\n#--------------------ERROR------------------------#\n Indexing error, check DI or PDB for %s"%(pfam_id))
-			print('MSA subject: ',subject_seq)
-			print('MSA subject length: ',len(subject_seq))
+			print('MSA subject: ',ref_seq)
+			print('MSA subject length: ',len(ref_seq))
+			print('Max s_index value: ',max(s_index))
+			print('length of s_index: ', len(s_index))
 			print("\n\nAdding empty row\n\n")
 			print(str(e))
 			bad_index_ref_seqs.append(ref_seq)
 			print("\n\n#-------------------------------------------------#\n")
-			ERRs.append('Indexing_CT')
+			pdb_start,pdb_end = int(pdb[ipdb,7]),int(pdb[ipdb,8])
+			if len(ref_seq) != len(poly_seq_curated) and pdb_end-pdb_start-1 <= max(max(s_index),max(cols_removed)):
+				print('pdb start (%d) and end (%d) coincide with length of unprocessed erdca ref_seq (%d)\n POTENTIAL ISSUE WITH POLY SEQ READIN'%(pdb_start,pdb_end,max(max(s_index),max(cols_removed))))
+				ERRs.append('PDB-MSA')
+			else:
+				ERRs.append('Indexing_CT')
 			Ps.append([])	
 			TPs.append([])	
 			FPs.append([])	
@@ -245,6 +259,7 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 		df = df.assign(OptiDist = ODs)
 		df = df.assign(seq_len = seq_lens)
 		df = df.assign(num_seq = num_seqs)
+		df = df.assign(ERR = ERRs)
 
 		for bad_seq in bad_index_ref_seqs:
 			print(bad_seq)
@@ -267,7 +282,9 @@ def main():
 	job_id = sys.argv[2]
 
 	# Get dataframe of job_id
-	df_prep = pickle.load(open(prep_df_file,"rb")) 
+	#df_prep = pd.load(open(prep_df_file,"rb"))
+	df_prep = pd.read_pickle(prep_df_file)
+	print(df_prep)
 	df_jobID = df_prep.copy()
 	df_jobID = df_jobID.loc[df_jobID.Jobid == job_id]
 	print(df_jobID)
@@ -275,7 +292,8 @@ def main():
 	roc_jobID_df = add_ROC(df_jobID,prep_df_file)
 
 
-	#print(df_roc)
+	print(roc_jobID_df)
+	print(roc_jobID_df['ERR'])
 	if not os.path.exists('./job_ROC_dfs/'): 
 		print('job_ROC_dfs/ DNE.. Make directory and rerun')
 		sys.exit()
