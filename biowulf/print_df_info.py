@@ -27,12 +27,14 @@ print('Length of Dataframe index is %d '% len(df.index.tolist()))
 print("\n\nDuplicate Rows: ")
 df_duplicates = df[df.duplicated(['Pfam'])]
 print("Duplicates df size: ", df_duplicates.shape)
-pfam = df_duplicates['Pfam'].tolist()[0]
-print('consider duplicate example for ', pfam)
-print(df.loc[df['Pfam'] == pfam])
-print('Dropping Duplicates..' )
-df_trimmed = df.drop_duplicates(subset='Pfam')
-print("Trimed df: ", df_trimmed.shape)
-print(df_trimmed.loc[df_trimmed.Pfam== 'PF01032'])
+if df_duplicates.shape[0]>0:
+	pfam = df_duplicates['Pfam'].tolist()[0]
+	print('consider duplicate example for ', pfam)
+	print(df.loc[df['Pfam'] == pfam])
+	print('Dropping Duplicates..' )
+	df_trimmed = df.drop_duplicates(subset='Pfam')
+	print("Trimed df: ", df_trimmed.shape)
+	print(df_trimmed.loc[df_trimmed.Pfam== 'PF01032'])
 
-
+print('Examining Errors:\n\n')
+print(df.groupby('ERR').count())
