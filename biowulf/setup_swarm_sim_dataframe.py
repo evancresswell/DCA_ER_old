@@ -93,7 +93,7 @@ df.to_pickle(df_filename)
 print('Generating swarm file: %s.swarm'%job_string)
 f = open('%s.swarm'%job_string,'w')
 for job_id in df.Jobid.unique():
-	f.write('singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/dca_er.simg python gen_ROC_jobID_df.py %s %s\n'%(df_filename,job_id))    
+	f.write('singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python gen_ROC_jobID_df.py %s %s\n'%(df_filename,job_id))    
 f.close()
 
 
