@@ -258,7 +258,7 @@ class SequenceBackmapper:
             )
             first_seq = list()
             first_seq.append(first_seq_in_alignment)
-            return first_seq
+            return first_seq, [0]
         pairwise_scores = []
         for seq_indx, seq in enumerate(self.__alignment):
             seq_gaps_removed = seq.replace('-','')
@@ -284,6 +284,8 @@ class SequenceBackmapper:
             logger.warning('\n\tFound {} sequences in MSA that match the reference'
                 '\n\tThe first sequence is taken as matching'.format(num_matching_seqs)
             )
+        print('Best Matching Sequences: ',best_matching_seqs)
+        print('Best Matching Sequences (indices): ',matching_seqs_indx)
         return best_matching_seqs, matching_seqs_indx
 
     @staticmethod
