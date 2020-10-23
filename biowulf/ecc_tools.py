@@ -21,11 +21,11 @@ import random
 
 #--------------------------------------
 # write basic fasta file for given list
-def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = './'):
+def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = './',nickname=''):
 	# Processed MSA to file in FASTA format
-	msa_outfile = path+'MSA_'+pfam_id+'.fa'
+	msa_outfile = path+'MSA_'+pfam_id+'_'+nickname+'.fa'
 	# Reference sequence to file in FASTA format
-	ref_outfile = path+'PP_ref_'+pfam_id+'.fa'
+	ref_outfile = path+'PP_ref_'+pfam_id+'_'+nickname+'.fa'
 
 	#print("Reference Sequence (shape=",msa[ref_seq].shape,"):\n",msa[ref_seq])
 
@@ -164,6 +164,7 @@ def gen_DI_matrix(DI):
 
 
 def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
+    print('Updating contact map to use pdb-refs pdb_start and pdb_end when getting pp sequence coordinates.')
     print('#---------------------------------------------------#\nGenerating Contact Map\n#--------------------------------------------------#\n')
     print(pdb[ipdb,:])
     pdb_id = pdb[ipdb,5]
@@ -233,6 +234,7 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
         	   
                 break
         else: # combines ppb fragments into poly_seq
+            # Get full list of CA coords from poly_seq
             poly_seq = list()
             pp_ca_coords_full = list()
             for i,pp in enumerate(ppb):
@@ -240,22 +242,33 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
                     poly_seq.append(char)                                     
                 poly_seq_ca_atoms = pp.get_ca_list()
                 pp_ca_coords_full.extend( [a.get_coord() for a in poly_seq_ca_atoms])
-             
+            
+            
             n_amino_full = len(pp_ca_coords_full)
-
-            # Get full list of CA coords from poly_seq
             print('original poly_seq: \n', poly_seq,'\n length: ',len(poly_seq))
             print('Polypeptide Ca Coord list: ',len(pp_ca_coords_full),'\n length: ',len(pp_ca_coords_full))
+          
+            # Extract coordinates and sequence char in PDB-range 
+            print('\n\nExtracting pdb-range from full list of polypeptide coordinates') 
+            pp_ca_coords_full_range = pp_ca_coords_full[pdb_start:pdb_end]
+            poly_seq_range = poly_seq[pdb_start:pdb_end]
+            print('PDB-range poly_seq: \n', poly_seq_range,'\n length: ',len(poly_seq_range))
+            print('PDB-range Polypeptide Ca Coord list: ',len(pp_ca_coords_full_range),'\n length: ',len(pp_ca_coords_full_range))
+            print('\n\n') 
 
             # Get curated polypeptide sequence (using cols_removed) & Get coords of curated pp seq
+            # THIS IS THE VERSION BEING USED -- 10/20/2020
             poly_seq_curated = np.delete(poly_seq,cols_removed)
+            poly_seq_range_curated = np.delete(poly_seq_range[pdb_start:pdb_end],cols_removed)
             print('poly_seq[~cols_removed] (poly_seq_curated): \n', poly_seq_curated,'\n length: ',len(poly_seq_curated))
-            pp_ca_coords_curated = np.delete(pp_ca_coords_full,cols_removed,axis=0)
+            print('poly_seq_range[~cols_removed] (poly_seq_range_curated): \n', poly_seq_curated,'\n length: ',len(poly_seq_curated))
+            pp_ca_coords_curated = np.delete(pp_ca_coords_full[pdb_start:pdb_end],cols_removed,axis=0)
             print('Curated Polypeptide Ca Coord list: ',len(pp_ca_coords_curated),'\n length: ',len(pp_ca_coords_curated))
 
 
         print('\n\ns_index len: ',len(s_index))
         print('s_index largest index: ',s_index[-1])
+        print('cols_removed largest index: ',max(cols_removed))
 
         print("\n\n#---------#\nNumber of good amino acid coords: %d should be same as sum of s_index and cols_removed"%n_amino)
         print("s_index and col removed len %d "%(len(s_index)+len(cols_removed)))
@@ -274,12 +287,6 @@ def contact_map(pdb,ipdb,cols_removed,s_index,use_old=False,ref_seq = None):
         """
         coords = np.array(good_coords)
     #---------------------------------------------------------------------------------------------------------------------#
-
-    #print('original pdb:')
-    #print(coords_all.shape)
-    #print(coords.shape)
-    #print(s_index.shape)
-
     coords_remain = np.delete(coords,cols_removed,axis=0)
     print(coords_remain.shape)
     #print(coords_remain.shape)
