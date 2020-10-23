@@ -19,16 +19,28 @@ from gen_ROC_jobID_df import add_ROC
 #========================================================================================
 data_path = '/home/eclay/DCA_ER/covid_proteins/'
 root_dir = '/home/eclay/DCA_ER/covid_proteins/'
+data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/'
+root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
+
 
 cpus_per_job = int(sys.argv[1])
 print("Calculating DI for Sars-Cov-2 using %d (of %d) threads"%(cpus_per_job-4,cpus_per_job))
 
-msa_file = root_dir+"aligned_cov_genome.fasta"
-ref_file = root_dir+"cov_genome_ref.fasta"
 
-alignment_file_name = "aligned_cov_genome" 
-alignment_file_name = "ncbi_cov_gen" 
+msa_file = root_dir+"covid_genome_europe_aligned.fasta"
 
+msa_file = root_dir+"covid_genome_europe.fasta"
+
+msa_file = root_dir+"21052020-Cov19gisaid-consensus-l29000-1-v1-FastaCikti.fasta"
+ref_file = root_dir+"subset_ref.fasta"
+
+# Aligned Using
+# mafft --auto --thread 16 --keeplength --addfragments 21052020-Cov19gisaid-consensus-l29000-1-v1-FastaCikti.fa wuhan_ref.fasta > covid_genome_aligned.fasta
+msa_file = root_dir+"covid_genome_aligned.fasta"
+ref_file = root_dir+"wuhan_ref.fasta"
+
+
+saving_preprocessed = True
 input_data_file = "cov_genome_DP.pickle"
 if os.path.exists(input_data_file):    
 	print('\n\nUsing existing pre-processed FASTA files\n\n')
@@ -43,21 +55,21 @@ else:
 	# Preprocess data using ATGC
 	
 	# data processing
-	s0,cols_removed,s_index,s_ipdb = gdp.data_processing(data_path,alignment_file_name,0,\
-					gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
+	s0,cols_removed,s_index,s_ipdb = gdp.data_processing(msa_file,0,\
+					gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.99)
+	if saving_preprocessed:
+		# Save processed data
+		msa_outfile, ref_outfile = gdp.write_FASTA(s0,'COV_GENOME',s_ipdb,path=data_path)	
+		pf_dict = {}
+		pf_dict['s0'] = s0
+		pf_dict['s_index'] = s_index
+		pf_dict['s_ipdb'] = s_ipdb
+		pf_dict['cols_removed'] = cols_removed
+		pf_dict['s_ipdb'] = s_ipdb
 
-	# Save processed data
-	msa_outfile, ref_outfile = gdp.write_FASTA(s0,'COV_GENOME',s_ipdb,path='pfam_ecc/')	
-	pf_dict = {}
-	pf_dict['s0'] = s0
-	pf_dict['s_index'] = s_index
-	pf_dict['s_ipdb'] = s_ipdb
-	pf_dict['cols_removed'] = cols_removed
-	pfam_dict['s_ipdb'] = s_ipdb
-
-	with open(input_data_file, 'wb') as f:
-		pickle.dump(pf_dict, f)
-	f.close()
+		with open(input_data_file, 'wb') as f:
+			pickle.dump(pf_dict, f)
+		f.close()
 
 # data processing
 
@@ -119,7 +131,7 @@ for site_pair, score in er_gen_DI[:5]:
     print(site_pair, score)
 
 with open(root_dir+'cov_genome_DI.pickle', 'wb') as f:
-    pickle.dump(erdca_DI, f)
+    pickle.dump(er_gen_DI, f)
 f.close()
 
 

@@ -33,19 +33,8 @@ warnings.simplefilter('ignore', ResourceWarning)
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-
-
-pfam_id = 'PF17795'
-pfam_id = 'PF00186'
-pfam_id = 'PF02146'
 pfam_id = sys.argv[1]
 num_threads = int(sys.argv[2])
-
-protein_msa_file = 'orig_MSA_%s.fa'%pfam_id
-protein_refseq_file = 'orig_ref_%s.fa'%pfam_id
-#protein_msa_file = 'MSA_PF00186.fa'
-#protein_refseq_file = 'ref_PF00186.fa'
-
 
 #---------------------------------------------------------------------------------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
@@ -192,6 +181,45 @@ muscling = True # so we use the pp_range-MSAmatched and muscled file!!
 
 preprocessed_data_outfile = processed_data_path + 'MSA_%s_PreProcessed.fa'%pfam_id
 if preprocessing:
+        try:
+
+            # create MSATrimmer instance 
+            if muscling:
+                trimmer = msa_trimmer.MSATrimmer(
+                    muscle_msa_file, biomolecule='PROTEIN',
+                    refseq_file=pp_ref_file
+                )
+            else:
+                trimmer = msa_trimmer.MSATrimmer(
+                    pp_msa_file, biomolecule='PROTEIN',
+                    refseq_file=pp_ref_file
+                )  
+
+            # Adding the data_processing() curation from tools to erdca.
+            preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+            
+        except(MSATrimmerException):
+            try:
+                # Re-Write references file as original pp sequence with pdb_refs-range
+                pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq_range, s, pfam_id, number_form=False,processed=False)
+                trimmer = msa_trimmer.MSATrimmer(
+                        pp_msa_file, biomolecule='PROTEIN',
+                        refseq_file=pp_ref_file
+                    )
+
+                # Adding the data_processing() curation from tools to erdca.
+                preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+
+
+            except(MSATrimmerException):
+                ERR = 'PPseq-MSA'
+                print('Error with MSA trimms (%s)'%ERR)
+                sys.exit()
+
+
+
+
+        """
         # create MSATrimmer instance 
         if muscling:
             trimmer = msa_trimmer.MSATrimmer(
@@ -206,12 +234,13 @@ if preprocessing:
 
         # Adding the data_processing() curation from tools to erdca.
         try:
+
                 preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
         except(MSATrimmerException):
                 ERR = 'PPseq-MSA'
                 print('Error with MSA trimms (%s)'%ERR)
                 sys.exit()
-
+        """
         # Save processed data dictionary and FASTA file
         pfam_dict = {}
         pfam_dict['s0'] = s

@@ -30,6 +30,8 @@ def read_seq_file(seq_file):
     
     return seq
 """
+
+nucleotide_letters_full = np.array(['A','C','G','T','N','R','Y','S','W','K','M','B','D','H','V','U','-'])
 #=========================================================================================
 def remove_bad_seqs(s,tpdb,fgs=0.3):
     # remove bad sequences having a gap fraction of fgs  
@@ -99,14 +101,21 @@ def number_residues(s):
 
 #------------------------------
 def covert_letter2number(s):
-    letter2number = {'A':0, 'T':1, 'G':2, 'C':3, '-':4}
+    letter2number = {}
+    #letter2number = {'A':0, 'T':1, 'G':2, 'C':3, '-':4}
+    for i, symbol in enumerate(nucleotide_letters_full):
+        letter2number[symbol] = i
 
     l,n = s.shape
     return np.array([letter2number[s[t,i]] for t in range(l) for i in range(n)]).reshape(l,n)
 #------------------------------
 def convert_number2letter(s):
 
-    number2letter = {0:'A', 1:'T', 2:'G', 3:'C', 4:'-'} 
+    #number2letter = {0:'A', 1:'T', 2:'G', 3:'C', 4:'-'} 
+    number2letter = {}
+    for i, symbol in enumerate(nucleotide_letters_full):
+        number2letter[i] = symbol
+
     print('converting s with shape : ',s.shape)
     try:
         l,n = s.shape
@@ -314,38 +323,38 @@ def load_msa(data_path,pfam_id):
     s = []
     with open(data_path+pfam_id+".fasta","rU") as handle:
         for record in SeqIO.parse(handle, "fasta"):
-            print(len(record.seq))
+            #print(len(record.seq))
             s.append(str(record.seq))
     s = np.asarray(s)
-    print (s)
+    #print (s)
     return s
 
     #def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004):
-def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8,printing=True):
+def data_processing(filepath, ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.8,printing=True):
     
     # read parse_pfam data:
     #print('read original aligned pfam data')
     #s = np.load('../%s/msa.npy'%pfam_id).T
-    s = load_msa(data_path,pfam_id)
-
-
-    # convert bytes to str (python 2 to python 3)
-    pdb = np.array([pdb[t,i].decode('UTF-8') for t in range(pdb.shape[0]) \
-         for i in range(pdb.shape[1])]).reshape(pdb.shape[0],pdb.shape[1])
-    if printing:
-    	print("pdb (after UTF-8 decode, removing 'b'):\n",pdb)
-
-    tpdb = int(pdb[ipdb,1])
-    print('tpdb (s_ipdb) is : ',tpdb)
-    #tpdb is the sequence #
-    #print(tpdb)
+    s = []
+    with open(filepath,"r") as handle:
+        #for i,record in enumerate(SeqIO.parse(handle, "fasta")):
+        for record in SeqIO.parse(handle, "fasta"):
+            s.append([char for char in str(record.seq).upper()])
+           
+    s = np.asarray(s) 
+    print(s[0])
+    print(s.shape)
+    
 
     if printing:
-    	print("#\n\n-------------------------Remove Gaps--------------------------#")
-    	print("s = \n",s)
+    	print("\n\n#-------------------------Remove Gaps--------------------------#")
 
+    # REFERENCE SEQUENCE SHOULD BE LAST SEQUENCE -- VIA MUSCLE ALIGNMENT
+    tpdb = 0
+    print('Reference Sequence is index %d (of %d) and should be the last sequence '%(tpdb,len(s)))
     gap_pdb = s[tpdb] =='-' # returns True/False for gaps/no gaps
-    #print("removing gaps...")
+    print(gap_pdb)
+
     s = s[:,~gap_pdb] # removes gaps  
     print(s.shape)
     s_index = np.arange(s.shape[1])
@@ -359,8 +368,8 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
     	print("#--------------------------------------------------------------#\n\n")
   
 
-    lower_cols = np.array([i for i in range(s.shape[1]) if s[tpdb,i].islower()])
-    print("removing non aligned (lower case) columns in subject sequence:\n ",lower_cols,'\n')
+    #lower_cols = np.array([i for i in range(s.shape[1]) if s[tpdb,i].islower()])
+    #print("removing non aligned (lower case) columns in subject sequence:\n ",lower_cols,'\n')
     #lower case removal reference: https://onlinelibrary.wiley.com/doi/full/10.1002/1097-0134%2820001101%2941%3A2%3C224%3A%3AAID-PROT70%3E3.0.CO%3B2-Z 
 
 
@@ -411,7 +420,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     removed_cols = np.array(list(set(bad_cols) | set(conserved_cols)))
 
-    removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
+    #removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
     if printing:
     	print("We remove conserved and bad columns with, at the following indices:\n",removed_cols)
 
@@ -455,7 +464,7 @@ def data_processing(data_path,pfam_id,ipdb=0,gap_seqs=0.2,gap_cols=0.2,prob_low=
 
     #mi = number_residues(s)
     #print(mi.mean())
-    np.save("%s_removed_cols.npy"%pfam_id,removed_cols)
+    np.save("covGEN_removed_cols.npy",removed_cols)
 
     return s,removed_cols,s_index, tpdb
 #=========================================================================================
