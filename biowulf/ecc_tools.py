@@ -21,11 +21,11 @@ import random
 
 #--------------------------------------
 # write basic fasta file for given list
-def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = './'):
+def write_FASTA(ref_seq, msa,pfam_id,number_form=True,processed = True,path = './',nickname=''):
 	# Processed MSA to file in FASTA format
-	msa_outfile = path+'MSA_'+pfam_id+'.fa'
+	msa_outfile = path+'MSA_'+pfam_id+'_'+nickname+'.fa'
 	# Reference sequence to file in FASTA format
-	ref_outfile = path+'PP_ref_'+pfam_id+'.fa'
+	ref_outfile = path+'PP_ref_'+pfam_id+'_'+nickname+'.fa'
 
 	#print("Reference Sequence (shape=",msa[ref_seq].shape,"):\n",msa[ref_seq])
 
