@@ -1,0 +1,3 @@
+#!/bin/bash
+
+swarm -f cov_align.swarm -g 10 --time=0-02:00:00 --partition norm  -b 15 --module mafft --logdir cov_fasta_files #  quick # normS
