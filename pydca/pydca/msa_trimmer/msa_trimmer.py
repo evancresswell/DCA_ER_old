@@ -542,10 +542,10 @@ class MSATrimmer:
         return removed_cols,s_index,s
 
 
-    def get_preprocessed_msa(self, printing,saving):
+    def get_preprocessed_msa(self, printing,saving,conserved_cols=.8):
         """
         """
-        cols_removed,s_index,s  = self.preprocess_msa(printing=printing)
+        cols_removed,s_index,s  = self.preprocess_msa(printing=printing,conserved_cols=conserved_cols)
 
         trimmed_msa = list()
         for i,seq in enumerate(s):
