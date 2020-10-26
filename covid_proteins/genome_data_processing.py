@@ -194,25 +194,51 @@ def replace_lower_by_higher_prob(s,p0=0.3):
 #--------------------------------------
 
 #--------------------------------------
-def write_FASTA(records,outfile,ids,number_form=True,path = './'):
+def write_FASTA(msa,pfam_id,s_ipdb,number_form=True,processed=True,path = './'):
 	# Processed MSA to file in FASTA format
+	msa_outfile = 'MSA_'+pfam_id+'.fa'
+	
+	# Reference sequence to file in FASTA format
+	ref_outfile = 'ref_'+pfam_id+'.fa'
+	ref_seq = s_ipdb 
+
 
 	if number_form:
 		msa_letters = convert_number2letter(msa)
+		ref_array = msa_letters[ref_seq]
+		if not processed:
+			gap_ref = ref_array == '-' # remove gaps from reference array
+			ref_letters = msa_letters[ref_seq][~gap_ref]
+		else:
+			ref_letters = msa_letters[ref_seq]
 	else: 
 		msa_letters = msa
+		ref_array = msa[ref_seq]
+		gap_ref = ref_array == '-' # remove gaps from reference array
+		ref_letters = ref_array[~gap_ref]
 
 	printing = False
 	if printing:
+		print("Reference Sequence number: ",ref_seq)
+		print("Reference Sequence (shape=",ref_letters.shape,"):\n",ref_letters)
+
 		print("Writing processed MSA (shape=",msa_letters.shape,") to FASTA files:\n",msa_letters)
 
 	# First save reference sequence to FASTA file
 	ref_str = ''
 	ref_list = ref_letters.tolist()
 	ref_str = ref_str.join(ref_list)
+	if processed:
+		with open(path+ref_outfile, 'w') as fh:
+			fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
+	else:
+		ref_outfile = 'orig_ref_'+pfam_id+'.fa'
+		with open(path+ref_outfile, 'w') as fh:
+			fh.write('>{}\n{}\n'.format(pfam_id+' | REFERENCE',ref_str ))
+
 	# Next save MSA to FAST file
 
-	with open(outfile, 'w') as fh:
+	with open(path+msa_outfile, 'w') as fh:
 		for seq_num,seq in enumerate(msa_letters):
 			msa_list = seq.tolist()
 			msa_str = ''

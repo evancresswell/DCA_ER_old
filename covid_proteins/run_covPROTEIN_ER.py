@@ -33,89 +33,34 @@ warnings.simplefilter('ignore', ResourceWarning)
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-pfam_id = sys.argv[1]
-num_threads = int(sys.argv[2])
 
-processed_data_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
-working_dir = '/data/cresswellclayec/DCA_ER/biowulf/'
+processed_data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/cov_fasta_files'
+working_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 
 #---------------------------------------------------------------------------------------------------------------------# 
 # File Names from MSA-PDB matching and Muscling
-pp_msa_file_range = processed_data_path+'MSA_'+pfam_id+'_range.fa'
-pp_msa_file_match = processed_data_path+'MSA_'+pfam_id+'_match.fa'
+msa_file = sys.argv[1]
+ref_file = sys.argv[2]
+num_threads = int(sys.argv[3])- 4
 
-pp_ref_file_range = processed_data_path+'PP_ref_'+pfam_id+'_range.fa'
-pp_ref_file_match = processed_data_path+'PP_ref_'+pfam_id+'_match.fa'
 
-muscle_msa_file = processed_data_path+ 'PP_muscle_msa_'+pfam_id+'.fa'
-
-print('Preprocessing MUSCLE DATA')
+print('Preprocessing FASTA files %s and %s '%(msa_file,ref_file))
 try:
-
-    # create MSATrimmer instance 
-	if os.path.exists(muscle_msa_file):
-		if os.path.exists(pp_msa_file_match):
-			trimmer = msa_trimmer.MSATrimmer(
-			    muscle_msa_file, biomolecule='PROTEIN',
-			    refseq_file=pp_ref_file_match
-			)
-		else:
-			trimmer = msa_trimmer.MSATrimmer(
-			    muscle_msa_file, biomolecule='PROTEIN',
-			    refseq_file=pp_ref_file_range
-			)
-		muscling = True # so we use the pp_range-MSAmatched and muscled file!!
-	elif os.path.exists(pp_msa_file_match):
-		trimmer = msa_trimmer.MSATrimmer(
-		    pp_msa_file_match, biomolecule='PROTEIN',
-		    refseq_file=pp_ref_file_match
-		)  
-		muscling = False
-	else:
-		trimmer = msa_trimmer.MSATrimmer(
-		    pp_msa_file_range, biomolecule='PROTEIN',
-		    refseq_file=pp_ref_file_range
-		)  
-		muscling = False
-
-	# Adding the data_processing() curation from tools to erdca.
+    	# create MSATrimmer instance 
+	trimmer = msa_trimmer.MSATrimmer(
+	    msa_file, biomolecule='PROTEIN',
+	    refseq_file=ref_file
+	)
 	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-	pp_ref_file = pp_ref_file_match
-    
+	    
 except(MSATrimmerException):
-	print('           MUSCLE DATA did not work. Trying orginal PDB-Range DATA\nMSATrimmerException')
-	try:
-		muscling = False
-		# Re-Write references file as original pp sequence with pdb_refs-range
-		trimmer = msa_trimmer.MSATrimmer(
-			pp_msa_file_range, biomolecule='PROTEIN',
-			refseq_file=pp_ref_file_range
-		    )
-		pp_ref_file = pp_ref_file_range
-
-		# Adding the data_processing() curation from tools to erdca.
-		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-	except(MSATrimmerException):
-		ERR = 'PPseq-MSA'
-		print('Error with MSA trimms (%s)'%ERR)
-		sys.exit()
+	ERR = 'PPseq-MSA'
+	print('Error with MSA trimms (%s)'%ERR)
+	sys.exit()
 except(ValueError):
-	print('           MUSCLE created empty file. Trying orginal PDB-Range DATA\nValueError')
-	try:
-		muscling = False
-		# Re-Write references file as original pp sequence with pdb_refs-range
-		trimmer = msa_trimmer.MSATrimmer(
-			pp_msa_file_range, biomolecule='PROTEIN',
-			refseq_file=pp_ref_file_range
-		    )
-		pp_ref_file = pp_ref_file_range
-
-		# Adding the data_processing() curation from tools to erdca.
-		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-	except(MSATrimmerException):
-		ERR = 'PPseq-MSA'
-		print('Error with MSA trimms (%s)'%ERR)
-		sys.exit()
+	ERR = 'PPseq-MSA'
+	print('Error with MSA trimms (%s)'%ERR)
+	sys.exit()
 
 
 #write trimmed msa to file in FASTA format

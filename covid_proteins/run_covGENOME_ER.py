@@ -42,6 +42,7 @@ ref_file = root_dir+"wuhan_ref.fasta"
 
 saving_preprocessed = True
 input_data_file = "cov_genome_DP.pickle"
+"""
 if os.path.exists(input_data_file):    
 	print('\n\nUsing existing pre-processed FASTA files\n\n')
 	with open(input_data_file,"rb") as f:
@@ -51,25 +52,26 @@ if os.path.exists(input_data_file):
 	s_index= pfam_dict['s_index']
 	s_ipdb = pfam_dict['s_ipdb']
 else:
-	print('\n\nPre-Processing MSA with muscle alignment\n\n')
-	# Preprocess data using ATGC
-	
-	# data processing
-	s0,cols_removed,s_index,s_ipdb = gdp.data_processing(msa_file,0,\
-					gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.99)
-	if saving_preprocessed:
-		# Save processed data
-		msa_outfile, ref_outfile = gdp.write_FASTA(s0,'COV_GENOME',s_ipdb,path=data_path)	
-		pf_dict = {}
-		pf_dict['s0'] = s0
-		pf_dict['s_index'] = s_index
-		pf_dict['s_ipdb'] = s_ipdb
-		pf_dict['cols_removed'] = cols_removed
-		pf_dict['s_ipdb'] = s_ipdb
+"""
+print('\n\nPre-Processing MSA with muscle alignment\n\n')
+# Preprocess data using ATGC
 
-		with open(input_data_file, 'wb') as f:
-			pickle.dump(pf_dict, f)
-		f.close()
+# data processing
+s0,cols_removed,s_index,s_ipdb = gdp.data_processing(msa_file,0,\
+				gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.95)
+if saving_preprocessed:
+	# Save processed data
+	msa_outfile, ref_outfile = gdp.write_FASTA(s0,'COV_GENOME',s_ipdb,path=data_path)	
+	pf_dict = {}
+	pf_dict['s0'] = s0
+	pf_dict['s_index'] = s_index
+	pf_dict['s_ipdb'] = s_ipdb
+	pf_dict['cols_removed'] = cols_removed
+	pf_dict['s_ipdb'] = s_ipdb
+
+	with open(input_data_file, 'wb') as f:
+		pickle.dump(pf_dict, f)
+	f.close()
 
 # data processing
 
