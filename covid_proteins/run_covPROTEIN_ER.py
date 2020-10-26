@@ -38,11 +38,15 @@ processed_data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/cov_fasta_fil
 working_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 
 #---------------------------------------------------------------------------------------------------------------------# 
+# RUN WITH: singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python run_covPROTEIN_ER.py cov_fasta_files/NSP1_aligned.fasta cov_fasta_files/NSP1_ref.fasta $SLURM_CPUS_PER_TASK
+
+
+
 # File Names from MSA-PDB matching and Muscling
 msa_file = sys.argv[1]
 ref_file = sys.argv[2]
 num_threads = int(sys.argv[3])- 4
-
+pfam_id = 'spike'
 
 print('Preprocessing FASTA files %s and %s '%(msa_file,ref_file))
 try:
@@ -94,7 +98,7 @@ erdca_inst = erdca.ERDCA(
     s_index = s_index,
     pseudocount = 0.5,
     num_threads = num_threads,
-    seqid = 0.8)
+    seqid = 0.2)
 
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()

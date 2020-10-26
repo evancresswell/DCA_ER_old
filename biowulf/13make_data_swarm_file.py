@@ -46,9 +46,9 @@ f_large = open('erdca_large.swarm','w')
 for pfam in s_er:
     #f.write('python 1main_DCA.py %s\n'%(pfam))
     if pfam in top_10p_pfam:
-        f_large.write('singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_data_prep_MSA-PDB.py %s 16 && muscle -profile -in1 pfam_ecc/MSA_%s_match.fa -in2 pfam_ecc/PP_ref_%s_match.fa -out pfam_ecc/PP_muscle_msa_%s.fa  && singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_ER_MSA-PDB.py %s $SLURM_CPUS_PER_TASK\n'%(pfam,pfam,pfam,pfam,pfam))    
+        f_large.write('singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_data_prep_MSA-PDB.py %s 16 && muscle -profile -in1 pfam_ecc/MSA_%s_.fa -in2 pfam_ecc/PP_ref_%s_.fa -out pfam_ecc/PP_muscle_msa_%s.fa  && singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_ER_MSA-PDB.py %s $SLURM_CPUS_PER_TASK\n'%(pfam,pfam,pfam,pfam,pfam))    
     else:
-        f.write('singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_data_prep_MSA-PDB.py %s 16 && muscle -profile -in1 pfam_ecc/MSA_%s_match.fa -in2 pfam_ecc/PP_ref_%s_match.fa -out pfam_ecc/PP_muscle_msa_%s.fa  && singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_ER_MSA-PDB.py %s $SLURM_CPUS_PER_TASK\n'%(pfam,pfam,pfam,pfam,pfam))    
+        f.write('singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_data_prep_MSA-PDB.py %s 16 && muscle -profile -in1 pfam_ecc/MSA_%s_.fa -in2 pfam_ecc/PP_ref_%s_.fa -out pfam_ecc/PP_muscle_msa_%s.fa  && singularity exec -B /data/cresswellclayec/DCA_ER/,/data/cresswellclayec/hoangd2_data/ /data/cresswellclayec/DCA_ER/erdca.simg python run_ER_MSA-PDB.py %s $SLURM_CPUS_PER_TASK\n'%(pfam,pfam,pfam,pfam,pfam))    
     #f.write('python 1main_ERM.py %s\n'%(pfam))
 f.close()
 f_large.close()

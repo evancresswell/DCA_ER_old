@@ -47,6 +47,10 @@ pp_msa_file_match = processed_data_path+'MSA_'+pfam_id+'_match.fa'
 pp_ref_file_range = processed_data_path+'PP_ref_'+pfam_id+'_range.fa'
 pp_ref_file_match = processed_data_path+'PP_ref_'+pfam_id+'_match.fa'
 
+pp_msa_file = processed_data_path+'MSA_'+pfam_id+'_.fa'
+pp_ref_file = processed_data_path+'PP_ref_'+pfam_id+'_.fa'
+
+
 muscle_msa_file = processed_data_path+ 'PP_muscle_msa_'+pfam_id+'.fa'
 
 print('Preprocessing MUSCLE DATA')
@@ -57,12 +61,12 @@ try:
 		if os.path.exists(pp_msa_file_match):
 			trimmer = msa_trimmer.MSATrimmer(
 			    muscle_msa_file, biomolecule='PROTEIN',
-			    refseq_file=pp_ref_file_match
+			    refseq_file=pp_ref_file
 			)
 		else:
 			trimmer = msa_trimmer.MSATrimmer(
 			    muscle_msa_file, biomolecule='PROTEIN',
-			    refseq_file=pp_ref_file_range
+			    refseq_file=pp_ref_file
 			)
 		muscling = True # so we use the pp_range-MSAmatched and muscled file!!
 	elif os.path.exists(pp_msa_file_match):

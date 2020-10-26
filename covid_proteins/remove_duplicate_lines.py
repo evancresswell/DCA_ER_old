@@ -19,7 +19,7 @@ from gen_ROC_jobID_df import add_ROC
 
 # Extracts all sequences whos ID contain a given name (protein_name)
 #	- saves file for alignment
-# 	- RUN WITH: exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python remove_duplicate_lines.py cov_fasta_files/Spike.fasta spike_NoDup 
+# 	- RUN WITH: singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python remove_duplicate_lines.py cov_fasta_files/Spike.fasta spike_NoDup 
 
 data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'

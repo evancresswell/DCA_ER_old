@@ -19,15 +19,17 @@ from gen_ROC_jobID_df import add_ROC
 
 # Extracts all sequences whos ID contain a given name (protein_name)
 #	- saves file for alignment
-# 	- RUN WITH:  singularity exec -B /data/cresswellclayec/DCA_ER/covid_proteins/,/data/cresswellclayec/DCA_ER/biowulf /data/cresswellclayec/DCA_ER/erdca.simg python extract_protein.py Spike allprot1017.fasta
+#	- need to define protein name
+# 	- RUN WITH:  singularity exec -B /data/cresswellclayec/DCA_ER/covid_proteins/,/data/cresswellclayec/DCA_ER/biowulf /data/cresswellclayec/DCA_ER/erdca.simg python extract_protein.py allprot1017.fasta
 
 data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 data_out = '/data/cresswellclayec/DCA_ER/covid_proteins/cov_fasta_files/'
 
 
-protein_name = sys.argv[1] 
-full_fasta_file = sys.argv[2]
+protein_name = 'Spike' 
+protein_name = 'NSP1|' 
+full_fasta_file = sys.argv[1]
 print('Searching for %s proteins in %s ' %(r''.join(protein_name),full_fasta_file))
 
 
@@ -39,7 +41,7 @@ from Bio import SeqIO
 with open(full_fasta_file,"r") as handle:
 	records = []
 	for i,record in enumerate(SeqIO.parse(handle, "fasta")):
-		if regex_protein.search(''.join(record.id)):
+		if ''.join(record.id)[:len(protein_name)]==protein_name:
 			print(record.id)
 			records.append(record)
 	print('\n\nWriting file with %s Sequences'%(protein_name))	
