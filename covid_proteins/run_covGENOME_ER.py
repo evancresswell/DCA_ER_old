@@ -26,11 +26,6 @@ root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 cpus_per_job = int(sys.argv[1])
 print("Calculating DI for Sars-Cov-2 using %d (of %d) threads"%(cpus_per_job-4,cpus_per_job))
 
-
-msa_file = root_dir+"covid_genome_europe_aligned.fasta"
-
-msa_file = root_dir+"covid_genome_europe.fasta"
-
 msa_file = root_dir+"21052020-Cov19gisaid-consensus-l29000-1-v1-FastaCikti.fasta"
 ref_file = root_dir+"subset_ref.fasta"
 

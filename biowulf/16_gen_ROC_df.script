@@ -11,7 +11,7 @@
 #swarm -f  MF_job-53760930_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
 #swarm -f  PLM_job-53760928_swarm_ouput.swarm -g 5.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
 
-swarm -f  ER_job-431513_swarm_ouput.swarm -g 5.0 --time=0-01:00:00 --module singularity --logdir swarm_output --bundle 50 #  quick # norm
-#swarm -f  MF_job-66621384_swarm_ouput.txt -g 5.0 --time=0-01:00:00 --module singularity --logdir swarm_output --bundle 50 #  quick # norm
-#swarm -f  PLM_job-66614118_swarm_ouput.txt  -g 5.0 --time=0-01:00:00 --module singularity --logdir swarm_output --bundle 50 #  quick # norm
+swarm -f  ER_job-1154516_swarm_ouput.swarm -g 5.0 --time=0-05:00:00 --module singularity --logdir swarm_output  #  quick # norm
+swarm -f  MF_job-66621384_swarm_ouput.swarm -g 5.0 --time=0-05:00:00 --module singularity --logdir swarm_output  #  quick # norm
+swarm -f  PLM_job-66614118_swarm_ouput.swarm  -g 5.0 --time=0-05:00:00 --module singularity --logdir swarm_output  #  quick # norm
 #-------------------------------------------------------------------------------------------------------------------------------------------------------------------#

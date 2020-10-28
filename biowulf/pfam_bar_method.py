@@ -15,12 +15,13 @@ xtick_params = {'xtick.labelsize':'small'}
 pylab.rcParams.update(xtick_params)
 print('using backend: ',matplotlib.get_backend())
 
-finding_best_method = False
+using_AUC = False
 finding_best_method = True
+finding_best_method = False
 method_list = ['covER','coupER','ER','PLM','MF']
 method_list = ['covER','PLM','MF']
-method_list = ['ER','PLM','MF']
 method_list = ['ER','MF']
+method_list = ['ER','PLM','MF']
 print('\n\n\nFinding best method of: ',method_list)
 print('\n\n\n')
 
@@ -31,6 +32,7 @@ if finding_best_method:
 	pr_file = "df_PR_method_summary.pkl"
 	aupr_file = "df_AUPR_method_summary.pkl"
 	auc_file = "df_AUC_method_summary.pkl"
+	autpr_file = "df_AUTPR_method_summary.pkl"
 
 	df_TP = pd.read_pickle(tp_file)
 	df_FP = pd.read_pickle(fp_file)
@@ -38,15 +40,21 @@ if finding_best_method:
 	df_PR = pd.read_pickle(pr_file)
 	df_AUPR = pd.read_pickle(aupr_file)
 	df_AUC = pd.read_pickle(auc_file)
+	df_AUTPR = pd.read_pickle(autpr_file)
 
 	#df_diff = df_AUPR.copy()
 	df_AUC_diff = df_AUC.copy()
 	df_AUPR_diff = df_AUPR.copy()
+	df_AUTPR_diff = df_AUTPR.copy()
 
 	#print(df_AUPR_diff.head())
+	if using_AUC:
+		df_diff = df_AUC_diff.copy()
+		df_diff_full = df_AUC_diff.copy()
+	else:
+		df_diff = df_AUTPR_diff.copy()
+		df_diff_full = df_AUTPR_diff.copy()
 
-	df_diff = df_AUC_diff.copy()
-	df_diff_full = df_AUC_diff.copy()
 	print("df_diff_full shape: " ,df_diff_full.shape	)
 	print("number of pfams: " ,len(df_diff_full['Pfam'].unique()))	
 	print("df_diff_full methods: " ,df_diff_full['method'].unique())	
@@ -64,10 +72,21 @@ if finding_best_method:
 	
 	df_diff['best_method'] = 'None'
 	df_diff_full['best_method'] = 'None'
+	df_diff_full = df_diff_full.rename(columns={"Score":"AUTPR"})
 	df_diff_full['Score'] = 0.
 	df_diff['Score'] = 0.
 	bad_guess_pfams = []
+	print(df_diff_full.keys())
+
+	method_intersection_list = []
 	for protein_family in df_diff_full['Pfam']:
+		df_protein = df_diff_full.loc[df_diff_full['Pfam']==protein_family]
+		if len(df_protein)==len(method_list):
+			method_intersection_list.append(protein_family)
+			
+	print('%d Pfams (of %d) have scores for all 3 Methods..'%(len(method_intersection_list),len(df_diff_full)))
+
+	for protein_family in method_intersection_list:
 		#print(protein_family)
 		try:
 
@@ -77,35 +96,62 @@ if finding_best_method:
 			# Use only methods defined in method list
 			methods = df_protein['method'].unique()
 			print(methods)
-
-			AUC_max = df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC']
+			if using_AUC:
+				AUC_max = df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC']
+			else:
+				AUTPR_max = df_protein.at[df_protein[df_protein['AUTPR'] == df_protein['AUTPR'].max()].index.tolist()[0],'AUTPR']
 			for method in methods:
-				# score calculation AUC_meth - AUC_non_meth_max
-				AUC_method = df_protein.at[df_protein[df_protein['method'] == method].index.tolist()[0],'AUC']
-				non_method_df = df_protein.loc[df_protein['method'] != method]
-				AUC_other = non_method_df.at[non_method_df[non_method_df['AUC'] \
-				== non_method_df['AUC'].max()].index.tolist()[0],'AUC']
-				score = (AUC_method - AUC_other) 
+				
+				if using_AUC:
+					# score calculation AUC_meth - AUC_non_meth_max
+					AUC_method = df_protein.at[df_protein[df_protein['method'] == method].index.tolist()[0],'AUC']
+					non_method_df = df_protein.loc[df_protein['method'] != method]
+					AUC_other = non_method_df.at[non_method_df[non_method_df['AUC'] \
+					== non_method_df['AUC'].max()].index.tolist()[0],'AUC']
+					score = (AUC_method - AUC_other) 
+				else:
+					# score calculation AUC_meth - AUC_non_meth_max
+					AUTPR_method = df_protein.at[df_protein[df_protein['method'] == method].index.tolist()[0],'AUTPR']
+					non_method_df = df_protein.loc[df_protein['method'] != method]
+					AUTPR_other = non_method_df.at[non_method_df[non_method_df['AUTPR'] \
+					== non_method_df['AUTPR'].max()].index.tolist()[0],'AUTPR']
+					score = (AUTPR_method - AUTPR_other) 
+
 
 				# score calculation AUC_meth / AUC_max
-				score = AUC_method / AUC_max
-				#score = (AUC_max - AUC_min) * np.heaviside(AUC_max,.5)  
+				if using_AUC:
+					score = AUC_method / AUC_max
+					#score = (AUC_max - AUC_min) * np.heaviside(AUC_max,.5)  
+					print(method,' Score = ',AUC_method,' - ' ,AUC_other,' = ', score)
+				else:
+					score = AUTPR_method / AUTPR_max
+					print(method,' Score = ',AUTPR_method,' - ' ,AUTPR_other,' = ', score)
 
-				print(method,' Score = ',AUC_method,' - ' ,AUC_other,' = ', score)
 
 				df_diff_full['Score'].loc[df_diff_full['Pfam']==protein_family,df_diff_full['method']==method] = score
 				df_diff['Score'].loc[df_diff['Pfam']==protein_family,df_diff['method']==method] = score
 
 			# get best method
-			method_max = df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'method']
-			#print('best method: ',method_max,' score:',df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'])
-
-			if df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'] > .5:
-				df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
+			if using_AUC:
+				method_max = df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'method']
 			else:
-				#print('for pfam ',protein_family,' method ',method_max,' has has best AUC: ,',df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'])
-				bad_guess_pfams.append(protein_family)
-				df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
+				method_max = df_protein.at[df_protein[df_protein['AUTPR'] == df_protein['AUTPR'].max()].index.tolist()[0],'method']
+
+			#print('best method: ',method_max,' score:',df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'])
+			if using_AUC:
+				if df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'] > .5:
+					df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
+				else:
+					#print('for pfam ',protein_family,' method ',method_max,' has has best AUC: ,',df_protein.at[df_protein[df_protein['AUC'] == df_protein['AUC'].max()].index.tolist()[0],'AUC'])
+					bad_guess_pfams.append(protein_family)
+					df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
+			else:
+				if df_protein.at[df_protein[df_protein['AUTPR'] == df_protein['AUTPR'].max()].index.tolist()[0],'AUTPR'] > .5:
+					df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
+				else:
+					#print('for pfam ',protein_family,' method ',method_max,' has has best AUTPR: ,',df_protein.at[df_protein[df_protein['AUTPR'] == df_protein['AUTPR'].max()].index.tolist()[0],'AUTPR'])
+					bad_guess_pfams.append(protein_family)
+					df_diff.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
 			df_diff_full.loc[df_diff['Pfam']==protein_family,'best_method'] = method_max
 		except IndexError:
 			print('ERROR in : ',protein_family)
@@ -135,7 +181,8 @@ else:
 print('df_diff_full shape: ',df_diff_full.shape)
 df_diff_full = df_diff_full[df_diff_full['method'].isin(method_list)]
 df_diff = df_diff_full.copy()
-df_diff = df_diff.loc[df_diff['AUC']>.5]
+if using_AUC:
+	df_diff = df_diff.loc[df_diff['AUC']>.5]
 print("Using ",method_list," method set we have found best methods:" ,df_diff_full['best_method'].unique())
 print('df_diff_full shape: ',df_diff_full.shape)
 
@@ -146,9 +193,15 @@ print(df_diff.columns)
 
 plot_best_method_only = True
 if plot_best_method_only:
-	er_mean = df_diff_full.loc[df_diff_full['method']=='ER']['AUC'].mean()
-	mf_mean = df_diff_full.loc[df_diff_full['method']=='MF']['AUC'].mean()
-	plm_mean = df_diff_full.loc[df_diff_full['method']=='PLM']['AUC'].mean()
+	if using_AUC:
+		er_mean = df_diff_full.loc[df_diff_full['method']=='ER']['AUC'].mean()
+		mf_mean = df_diff_full.loc[df_diff_full['method']=='MF']['AUC'].mean()
+		plm_mean = df_diff_full.loc[df_diff_full['method']=='PLM']['AUC'].mean()
+	else:
+		er_mean = df_diff_full.loc[df_diff_full['method']=='ER']['AUTPR'].mean()
+		mf_mean = df_diff_full.loc[df_diff_full['method']=='MF']['AUTPR'].mean()
+		plm_mean = df_diff_full.loc[df_diff_full['method']=='PLM']['AUTPR'].mean()
+
 	df_diff = df_diff.loc[df_diff['best_method'] == df_diff['method']]
 	df_diff_full = df_diff_full.loc[df_diff_full['best_method'] == df_diff_full['method']]
 	print(df_diff.head())
@@ -192,14 +245,23 @@ sns.set(style="darkgrid")
 if logging_x:
 	x,y,hue = 'log_num_seq_range', 'method','best_method' 
 else:
-	x,y,hue = 'num_seq_range', 'method','best_method' 
 	x,y,hue = 'seq_len_range', 'method','best_method' 
-value_y = 'AUC'
+	x,y,hue = 'num_seq_range', 'method','best_method' 
+if using_AUC:
+	value_y = 'AUC'
+else:
+	value_y = 'AUTPR'
 value_y = 'Score'
 value_hue = 'method'
 
 print(min(df_diff_full.loc[df_diff_full['method']=='PLM']['Score']))
 print(np.mean(df_diff_full.loc[df_diff_full['method']=='PLM']['Score']))
+print(min(df_diff_full.loc[df_diff_full['method']=='ER']['Score']))
+print(np.mean(df_diff_full.loc[df_diff_full['method']=='ER']['Score']))
+print(min(df_diff_full.loc[df_diff_full['method']=='MF']['Score']))
+print(np.mean(df_diff_full.loc[df_diff_full['method']=='MF']['Score']))
+
+
 
 
 #---------- Plotting --------------#
@@ -231,98 +293,58 @@ full_total = float(len(df_seq_range_count_full)) # one person per row
 print('full count: ',full_total, ' vs >.5 count: ',total)
 #--------------------------#
 
-if 0:
-	# --plot summary method scores and counts --#
-	f, axes = plt.subplots(1, 2,sharey=True)
-	plt.ylim((.8,1.1))
-	sns.barplot(x=value_hue, y=value_y, hue=value_hue, data=df_diff_full,order = num_seq_order,estimator=mean,ax=axes[0])
-	sns.barplot(x=value_hue,y=value_y, hue=value_hue, data=df_diff,order = num_seq_order,estimator=mean,ax=axes[1])
-	plt.ylim((.8,1.1))
-	for ax in axes:
-		for label in ax.xaxis.get_ticklabels()[0::2]:
-		    label.set_visible(False)
-
-	axes[1].set_title('Mean (AUC >.5)')
-	axes[0].set_title('Mean  (All Pfam)')
-	manager = plt.get_current_fig_manager()
-	manager.resize(*manager.window.maxsize())
-	f.set_size_inches((11, 8.5), forward=False)
-	plt.savefig('bm_mean-Score_summary.pdf', dpi=500)
-	if show_plot:
-		plt.show()
-	plt.close()
-	print(df_seq_range_count_full)
-
+if using_AUC:
 	#-- plot pfam count --#
 	f, axes = plt.subplots(1, 2)
-	sns.barplot(y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
-	sns.barplot(y=y, hue=hue,order = num_seq_order, data=df_seq_range_count,ax=axes[1])
+	if x =='num_seq_range':
+		sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
+		sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
+	if x == 'seq_len_range':
+		sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=axes[1])
+		sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=axes[1])
 	for ax in axes:
 		ax.set_ylabel('Protein Count')
 		for label in ax.xaxis.get_ticklabels()[0::2]:
 			label.set_visible(False)
 
-	axes[1].set_title('Pfam Count (AUC >.5)')
+	if using_AUC:
+		axes[1].set_title('Mean (AUC >.5)')
+	else:
+		axes[1].set_title('Mean (AUTPR >.2)')
+
 	axes[0].set_title('Pfam Count  (All Pfam)')
+
 	manager = plt.get_current_fig_manager()
 	manager.resize(*manager.window.maxsize())
 	f.set_size_inches((11, 8.5), forward=False)
-	plt.savefig('bm_count_summary.pdf',dpi=500)
+	plt.savefig('bm_count.pdf',dpi=500)
 	if show_plot:
 		plt.show()
 	plt.close()
 	#---------------------#
-
-	#-------------------------------------------#
-
-
-	# --plot mean value-- #
-	f, axes = plt.subplots(1, 2,sharey=True)
-	plt.ylim((.8,1.1))
-	sns.barplot(x=x, y=value_y, hue=value_hue, data=df_diff_full,order = num_seq_order,estimator=mean,ax=axes[0])
-	sns.barplot(x=x, y=value_y, hue=value_hue, data=df_diff,order = num_seq_order,estimator=mean,ax=axes[1])
-	plt.ylim((.8,1.1))
-	for ax in axes:
-		for label in ax.xaxis.get_ticklabels()[0::2]:
-		    label.set_visible(False)
-
-	axes[1].set_title('Mean (AUC >.5)')
-	axes[0].set_title('Mean  (All Pfam)')
-	manager = plt.get_current_fig_manager()
-	manager.resize(*manager.window.maxsize())
-	f.set_size_inches((11, 8.5), forward=False)
-	plt.savefig('bm_mean-Score.pdf', dpi=500)
-	if show_plot:
-		plt.show()
-	plt.close()
-	#---------------------#
-
-#-- plot pfam count --#
-f, axes = plt.subplots(1, 2)
-if x =='num_seq_range':
-	sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
-	sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
-if x == 'seq_len_range':
-	sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=axes[1])
-	sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=axes[1])
-for ax in axes:
+	#----------------------------------#
+else:
+	#-- plot pfam count --#
+	f, ax = plt.subplots(1, 1)
+	if x =='num_seq_range':
+		sns.barplot(x=x, y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=ax)
+	if x == 'seq_len_range':
+		sns.barplot(x=x, y=y, hue=hue,order = seq_len_order, data=df_seq_range_count,ax=ax)
 	ax.set_ylabel('Protein Count')
 	for label in ax.xaxis.get_ticklabels()[0::2]:
 		label.set_visible(False)
 
-axes[1].set_title('Pfam Count (AUC >.5)')
-axes[0].set_title('Pfam Count  (All Pfam)')
+	ax.set_title('Pfam Count  (All Pfam)')
 
-manager = plt.get_current_fig_manager()
-manager.resize(*manager.window.maxsize())
-f.set_size_inches((11, 8.5), forward=False)
-plt.savefig('bm_count.pdf',dpi=500)
-if show_plot:
-	plt.show()
-plt.close()
-#---------------------#
-#----------------------------------#
-
+	manager = plt.get_current_fig_manager()
+	manager.resize(*manager.window.maxsize())
+	f.set_size_inches((11, 8.5), forward=False)
+	plt.savefig('bm_count.pdf',dpi=500)
+	if show_plot:
+		plt.show()
+	plt.close()
+	#---------------------#
+	#----------------------------------#
 
 zooming_in = False
 if zooming_in:
@@ -363,8 +385,12 @@ if zooming_in:
 	for ax in axes:
 		for label in ax.xaxis.get_ticklabels()[::2]:
 		    label.set_visible(False)
+	if using_AUC:
+		axes[1].set_title('Mean (AUC >.5)')
+	else:
+		axes[1].set_title('Mean (AUTPR >.2)')
 
-	axes[1].set_title('Mean (AUC >.5)')
+
 	axes[0].set_title('Mean  (All Pfam)')
 	manager = plt.get_current_fig_manager()
 	manager.resize(*manager.window.maxsize())
@@ -385,7 +411,12 @@ if zooming_in:
 		ax.set_ylabel('Protein Count')
 		for label in ax.xaxis.get_ticklabels()[::2]:
 		    label.set_visible(False)
-	axes[1].set_title('Pfam Count (AUC >.5)')
+	if using_AUC:
+			axes[1].set_title('Mean (AUC >.5)')
+	else:
+			axes[1].set_title('Mean (AUTPR >.2)')
+
+
 	axes[0].set_title('Pfam Count  (All Pfam)')
 	manager = plt.get_current_fig_manager()
 	manager.resize(*manager.window.maxsize())
@@ -439,7 +470,13 @@ if zooming_in:
 		for label in ax.xaxis.get_ticklabels()[::2]:
 		    label.set_visible(False)
 
-	axes[1].set_title('Mean (AUC >.5)')
+	if using_AUC:
+			axes[1].set_title('Mean (AUC >.5)')
+	else:
+			axes[1].set_title('Mean (AUTPR >.2)')
+
+
+
 	axes[0].set_title('Mean (All Pfam)')
 	manager = plt.get_current_fig_manager()
 	manager.resize(*manager.window.maxsize())
@@ -463,7 +500,11 @@ if zooming_in:
 		ax.set_ylabel('Protein Count')
 		for label in ax.xaxis.get_ticklabels()[::2]:
 		    label.set_visible(False)
-	axes[1].set_title('Pfam Count (AUC >.5)')
+	if using_AUC:
+			axes[1].set_title('Mean (AUC >.5)')
+	else:
+			axes[1].set_title('Mean (AUTPR >.2)')
+
 	axes[0].set_title('Pfam Count (All Pfam)')
 	manager = plt.get_current_fig_manager()
 	manager.resize(*manager.window.maxsize())
@@ -479,3 +520,79 @@ if zooming_in:
 	#-----------------------------------------------------------------#
 
 
+if 0:
+	# --plot summary method scores and counts --#
+	f, axes = plt.subplots(1, 2,sharey=True)
+	plt.ylim((.8,1.1))
+	sns.barplot(x=value_hue, y=value_y, hue=value_hue, data=df_diff_full,order = num_seq_order,estimator=mean,ax=axes[0])
+	sns.barplot(x=value_hue,y=value_y, hue=value_hue, data=df_diff,order = num_seq_order,estimator=mean,ax=axes[1])
+	plt.ylim((.8,1.1))
+	for ax in axes:
+		for label in ax.xaxis.get_ticklabels()[0::2]:
+		    label.set_visible(False)
+	if using_AUC:
+		axes[1].set_title('Mean (AUC >.5)')
+	else:
+		axes[1].set_title('Mean (AUTPR >.2)')
+	axes[0].set_title('Mean  (All Pfam)')
+	manager = plt.get_current_fig_manager()
+	manager.resize(*manager.window.maxsize())
+	f.set_size_inches((11, 8.5), forward=False)
+	plt.savefig('bm_mean-Score_summary.pdf', dpi=500)
+	if show_plot:
+		plt.show()
+	plt.close()
+	print(df_seq_range_count_full)
+
+	#-- plot pfam count --#
+	f, axes = plt.subplots(1, 2)
+	sns.barplot(y=y, hue=hue,order = num_seq_order, data=df_seq_range_count_full,ax=axes[0])
+	sns.barplot(y=y, hue=hue,order = num_seq_order, data=df_seq_range_count,ax=axes[1])
+	for ax in axes:
+		ax.set_ylabel('Protein Count')
+		for label in ax.xaxis.get_ticklabels()[0::2]:
+			label.set_visible(False)
+
+	if using_AUC:
+		axes[1].set_title('Mean (AUC >.5)')
+	else:
+		axes[1].set_title('Mean (AUTPR >.2)')
+
+	axes[0].set_title('Pfam Count  (All Pfam)')
+	manager = plt.get_current_fig_manager()
+	manager.resize(*manager.window.maxsize())
+	f.set_size_inches((11, 8.5), forward=False)
+	plt.savefig('bm_count_summary.pdf',dpi=500)
+	if show_plot:
+		plt.show()
+	plt.close()
+	#---------------------#
+
+	#-------------------------------------------#
+
+
+	# --plot mean value-- #
+	f, axes = plt.subplots(1, 2,sharey=True)
+	plt.ylim((.8,1.1))
+	sns.barplot(x=x, y=value_y, hue=value_hue, data=df_diff_full,order = num_seq_order,estimator=mean,ax=axes[0])
+	sns.barplot(x=x, y=value_y, hue=value_hue, data=df_diff,order = num_seq_order,estimator=mean,ax=axes[1])
+	plt.ylim((.8,1.1))
+	for ax in axes:
+		for label in ax.xaxis.get_ticklabels()[0::2]:
+		    label.set_visible(False)
+
+	if using_AUC:
+		axes[1].set_title('Mean (AUC >.5)')
+	else:
+		axes[1].set_title('Mean (AUTPR >.2)')
+
+
+	axes[0].set_title('Mean  (All Pfam)')
+	manager = plt.get_current_fig_manager()
+	manager.resize(*manager.window.maxsize())
+	f.set_size_inches((11, 8.5), forward=False)
+	plt.savefig('bm_mean-Score.pdf', dpi=500)
+	if show_plot:
+		plt.show()
+	plt.close()
+	#---------------------#

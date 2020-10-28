@@ -68,6 +68,7 @@ try:
 			    muscle_msa_file, biomolecule='PROTEIN',
 			    refseq_file=pp_ref_file
 			)
+		pp_ref_file = pp_ref_file_match
 		muscling = True # so we use the pp_range-MSAmatched and muscled file!!
 	elif os.path.exists(pp_msa_file_match):
 		trimmer = msa_trimmer.MSATrimmer(
@@ -75,16 +76,17 @@ try:
 		    refseq_file=pp_ref_file_match
 		)  
 		muscling = False
+		pp_ref_file = pp_ref_file_match
 	else:
 		trimmer = msa_trimmer.MSATrimmer(
 		    pp_msa_file_range, biomolecule='PROTEIN',
 		    refseq_file=pp_ref_file_range
 		)  
+		pp_ref_file = pp_ref_file_range
 		muscling = False
 
 	# Adding the data_processing() curation from tools to erdca.
 	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-	pp_ref_file = pp_ref_file_match
     
 except(MSATrimmerException):
 	print('           MUSCLE DATA did not work. Trying orginal PDB-Range DATA\nMSATrimmerException')

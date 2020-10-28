@@ -55,7 +55,7 @@ try:
 	    msa_file, biomolecule='PROTEIN',
 	    refseq_file=ref_file
 	)
-	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False,conserved_cols=.95)
 	    
 except(MSATrimmerException):
 	ERR = 'PPseq-MSA'
@@ -81,8 +81,6 @@ pfam_dict['msa'] = preprocessed_data
 pfam_dict['s_index'] = s_index
 pfam_dict['s_ipdb'] = s_ipdb
 pfam_dict['cols_removed'] = cols_removed
-pfam_dict['ref_seq_file'] = pp_ref_file
-pfam_dict['muscle'] = muscling
 
 input_data_file = processed_data_path+ "%s_DP.pickle"%(pfam_id)
 with open(input_data_file,"wb") as f:
@@ -108,7 +106,7 @@ print('ER run time: %f \n\n'%run_time)
 pfam_dict['runtime'] = run_time
 
 
-di_filename = working_dir+'DI/ER/ER_DI_%s.pickle'%(pfam_id)
+di_filename = working_dir+'ER_DI_%s.pickle'%(pfam_id)
 print('\n\nSaving file as ', di_filename)
 with open(di_filename, 'wb') as f:
 	pickle.dump(erdca_DI, f)

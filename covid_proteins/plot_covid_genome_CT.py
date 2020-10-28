@@ -216,35 +216,51 @@ plt.close()
 
 zooming = True
 if zooming:
-	# Find range for Spike surface glycoprotein.
-	protein_range = [21563,25384]
-	protein_name = 'Surface Glycoprotein'
-	index_start = min( i for i in  s_index if i > protein_range[0])
-	index_end = max( i for i in  s_index if i < protein_range[1])
-	index_range = ( np.where(s_index==index_start)[0], np.where(s_index==index_end)[0] )
+	protein_ranges = {}				#  buffer of 265 --> [0, 264]
+	protein_ranges['ORF1ab']	= [265,21555] 	#  21290
+	protein_ranges['S'] 		= [21556,25378] #  3822
+	protein_ranges['ORF3a'] 	= [25379,26207] #  828 
+	protein_ranges['E'] 		= [26208,26436] #  228 
+	protein_ranges['M'] 		= [26437,27106] #  669 
+	protein_ranges['ORF6a'] 	= [27107,27293] #  186
+	protein_ranges['ORF7a'] 	= [27294,27660] #  366
+	protein_ranges['ORF7b'] 	= [27661,27793] #  132
+	protein_ranges['ORF8'] 		= [27794,27987] #  193
+	protein_ranges['N'] 		= [27988,28896] #  908
+	protein_ranges['ORF10'] 	= [28897,29014] #  117
+							#  buffer of 229 --> [29015, 29244]
+
+	for protein_name in protein_ranges.keys():
+		protein_range = protein_ranges[protein_name]
+		index_start = min( i for i in  s_index if i > protein_range[0])
+		index_end = max( i for i in  s_index if i < protein_range[1])
+		if index_end - index_start == 0 :
+			print('%s - genome section has no variance in columns (>90% conserved)')
+			continue
+		index_range = ( np.where(s_index==index_start)[0], np.where(s_index==index_end)[0] )
 
 
-	fig_zoom, ax_zoom = plt.subplots()
-	#plt.title('Contact Map')
-	plt.imshow(di_predict,cmap='Greys',origin='lower')
-	plt.clim(0,.001)
-	plt.xlabel('i')
-	plt.ylabel('j')
+		fig_zoom, ax_zoom = plt.subplots()
+		#plt.title('Contact Map')
+		plt.imshow(di_predict,cmap='Greys',origin='lower')
+		plt.clim(0,.001)
+		plt.xlabel('i')
+		plt.ylabel('j')
 
 
-	tick_locs = [index_range[0],index_range[1]] 
-	tick_labels = [s_index[index_range[0]],s_index[index_range[1]]] 
-	ax_zoom.set_xticks(tick_locs)
-	ax_zoom.set_xticklabels(tick_labels)
-	ax_zoom.set_yticks(tick_locs)
-	ax_zoom.set_yticklabels(tick_labels)
-	plt.xlim(index_range)
-	plt.ylim(index_range)
-	plt.title('COV-19 Genome Interaction Map\n%s (%d, %d)'%(protein_name,protein_range[0],protein_range[1]))
-	plt.colorbar(fraction=0.045, pad=0.05)
-	plt.scatter(i_predictions,j_predictions,marker=  'o',color='g')
-	plt.show()
-	plt.close()
+		tick_locs = [index_range[0],index_range[1]] 
+		tick_labels = [s_index[index_range[0]],s_index[index_range[1]]] 
+		ax_zoom.set_xticks(tick_locs)
+		ax_zoom.set_xticklabels(tick_labels)
+		ax_zoom.set_yticks(tick_locs)
+		ax_zoom.set_yticklabels(tick_labels)
+		plt.xlim(index_range)
+		plt.ylim(index_range)
+		plt.title('COV-19 Genome Interaction Map\n%s (%d, %d)'%(protein_name,protein_range[0],protein_range[1]))
+		plt.colorbar(fraction=0.045, pad=0.05)
+		plt.scatter(i_predictions,j_predictions,marker=  'o',color='g')
+		plt.show()
+		plt.close()
 
 
 

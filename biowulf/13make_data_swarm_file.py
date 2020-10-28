@@ -53,3 +53,17 @@ for pfam in s_er:
 f.close()
 f_large.close()
 
+# runs for new version in reserve
+if 0:
+	f = open('old_dca.swarm','w')
+	f_large = open('old_dca_large.swarm','w')
+	for pfam in s_er:
+	    #f.write('python 1main_DCA.py %s\n'%(pfam))
+	    if pfam in top_10p_pfam:
+		f_large.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/pydca-py37.simg python run_singlePFAM_DCA.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+	    else:
+		f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_DCA.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+	    #f.write('python 1main_ERM.py %s\n'%(pfam))
+	f.close()
+	f_large.close()
+

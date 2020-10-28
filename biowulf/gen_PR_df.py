@@ -8,14 +8,16 @@ from sklearn.metrics import roc_auc_score
 import numpy as np
 import pickle
 method_list = ["ER","coupER","covER"]
-method_list = ["ER","PLM", "MF"]
 method_list = ["MF","PLM","ER","coupER","covER"]
-data_AUC = {}
+method_list = ["ER","PLM", "MF"]
+#data_AUC = {}
 data_AUPR = {}
 data_PR = {}
 data_TP = {}
 data_FP = {}
 data_P = {}
+data_TPR = {}
+data_AUTPR = {}
 ROC = {}
 generate_TPFP_df = True
 join_style = 'outer'
@@ -23,13 +25,16 @@ print('\n\n\nTHE FIRST PKL FILE MUST BE ER!!!!\n\n\n')
 if generate_TPFP_df:
 	df_TP = pd.DataFrame()
 	df_FP = pd.DataFrame()
-	df_AUC = pd.DataFrame()
+	#df_AUC = pd.DataFrame()
+	df_AUTPR = pd.DataFrame()
+	df_TPR = pd.DataFrame()
 	df_P = pd.DataFrame()
 	for ii,filepath in enumerate(sys.argv[1:]):
 		print("\n\n\n\nLoading ROC DataFrame: ",filepath)
 		df = pd.read_pickle(filepath)
 		print("\nDataFrame size: ",df.shape)
 
+		print(df.keys())
 
 		# Remove duplicate rows...
 		print('Removing Duplicates...')
@@ -55,8 +60,11 @@ if generate_TPFP_df:
 
 		print('\n\nIntial df head: \n',df.head())
 		# remove empty rows
-		df = df.loc[df['AUC']!=-1]
-		print("remove empty rows")
+		print('Different ERRORS: ',df['ERR'].unique())
+		for err in df['ERR'].unique():
+			print('%s error count: %d'%(err,len(df.loc[df['ERR']==err])))
+		df = df.loc[df['ERR']=='None']
+		print("remove ERR rows")
 		print("df head: \n",df.head())
 
 		if filepath[0:6] =="coupER":
@@ -66,24 +74,33 @@ if generate_TPFP_df:
 			df_TP = pd.concat((df_TP,df["TP"].rename("coupER").to_frame()),axis = 1,join=join_style)
 			df_P = pd.concat((df_P,df["P"].rename("coupER").to_frame()),axis = 1,join=join_style)
 			df_FP = pd.concat((df_FP,df["FP"].rename("coupER").to_frame()),axis = 1,join=join_style)
-			df_AUC = pd.concat((df_AUC,df["AUC"].rename("coupER").to_frame()),axis = 1,join=join_style)
+			#df_AUC = pd.concat((df_AUC,df["AUC"].rename("coupER").to_frame()),axis = 1,join=join_style)
+			df_AUTPR = pd.concat((df_AUTPR,df["Score"].rename("coupER").to_frame()),axis = 1,join=join_style)
+			df_TPR = pd.concat((df_TPR,df["TPR_Method"].rename("coupER").to_frame()),axis = 1,join=join_style)
 
-			data_AUC["coupER"] = df["AUC"]
+			#data_AUC["coupER"] = df["AUC"]
 			data_TP["coupER"] = df["TP"]
 			data_FP["coupER"] = df["FP"]
 			data_P["coupER"] = df["P"]
+			data_TPR["coupER"] = df["TPR_Method"]
+			data_AUTPR["coupER"] = df["Score"]
 		elif filepath[0:5] =="covER":
 			method = "covER"
 			print('\n\nAdding info for method: '+method)
 			df_TP = pd.concat((df_TP,df["TP"].rename("covER").to_frame()),axis = 1,join=join_style)
 			df_P = pd.concat((df_P,df["P"].rename("covER").to_frame()),axis = 1,join=join_style)
 			df_FP = pd.concat((df_FP,df["FP"].rename("covER").to_frame()),axis = 1,join=join_style)
-			df_AUC = pd.concat((df_AUC,df["AUC"].rename("covER").to_frame()),axis = 1,join=join_style)
+			#df_AUC = pd.concat((df_AUC,df["AUC"].rename("covER").to_frame()),axis = 1,join=join_style)
+			df_AUTPR = pd.concat((df_AUTPR,df["Score"].rename("covER").to_frame()),axis = 1,join=join_style)
+			df_TPR = pd.concat((df_TPR,df["TPR_Method"].rename("covER").to_frame()),axis = 1,join=join_style)
 
-			data_AUC["covER"] = df["AUC"]
+			#data_AUC["covER"] = df["AUC"]
 			data_TP["covER"] = df["TP"]
 			data_FP["covER"] = df["FP"]
 			data_P["covER"] = df["P"]
+			data_TPR["covER"] = df["TPR_Method"]
+			data_AUTPR["covER"] = df["Score"]
+
 		elif filepath[:2] =="ER":
 			method = "ER"
 			print('\n\nAdding info for method: '+method)
@@ -94,46 +111,62 @@ if generate_TPFP_df:
 			df_TP = df["TP"].rename("ER").to_frame()
 			df_FP = df["FP"].rename("ER").to_frame()
 			df_P = df["P"].rename("ER").to_frame()
-			df_AUC = df["AUC"].rename("ER").to_frame()
+			#df_AUC = df["AUC"].rename("ER").to_frame()
+			df_AUTPR = pd.concat((df_AUTPR,df["Score"].rename("ER").to_frame()),axis = 1,join=join_style)
+			df_TPR = pd.concat((df_TPR,df["TPR_Method"].rename("ER").to_frame()),axis = 1,join=join_style)
 
-			data_AUC["ER"] = df["AUC"]
+			#data_AUC["ER"] = df["AUC"]
 			data_TP["ER"] = df["TP"]
 			data_FP["ER"] = df["FP"]
 			data_P["ER"] = df["P"]
+			data_TPR["ER"] = df["TPR_Method"]
+			data_AUTPR["ER"] = df["Score"]
+
 		elif filepath[:3] =="PLM":
 			method = "PLM"
 			print('\n\nAdding info for method: '+method)
 			df_TP = pd.concat((df_TP,df["TP"].rename("PLM").to_frame()),axis = 1,join=join_style)
 			df_P = pd.concat((df_P,df["P"].rename("PLM").to_frame()),axis = 1,join=join_style)
 			df_FP = pd.concat((df_FP,df["FP"].rename("PLM").to_frame()),axis = 1,join=join_style)
-			df_AUC = pd.concat((df_AUC,df["AUC"].rename("PLM").to_frame()),axis = 1,join=join_style)
+			#df_AUC = pd.concat((df_AUC,df["AUC"].rename("PLM").to_frame()),axis = 1,join=join_style)
+			df_AUTPR = pd.concat((df_AUTPR,df["Score"].rename("PLM").to_frame()),axis = 1,join=join_style)
+			df_TPR = pd.concat((df_TPR,df["TPR_Method"].rename("PLM").to_frame()),axis = 1,join=join_style)
 
-			data_AUC["PLM"] = df["AUC"]
+			#data_AUC["PLM"] = df["AUC"]
 			data_TP["PLM"] = df["TP"]
 			data_FP["PLM"] = df["FP"]
 			data_P["PLM"] = df["P"]
+			data_TPR["PLM"] = df["TPR_Method"]
+			data_AUTPR["PLM"] = df["Score"]
+
 		elif filepath[:2] == "MF":
 			method = "MF"
 			print('\n\nAdding info for method: '+method)
 			df_TP = pd.concat((df_TP,df["TP"].rename("MF").to_frame()),axis = 1,join=join_style)
 			df_P = pd.concat((df_P,df["P"].rename("MF").to_frame()),axis = 1,join=join_style)
 			df_FP = pd.concat((df_FP,df["FP"].rename("MF").to_frame()),axis = 1,join=join_style)
-			df_AUC = pd.concat((df_AUC,df["AUC"].rename("MF").to_frame()),axis = 1,join=join_style)
+			#df_AUC = pd.concat((df_AUC,df["AUC"].rename("MF").to_frame()),axis = 1,join=join_style)
+			df_AUTPR = pd.concat((df_AUTPR,df["Score"].rename("MF").to_frame()),axis = 1,join=join_style)
+			df_TPR = pd.concat((df_TPR,df["TPR_Method"].rename("MF").to_frame()),axis = 1,join=join_style)
 
-			data_AUC["MF"] = df["AUC"]
+			#data_AUC["MF"] = df["AUC"]
 			data_TP["MF"] = df["TP"]
 			data_FP["MF"] = df["FP"]
 			data_P["MF"] = df["P"]
+			data_TPR["MF"] = df["TPR_Method"]
+			data_AUTPR["MF"] = df["Score"]
+
 		else: 
 			print("Method not defined")
 		print('\nAfter adding %s, DF stats are:'%method)	
+		print('DF size: ', len(df))
 		#print('df_FP index:',df_FP.index)
 		print('df_TP:',df_TP.head())
-		print('\n df_AUC: \n',df_AUC.head(),'\n\n\n')
+		#print('\n df_AUC: \n',df_AUC.head(),'\n\n\n')
 		#print('\n\n\n')
 
 		# Trim empty lists from dfs.	
-		df = df.loc[df['TP'].str.len()!=0]
+		df = df.loc[df['TPR_Method'].str.len()!=0]
 		df.to_pickle(method+"_summary.pkl")
 
 
@@ -153,24 +186,28 @@ if generate_TPFP_df:
 	# Remove nan lines print length of dfs
 	print("\n\n Removing NaN Values\n")
 	print("Dimensions Before drop NaN:")
+	print("AUTPR: ", len(df_AUTPR))
+	print("TPR: ", len(df_TPR))
 	print("TP: ", len(df_TP))
 	print("FP: ", len(df_FP))
 	print("P: ", len(df_P))
-	print("AUC: ", len(df_AUC))
+	#print("AUC: ", len(df_AUC))
 	df_TP = df_TP.dropna()
 	df_FP = df_FP.dropna()
 	df_P = df_P.dropna()
-	df_AUC = df_AUC.dropna()
+	#df_AUC = df_AUC.dropna()
 	print("Dimensions After drop NaN:")
+	print("AUTPR: ", len(df_AUTPR))
+	print("TPR: ", len(df_TPR))
 	print("TP: ", len(df_TP))
 	print("FP: ", len(df_FP))
 	print("P: ", len(df_P))
-	print("AUC: ", len(df_AUC))
+	#print("AUC: ", len(df_AUC))
 	print("\n\n\n")
 
 
-	output = open('pfam_df_auc_allMethods.pkl', 'wb')
-	pickle.dump(df_AUC, output)	
+	#output = open('pfam_df_auc_allMethods.pkl', 'wb')
+	#pickle.dump(df_AUC, output)	
 	output = open('pfam_df_tp_allMethods.pkl', 'wb')
 	pickle.dump(df_TP, output)	
 	output = open('pfam_df_fp_allMethods.pkl', 'wb')
@@ -179,14 +216,19 @@ if generate_TPFP_df:
 	pickle.dump(df_P, output)
 
 
-	output = open('data_auc.pkl', 'wb')
-	pickle.dump(data_AUC, output)	
+	#output = open('data_auc.pkl', 'wb')
+	#pickle.dump(data_AUC, output)	
 	output = open('data_tp.pkl', 'wb')
 	pickle.dump(data_TP, output)	
 	output = open('data_fp.pkl', 'wb')
 	pickle.dump(data_FP, output)	
 	output = open('data_p.pkl', 'wb')
 	pickle.dump(data_P, output)	
+	output = open('data_autpr.pkl', 'wb')
+	pickle.dump(data_AUTPR, output)	
+	output = open('data_tpr.pkl', 'wb')
+	pickle.dump(data_TPR, output)	
+
 	"""
 	else:
 	with open('data_auc.pkl', 'rb') as f:
@@ -204,10 +246,14 @@ if generate_TPFP_df:
 		# remove duplicate indices
 		for method in method_list:
 			data_P[method] = data_P[method][~data_P[method].index.duplicated()]
+			data_AUTPR[method] = data_AUTPR[method][~data_AUTPR[method].index.duplicated()]
+			data_TPR[method] = data_TPR[method][~data_TPR[method].index.duplicated()]
 			data_TP[method] = data_TP[method][~data_TP[method].index.duplicated()]
 			data_FP[method] = data_FP[method][~data_FP[method].index.duplicated()]
 			data_AUC[method] = data_AUC[method][~data_AUC[method].index.duplicated()]
 
+		df_TPR = pd.DataFrame.from_dict(data_TPR)
+		df_AUTPR = pd.DataFrame.from_dict(data_AUTPR)
 		df_P = pd.DataFrame.from_dict(data_P)
 		df_TP = pd.DataFrame.from_dict(data_TP)
 		df_FP = pd.DataFrame.from_dict(data_FP)
@@ -237,18 +283,21 @@ if generate_TPFP_df:
 		df_FP = df_FP.loc[df_FP[method].str.len()!=0]
 		
 		print('\n\n#---Indices Info---#')
-		print('AUC DF: ',df_AUC.index)
+		#print('AUC DF: ',df_AUC.index)
 		print('TP DF: ',df_TP.index)
+		print('AUTPR DF: ',df_AUTPR.index)
 		print('FP DF: ',df_FP.index)
 		print('P DF: ',df_P.index)
 		print('#-----------------#\n\n')
 
-	print("shapes: ",df_P.shape,df_TP.shape,df_FP.shape,df_AUC.shape)
+	print("shapes: ",df_P.shape,df_TP.shape,df_FP.shape,df_AUTPR.shape)
 
 	df_P.to_pickle("P_df_summary_allMethods.pkl")
 	df_TP.to_pickle("TP_df_summary_allMethods.pkl")
 	df_FP.to_pickle("FP_df_summary_allMethods.pkl")
-	df_AUC.to_pickle("AUC_df_summary_allMethods.pkl")
+	df_AUTPR.to_pickle("AUTPR_df_summary_allMethods.pkl")
+	df_TPR.to_pickle("TPR_df_summary_allMethods.pkl")
+	#df_AUC.to_pickle("AUC_df_summary_allMethods.pkl")
 
 merge_dfs = False
 if merge_dfs:

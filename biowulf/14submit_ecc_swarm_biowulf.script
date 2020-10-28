@@ -8,5 +8,6 @@
 #swarm -f er_cov_coupling.swarm -t 20 -g 250.0 --time=0-10:00:00 --module singularity --logdir swarm_output #  quick # norm
 
 # New style holistic DI calculations with MSA-PDB matching and muscling.
-swarm -f erdca.swarm -t 20 -g 50.0 --time=0-06:00:00 --partition norm --module singularity,muscle --logdir swarm_output #  quick # norm
-swarm -f erdca_large.swarm -t 20 -g 350.0 --time=0-12:00:00 --partition norm --module singularity,muscle --logdir swarm_output #  quick # norm
+#swarm -f erdca.swarm -t 20 -g 50.0 --time=0-06:00:00 --partition norm --module singularity,muscle --logdir swarm_output #  quick # norm
+#swarm -f erdca_large.swarm -t 20 -g 150.0 --time=0-12:00:00 --partition norm --module singularity,muscle --logdir swarm_output #  quick # norm
+swarm -f erdca_mid.swarm -t 20 -g 150.0 --time=0-06:00:00 --partition norm --module singularity,muscle --logdir swarm_output #  quick # norm

@@ -56,6 +56,7 @@ for i,job_id in enumerate(jobs):
 					df.loc[df.Pfam == current_pfam,'ERR'] = muscle_error 
 			
 			f.close()
+
 	except(FileNotFoundError): 
 		print("No swarm output file for %s, assume there are no corresponding DI"%job_id)
 
@@ -87,8 +88,11 @@ else:
 	print("Setup input must be .txt file (curated jobhist output of DI simulation jobid.. See README")
 	sys.exit()
 
+print('saving ::')
+print(df.head())
 df_filename = job_string+'_setup.pkl' 
 df.to_pickle(df_filename)
+print('to :: ',df_filename)
 
 print('Generating swarm file: %s.swarm'%job_string)
 f = open('%s.swarm'%job_string,'w')

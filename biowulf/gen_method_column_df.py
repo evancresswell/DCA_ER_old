@@ -9,8 +9,9 @@ from sklearn.metrics import roc_auc_score
 import numpy as np
 method_list = ["MF","PLM","ER","covER","coupER"]
 method_list = ["MF","PLM","ER"]
-data_AUC = {}
+#data_AUC = {}
 data_AUPR = {}
+data_AUTPR = {}
 data_PR = {}
 data_TP = {}
 data_FP = {}
@@ -19,14 +20,16 @@ ROC = {}
 
 # Generate PR creates a DF where methods are considered a column value requires the <method>_summary.pkl created in gen_PR_df.py
 #									---> should change so that we only generate summary pkls in there...
+using_PR = False # as opposed to AUTPR
 generate_PR = True
 if generate_PR:
 	TP_methods = {}
 	FP_methods ={}
 	P_methods ={}
-	AUC_methods ={}
+	#AUC_methods ={}
 	PR_methods = {}
 	AUPR_methods = {}
+	AUTPR_methods = {}
 	try:
 		# Create TP and FP dataframes from all three mthods
 		for method in method_list:
@@ -36,33 +39,37 @@ if generate_PR:
 			df_TP = pd.DataFrame(df['TP'])
 			df_FP = pd.DataFrame(df['FP'])
 			df_P = pd.DataFrame(df['P'])
-			df_AUC = pd.DataFrame(df['AUC'])
+			#df_AUC = pd.DataFrame(df['AUC'])
+			df_AUTPR = pd.DataFrame(df['Score'])
 
 			# Remove rows with empty vectors
 			df_P = df_P.loc[df_P['P'].str.len()!=0]
 			df_TP = df_TP.loc[df_TP['TP'].str.len()!=0]
 			df_FP = df_FP.loc[df_FP['FP'].str.len()!=0]
 
-			# populate PR and AUPR using above dataframes
-			PR_list = []
-			AUPR_list = []
-			try:
-				for index,row in df_TP['TP'].items():
-					#Create AU - PR
-					FP = df_FP['FP']
-					PR_list.append( [tp / (tp + FP[index][i]) for i,tp in enumerate(row)] )
-					#print(PR_list[-1])
-					AUPR_list.append(np.sum(PR_list[-1])/len(PR_list[-1]))
-			except KeyError as err:
-				print("Key Error at !!: ", index)
-				print(err)
-				sys.exit()
+			if using_PR:
+				# populate PR and AUPR using above dataframes
+				PR_list = []
+				AUPR_list = []
+				try:
+					for index,row in df_TP['TP'].items():
+						#Create AU - PR
+						#FP = df_FP['FP']
+						PR_list.append( [tp / (tp + FP[index][i]) for i,tp in enumerate(row)] )
+						#print(PR_list[-1])
+						AUPR_list.append(np.sum(PR_list[-1])/len(PR_list[-1]))
+				except KeyError as err:
+					print("Key Error at !!: ", index)
+					print(err)
+					sys.exit()
 
 			# Save AU - PR Data
-			data_AUPR = {'AUPR':AUPR_list}
-			data_PR = {'PR':PR_list}
-			df_AUPR = pd.DataFrame(data_AUPR,index=df_TP.index)
-			df_PR = pd.DataFrame(data_PR,index=df_TP.index)
+			if using_PR:
+				data_AUPR = {'AUPR':AUPR_list}
+				data_PR = {'PR':PR_list}
+				df_AUPR = pd.DataFrame(data_AUPR,index=df_TP.index)
+				df_PR = pd.DataFrame(data_PR,index=df_TP.index)
+
 
 			df_TP['method'] = method
 			df_TP['Pfam'] = df['Pfam']
@@ -82,42 +89,53 @@ if generate_PR:
 			df_P['seq_len'] = df['seq_len']
 			P_methods[method] = df_P
 
-			df_AUC['method'] = method
-			df_AUC['Pfam'] = df['Pfam']
-			df_AUC['num_seq'] = df['num_seq']
-			df_AUC['seq_len'] = df['seq_len']
-			AUC_methods[method] = df_AUC
+			#df_AUC['method'] = method
+			#df_AUC['Pfam'] = df['Pfam']
+			#df_AUC['num_seq'] = df['num_seq']
+			#df_AUC['seq_len'] = df['seq_len']
+			#AUC_methods[method] = df_AUC
 
-			df_PR['method'] = method
-			df_PR['Pfam'] = df['Pfam']
-			df_PR['num_seq'] = df['num_seq']
-			df_PR['seq_len'] = df['seq_len']
-			PR_methods[method] = df_PR
+			if using_PR:
+				df_PR['method'] = method
+				df_PR['Pfam'] = df['Pfam']
+				df_PR['num_seq'] = df['num_seq']
+				df_PR['seq_len'] = df['seq_len']
+				PR_methods[method] = df_PR
 
-			df_AUPR['method'] = method
-			df_AUPR['Pfam'] = df['Pfam']
-			df_AUPR['num_seq'] = df['num_seq']
-			df_AUPR['seq_len'] = df['seq_len']
-			AUPR_methods[method] = df_AUPR
+				df_AUPR['method'] = method
+				df_AUPR['Pfam'] = df['Pfam']
+				df_AUPR['num_seq'] = df['num_seq']
+				df_AUPR['seq_len'] = df['seq_len']
+				AUPR_methods[method] = df_AUPR
 
-			print(df_AUPR)
+			df_AUTPR['method'] = method
+			df_AUTPR['Pfam'] = df['Pfam']
+			df_AUTPR['num_seq'] = df['num_seq']
+			df_AUTPR['seq_len'] = df['seq_len']
+			AUTPR_methods[method] = df_AUTPR
+
+			print(df_AUTPR)
 
 		df_TP = pd.concat(TP_methods)
 		df_FP = pd.concat(FP_methods)
 		df_P = pd.concat(P_methods)
-		df_AUC = pd.concat(AUC_methods)
-		df_AUPR = pd.concat(AUPR_methods)
-		df_PR = pd.concat(PR_methods)
+		#df_AUC = pd.concat(AUC_methods)
+		df_AUTPR = pd.concat(AUTPR_methods)
+		print(df_AUTPR)
+		if using_PR:
+			df_AUPR = pd.concat(AUPR_methods)
+			df_PR = pd.concat(PR_methods)
+			print(df_PR)
 
-		print(df_AUPR)
-		print(df_PR)
 
 		df_TP.to_pickle("df_TP_method_summary.pkl")
 		df_FP.to_pickle("df_FP_method_summary.pkl")
 		df_P.to_pickle("df_P_method_summary.pkl")
-		df_AUC.to_pickle("df_AUC_method_summary.pkl")
-		df_PR.to_pickle("df_PR_method_summary.pkl")
-		df_AUPR.to_pickle("df_AUPR_method_summary.pkl")
+		#df_AUC.to_pickle("df_AUC_method_summary.pkl")
+		if using_PR:
+			df_PR.to_pickle("df_PR_method_summary.pkl")
+			df_AUPR.to_pickle("df_AUPR_method_summary.pkl")
+		df_AUTPR.to_pickle("df_AUTPR_method_summary.pkl")
 
 		#print("AUPR: ,",df_AUPR.index)
 		#print("AUPR:len ,",len(df_AUPR.index))

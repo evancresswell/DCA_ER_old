@@ -28,7 +28,7 @@ data_out = '/data/cresswellclayec/DCA_ER/covid_proteins/cov_fasta_files/'
 
 
 protein_name = 'Spike' 
-protein_name = 'NSP1|' 
+protein_name = 'NSP3|' 
 full_fasta_file = sys.argv[1]
 print('Searching for %s proteins in %s ' %(r''.join(protein_name),full_fasta_file))
 
