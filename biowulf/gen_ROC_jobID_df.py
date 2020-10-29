@@ -59,18 +59,32 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 
 		#--------------------------------------------------------------------------------#
 		# Load processed data from smulation
-		input_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
+		input_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
 		with open(input_data_file,"rb") as f:
 			pfam_dict = pickle.load(f)
 		f.close()
 
-		s0 = pfam_dict['s0']	
-		processed_msa = pfam_dict['msa']
-		s_index = pfam_dict['s_index']	
-		s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
-		seq_row =s_ipdb 
-		cols_removed = pfam_dict['cols_removed']
-		pp_ref_file = pfam_dict['ref_seq_file']
+		if filepath[:2] =="ER":
+			s0 = pfam_dict['processed_msa']	
+			processed_msa = pfam_dict['msa']
+			s_index = pfam_dict['s_index']	
+			s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
+			seq_row =s_ipdb 
+			cols_removed = pfam_dict['cols_removed']
+			#pp_ref_file = pfam_dict['ref_seq_file']
+		else:
+			s0 = pfam_dict['processed_msa']	
+			s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
+			seq_row =s_ipdb 
+			cols_removed = pfam_dict['cols_removed']
+			#pp_ref_file = pfam_dict['ref_seq_file']
+
+		# change s0 (processed_msa) from record list to character array		
+		s = []
+		for seq_record in s0:
+			s.append([char for char in seq_record[1]])		
+		s0 = np.array(s)
+
 
 		n_var = s0.shape[1]
 		seq_lens.append(n_var)
@@ -81,8 +95,8 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 
 		df.loc[df.Pfam== pfam_id,'PDBid'] = pdb_id 
 		print('\n\n\n\n\n\n#-----------------------------------------------------------------------#\nAnalysing  %s\n#-----------------------------------------------------------------------#\n'%pfam_id,df.loc[df.Pfam== pfam_id])
-		print('\n s_index',s_index,'\nlen(s_index)=%d\n'%len(s_index))
-		print('\n cols_removed',cols_removed,'\nlen(s_index)=%d\n'%len(cols_removed))
+		#print('\n s_index',s_index,'\nlen(s_index)=%d\n'%len(s_index))
+		#print('\n cols_removed',cols_removed,'\nlen(s_index)=%d\n'%len(cols_removed))
 	
 
 		print('Ref Sequence # should be : ',tpdb-1)
@@ -102,7 +116,7 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 					DI = pickle.load(f)
 				f.close()
 			elif filepath[:2] =="ER":
-				with open("DI/ER/ER_DI_%s.pickle"%(pfam_id),"rb") as f:
+				with open("DI/ER/er_DI_%s.pickle"%(pfam_id),"rb") as f:
 					DI = pickle.load(f)
 				f.close()
 			elif filepath[:3] =="PLM":
@@ -119,17 +133,14 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 			#--------------------------------------------------------------------#
 
 			# there was an error!!! this is fixed for future version (i think)
-			pp_ref_file = preprocess_path+'PP_ref_'+pfam_id+'_.fa'
+			pp_ref_file = preprocess_path+'PP_ref_'+pfam_id+'_range.fa'
 
 			from pydca.contact_visualizer import contact_visualizer
 			erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
 			refseq_file = pp_ref_file, # eith _match or _range depending on how pre-processing went
-			#---------------- DI For Visualization ----------------#                                                    
 			sorted_dca_scores = DI,
-			#sorted_dca_scores = pdb_range_DI,
-			#------------------------------------------------------#        
 			linear_dist = 5,
-			contact_dist = 10.)
+			contact_dist = 8. )
 
 
 
@@ -145,7 +156,8 @@ def add_ROC(df,filepath,data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.f
 			#er_tp_rate_data = erdca_visualizer.plot_true_positive_rates()
 			tp_rate_dict = er_tp_rate_data = erdca_visualizer.compute_true_positive_rates()
 			score = np.trapz(tp_rate_dict['dca'],dx=1) / np.trapz(tp_rate_dict['pdb'],dx=1)
-			print('Method Score: AU-TPR_method / AUTPR_pdb',score)
+			print('Method Score: AU-TPR_method / AUTPR_pdb',score,'\n\n')
+
 
 			TPs.append(tp)		
 			FPs.append(fp)		

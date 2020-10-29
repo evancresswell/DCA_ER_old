@@ -59,14 +59,14 @@ f = open('plm.swarm','w')
 for pfam in s_plm:
     #f.write('python 1main_DCA.py %s\n'%(pfam))
     #f.write('python 1main_PLM.py %s\n'%(pfam))    
-    f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/pydca-py37.simg python run_singlePFAM_PLM.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+    f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_PLM.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
     #f.write('python 1main_ERM.py %s\n'%(pfam))
 f.close()
 
 f = open('mf.swarm','w')
 for pfam in s_mf:
     #f.write('python 1main_DCA.py %s\n'%(pfam))    
-    f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/pydca-py37.simg python run_singlePFAM_DCA.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+    f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_DCA.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
 f.close()
 #--------------------------------------------------------------#
 

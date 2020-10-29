@@ -24,6 +24,11 @@ pdb_parser = Bio.PDB.PDBParser()
 from scipy.spatial import distance_matrix
 from Bio import BiopythonWarning
 
+from pydca.sequence_backmapper import sequence_backmapper
+from pydca.msa_trimmer import msa_trimmer
+from pydca.contact_visualizer import contact_visualizer
+from pydca.dca_utilities import dca_utilities
+
 warnings.filterwarnings("error")
 warnings.simplefilter('ignore', BiopythonWarning)
 warnings.simplefilter('ignore', DeprecationWarning)
@@ -73,27 +78,14 @@ pfam_dict = {}
 #---------------------------------------------------------------------------------------------------------------------#            
 #--------------------------------------- Create PDB-PP Reference Sequence --------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
-chain = pdb_parser.get_structure(str(pdb_id),pdb_file)[0][pdb_chain] 
-ppb = PPBuilder().build_peptides(chain)                                                       
-#    print(pp.get_sequence())
-print('peptide build of chain produced %d elements\n\n'%(len(ppb)))                               
 
-matching_seq_dict = {}
-poly_seq = list()
-for i,pp in enumerate(ppb):
-    for char in str(pp.get_sequence()):
-        poly_seq.append(char)                                     
-print('PDB Polypeptide Sequence: \n',poly_seq)
+erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5])
 
-poly_seq_range = poly_seq[pdb_range[0]:pdb_range[1]]
-print('PDB Polypeptide Sequence (In Proteins PDB range len=%d): \n'%len(poly_seq_range),poly_seq_range)
-if len(poly_seq_range) < 10:
-	print('PP sequence overlap with PDB range is too small.\nWe will find a match\nBAD PDB-RANGE')
-	poly_seq_range = poly_seq
-else:
-	pp_msa_file_range, pp_ref_file_range = tools.write_FASTA(poly_seq_range, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/',nickname='range')
+biomol_info,er_pdb_seq = erdca_visualizer.pdb_content.pdb_chain_sequences[erdca_visualizer.pdb_chain_id]
+print('\n\nERDCA-Visualizer pdb seq')
+print(er_pdb_seq)
 
-pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/')
+erdca_msa_file, pp_ref_file = tools.write_FASTA(er_pdb_seq, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/')
 #---------------------------------------------------------------------------------------------------------------------#            
 
 
@@ -102,22 +94,13 @@ pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=F
 #---------------------------------------------------------------------------------------------------------------------#            
 preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
 print(preprocessed_data_outfile)
-try:
-	print('\n\nPre-Processing MSA with Range PP Seq\n\n')
-	trimmer = msa_trimmer.MSATrimmer(
-	    pp_msa_file_range, biomolecule='PROTEIN', 
-	    refseq_file=pp_ref_file_range
-	)
-	pfam_dict['ref_file'] = pp_ref_file_range
-except:
-	print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
-	# create MSATrimmer instance 
-	trimmer = msa_trimmer.MSATrimmer(
-	    pp_msa_file, biomolecule='protein', 
-	    refseq_file=pp_ref_file
-	)
-	pfam_dict['ref_file'] = pp_ref_file
-# Adding the data_processing() curation from tools to erdca.
+print('\n\nPre-Processing MSA with Range PP Seq\n\n')
+trimmer = msa_trimmer.MSATrimmer(
+    erdca_msa_file, biomolecule='PROTEIN', 
+    refseq_file = erdca_ref_file
+) 
+pfam_dict['ref_file'] = erdca_ref_file
+
 try:
 	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
 except(MSATrimmerException):
@@ -201,9 +184,6 @@ input_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
 with open(input_data_file,"wb") as f:
 	pickle.dump(pfam_dict, f)
 f.close()
-
-
-
 
 
 #---------------------------------------------------------------------------------------------------------------------#            
