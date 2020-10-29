@@ -79,13 +79,15 @@ pfam_dict = {}
 #--------------------------------------- Create PDB-PP Reference Sequence --------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
 
-erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5])
+msa_file, ref_file = tools.write_FASTA(s[tpdb], s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/',nickname='orig')
+
+erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],refseq_file=ref_file)
 
 biomol_info,er_pdb_seq = erdca_visualizer.pdb_content.pdb_chain_sequences[erdca_visualizer.pdb_chain_id]
 print('\n\nERDCA-Visualizer pdb seq')
 print(er_pdb_seq)
 
-erdca_msa_file, pp_ref_file = tools.write_FASTA(er_pdb_seq, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/')
+erdca_msa_file, erdca_ref_file = tools.write_FASTA(er_pdb_seq, s, pfam_id, number_form=False,processed=False,path='./pfam_ecc/')
 #---------------------------------------------------------------------------------------------------------------------#            
 
 

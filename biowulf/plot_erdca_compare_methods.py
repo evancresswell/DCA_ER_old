@@ -155,12 +155,16 @@ s0 = np.array(s)
 
 
 
+msa = pfam_dict['msa']	
 s_index = pfam_dict['s_index']	
 s_ipdb = pfam_dict['s_ipdb']	
 cols_removed = pfam_dict['cols_removed']
 
+
 # number of positions
 n_var = s0.shape[1]
+print('Number of ERDCA index positions..')
+print('erdca reference sequence (%d): '%(len(s0[s_ipdb])),''.join(s0[s_ipdb]))
 
 #
 #---------------------- Load DI -------------------------------------#
@@ -174,13 +178,6 @@ f.close()
 with open("%smf_DI_%s.pickle"%(mf_directory,pfam_id),"rb") as f:
 	DI_mf = pickle.load(f)
 f.close()
-
-DI_mf = distance_restr_sortedDI(DI_mf)
-DI_mf = delete_sorted_DI_duplicates(DI_mf)
-
-DI_plm = distance_restr_sortedDI(DI_plm)
-DI_plm = delete_sorted_DI_duplicates(DI_plm)
-
 
 
 erdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb[ipdb,6], pdb[ipdb,5],
@@ -207,13 +204,16 @@ biomol_info,er_pdb_seq = erdca_visualizer.pdb_content.pdb_chain_sequences[erdca_
 biomol_info,plm_pdb_seq = plmdca_visualizer.pdb_content.pdb_chain_sequences[plmdca_visualizer.pdb_chain_id]
 biomol_info,mf_pdb_seq = mfdca_visualizer.pdb_content.pdb_chain_sequences[mfdca_visualizer.pdb_chain_id]
 print('\n\nERDCA-Visualizer pdb seq')
-print(er_pdb_seq)
-print(plm_pdb_seq)
-print(plm_pdb_seq)
+print('ERDCA-pdb (%d) :\n'%(len(er_pdb_seq)),er_pdb_seq)
+print('PLM-pdb (%d) :\n'%(len(plm_pdb_seq)),plm_pdb_seq)
+print('MF-pdb (%d) :\n'%(len(mf_pdb_seq)),mf_pdb_seq)
 print('\n\n')
 
 er_tp_rate_data = erdca_visualizer.plot_contact_map()
 plt.show()
+
+sys.exit()
+
 mf_tp_rate_data = mfdca_visualizer.plot_contact_map()
 plt.show()
 plm_tp_rate_data = plmdca_visualizer.plot_contact_map()
