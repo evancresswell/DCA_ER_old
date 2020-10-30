@@ -473,7 +473,7 @@ class MSATrimmer:
  	# Define s_index 
 	# s_index should be the shape of reference-gap trimmed alignment
 	# This way we can compare our final alignment to DCA method final alingment (which is assumed for contact vis)
-        self.__s_index = np.arange(s.shape[0])
+        self.__s_index = np.arange(s.shape[1])
 
         if printing:
             print('MSA trimmed by internal function\n')
