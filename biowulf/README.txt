@@ -57,6 +57,17 @@ on Biowulf
 #---------------------------------------------------------------------#
 
 -- The following is the flow of runs to get to plotting routines once you have completed swarm simulations for various methods
+#----- WORFLOW ---------#
+#------- simple --------#
+- collect scores by creating swarm file
+	# RUN python 17gen_scores_swarm.py
+- genreate score .txt files in DI directory
+	# RUN ./18_gen_score.script
+- concatenate and print best method from scores:
+	# RUN print_AUTPR_bm.py
+
+#-----------------------#
+
 
 #----- WORKFLOW --------#
 - Collect resulting information from swarm of simulations
