@@ -79,7 +79,8 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		er_ref_seq_s0 = ER_s0[ER_s_ipdb]	
 		ref_seq_temp = list(er_ref_seq_s0)
 		print(len(er_ref_seq))
-		print(er_ref_seq_s0)
+		print('passed ref seq (%d): '%(len(er_ref_seq)),''.join(er_ref_seq))
+		print('s0 ref seq (%d):'%(len(er_ref_seq_s0)),''.join(ref_seq_temp))
 		print('s_index: ',s_index)
 		print(len(s_index))
 		er_rs_s0_full = []
@@ -228,8 +229,12 @@ def main():
 
 	swarming = False
 	if not swarming:
-		data_path = '/home/eclay/Pfam-A.full'
 		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
+		data_path = '/home/eclay/Pfam-A.full'
+		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+
+
 		get_score(pfam_id, data_path = data_path,preprocess_path=preprocess_path)
 	else:
 		get_score(pfam_id)
