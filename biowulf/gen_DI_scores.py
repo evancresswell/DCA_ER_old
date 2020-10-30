@@ -50,71 +50,74 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	#--------------------------------------------------------------------------------#
 
 	#------------------------------- Load Simulation Data ---------------------------#
-	# Load ER data file #
-	er_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
-	with open(er_data_file,"rb") as f:
-		ER_pfam_dict = pickle.load(f)
-	f.close()
+	try:
+		# Load ER data file #
+		er_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
+		with open(er_data_file,"rb") as f:
+			ER_pfam_dict = pickle.load(f)
+		f.close()
 
-	ER_s0 = ER_pfam_dict['processed_msa']	
-	processed_msa = ER_pfam_dict['msa']
-	s_index = ER_pfam_dict['s_index']	
-	ER_s_ipdb = ER_pfam_dict['s_ipdb']	 # this is actually seq num
-	ER_seq_row = ER_s_ipdb 
-	cols_removed = ER_pfam_dict['cols_removed']
-	ER_ref_file = ER_pfam_dict['ref_file']
+		ER_s0 = ER_pfam_dict['processed_msa']	
+		processed_msa = ER_pfam_dict['msa']
+		s_index = ER_pfam_dict['s_index']	
+		ER_s_ipdb = ER_pfam_dict['s_ipdb']	 # this is actually seq num
+		ER_seq_row = ER_s_ipdb 
+		cols_removed = ER_pfam_dict['cols_removed']
+		ER_ref_file = ER_pfam_dict['ref_file']
 
-	# change s0 (processed_msa) from record list to character array		
-	s = []
-	for seq_record in ER_s0:
-		s.append([char for char in seq_record[1]])		
-	ER_s0 = np.array(s)
-	er_n_var = ER_s0.shape[1]
-	er_num_seqs =ER_s0.shape[0]
-
-
-	# Load References file (from both sim output and saved fasta)
-	with open(ER_ref_file,"r") as handle:
-		for record in SeqIO.parse(handle, "fasta"):
-			sequence = str(record.seq).upper()
-			er_ref_seq = np.array([char for char in sequence])
-	er_ref_seq_s0 = ER_s0[ER_s_ipdb]	
-	er_rs_s0_full = []
-	for i,char in enumerate(er_ref_seq):
-		if i in s_index:
-			er_rs_s0_full.append(char) 
-		else:
-			er_rs_s0_full.append('-')
-	#-------------------#
+		# change s0 (processed_msa) from record list to character array		
+		s = []
+		for seq_record in ER_s0:
+			s.append([char for char in seq_record[1]])		
+		ER_s0 = np.array(s)
+		er_n_var = ER_s0.shape[1]
+		er_num_seqs =ER_s0.shape[0]
 
 
+		# Load References file (from both sim output and saved fasta)
+		with open(ER_ref_file,"r") as handle:
+			for record in SeqIO.parse(handle, "fasta"):
+				sequence = str(record.seq).upper()
+				er_ref_seq = np.array([char for char in sequence])
+		er_ref_seq_s0 = ER_s0[ER_s_ipdb]	
+		er_rs_s0_full = []
+		for i,char in enumerate(er_ref_seq):
+			if i in s_index:
+				er_rs_s0_full.append(char) 
+			else:
+				er_rs_s0_full.append('-')
+		#-------------------#
 
-	# Load DCA data file #
-	dca_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
-	with open(dca_data_file,"rb") as f:
-		pfam_dict = pickle.load(f)
-	f.close()
 
-	dca_s0 = pfam_dict['processed_msa']	
-	dca_s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
-	dca_seq_row = dca_s_ipdb 
-	dca_ref_file = pfam_dict['ref_file']
 
-	# change s0 (processed_msa) from record list to character array		
-	s = []
-	for seq_record in dca_s0:
-		s.append([char for char in seq_record[1]])		
-	dca_s0 = np.array(s)
-	dca_n_var = dca_s0.shape[1]
-	dca_num_seqs =dca_s0.shape[0]
+		# Load DCA data file #
+		dca_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
+		with open(dca_data_file,"rb") as f:
+			pfam_dict = pickle.load(f)
+		f.close()
 
-	with open(dca_ref_file,"r") as handle:
-		for record in SeqIO.parse(handle, "fasta"):
-			sequence = str(record.seq).upper()
-			dca_ref_seq = np.array([char for char in sequence])
-	dca_ref_seq_s0 = dca_s0[dca_s_ipdb]	
-	#--------------------#
+		dca_s0 = pfam_dict['processed_msa']	
+		dca_s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
+		dca_seq_row = dca_s_ipdb 
+		dca_ref_file = pfam_dict['ref_file']
 
+		# change s0 (processed_msa) from record list to character array		
+		s = []
+		for seq_record in dca_s0:
+			s.append([char for char in seq_record[1]])		
+		dca_s0 = np.array(s)
+		dca_n_var = dca_s0.shape[1]
+		dca_num_seqs =dca_s0.shape[0]
+
+		with open(dca_ref_file,"r") as handle:
+			for record in SeqIO.parse(handle, "fasta"):
+				sequence = str(record.seq).upper()
+				dca_ref_seq = np.array([char for char in sequence])
+		dca_ref_seq_s0 = dca_s0[dca_s_ipdb]	
+		#--------------------#
+	except(FileNotFoundError):
+		print('Not all methods have a DP!!!')
+		sys.exit()
 	#--------------------------------------------------------------------------------#
 
 	# Print Specs
@@ -144,6 +147,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		f.close()
 	except(FileNotFoundError):
 		print('Not all methods have a DI!!!')
+		sys.exit()
 	#--------------------------------------------------------------------------------#
 
 	#--------------------------------------------------------------------------------#
@@ -197,7 +201,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 
 	print('Scores:\n%s %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], dca_num_seqs))
 	# write results of Pfam to txt file
-	f = open('%s.txt'%pfam_id,'w')
+	f = open('DI/%s.txt'%pfam_id,'w')
 	f.write('%s %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], dca_num_seqs) )    
 	f.close()
 

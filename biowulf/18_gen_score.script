@@ -1,0 +1,2 @@
+#!/bin/bash
+swarm -f gen_scores.swarm -g 5.0 --time=0-05:00:00 --module singularity --logdir swarm_output  #  quick # norm
