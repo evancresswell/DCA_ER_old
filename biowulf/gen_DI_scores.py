@@ -5,9 +5,6 @@ import ecc_tools as tools
 import numpy as np
 import data_processing as dp
 from multiprocessing import Pool
-data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
-preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
-
 from pydca.contact_visualizer import contact_visualizer
 from Bio import SeqIO
 
@@ -23,7 +20,7 @@ method_map = {0: 'ER', 1:'MF',2:'PLM'}
 #biomol_info,er_pdb_seq = erdca_visualizer.pdb_content.pdb_chain_sequences[erdca_visualizer.pdb_chain_id]
 #print('ERDCA-pdb (%d) :\n'%(len(er_pdb_seq)),er_pdb_seq)
 
-def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'):
+def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full',preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'):
 	print('\n\nPfam: %s\n\n'%pfam_id)
 	#--------------------------------------------------------------------------------#
 	# pdb_ref should give list of
@@ -78,15 +75,23 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		for record in SeqIO.parse(handle, "fasta"):
 			sequence = str(record.seq).upper()
 			er_ref_seq = np.array([char for char in sequence])
+
+
+
 	er_ref_seq_s0 = ER_s0[ER_s_ipdb]	
+	ref_seq_temp = list(er_ref_seq_s0)
+	print(len(er_ref_seq))
+	print(er_ref_seq_s0)
+	print('s_index: ',s_index)
+	print(len(s_index))
 	er_rs_s0_full = []
-	for i,char in enumerate(er_ref_seq):
-		if i in s_index:
-			er_rs_s0_full.append(char) 
+	for indx in range(len(er_ref_seq)):
+		if indx in s_index:
+			#print('popping indx ',np.where(s_index==indx)[0][0])
+			er_rs_s0_full.append(ref_seq_temp.pop(0)) 
 		else:
 			er_rs_s0_full.append('-')
 	#-------------------#
-
 
 
 	# Load DCA data file #
@@ -119,12 +124,16 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 
 	# Print Specs
 	print("#------- ER Specs -------#")
-	print('reference sequence: \n',''.join(er_ref_seq_s0),'\n',''.join(er_rs_s0_full),'\n',''.join(er_ref_seq)) 
+	print('s_ipdb: ',ER_s_ipdb)
+	print('reference sequence: \n','s0[s_ipdb]   ',''.join(er_ref_seq_s0),'\n','s0[s_ipdb]   ',''.join(er_rs_s0_full),'\n','er_ref_seq   ',''.join(er_ref_seq)) 
+	print('ref file: ',ER_ref_file)
 	print('number positions: \n',er_n_var) 
 	print('number sequences: \n',er_num_seqs) 
 	print("#------------------------#")
 	print("#------- DCA Specs ------#")
-	print('reference sequence: \n',''.join(dca_ref_seq_s0),'\n',''.join(dca_ref_seq)) 
+	print('s_ipdb: ',dca_s_ipdb)
+	print('reference sequence: \n','s0[s_ipdb]   ',''.join(dca_ref_seq_s0),'\n','dca_ref_seq  ',''.join(dca_ref_seq)) 
+	print('ref file: ',dca_ref_file)
 	print('number positions: \n',dca_n_var) 
 	print('number sequences: \n',dca_num_seqs) 
 
@@ -172,7 +181,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		print(pair ,'  ',DI_mf[i],'  ',DI_plm[i])	
 	print('#----------------------------------------------------------------------------------------------------#\n')
 	#--------------------------------------------------------------------------------#
-	plotting = False
+	plotting = True
 
 	contact_instances = [erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	scores = []
@@ -192,8 +201,11 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		scores.append(score)
 
 		if plotting:
-			er_tp_rate_data = visualizer.plot_contact_map()
+			#tp_rate_data = visualizer.plot_contact_map()
+			#plt.show()
+			tp_rate_data = visualizer.plot_true_positive_rates()
 			plt.show()
+
 
 	print('Scores:\n%s %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], dca_num_seqs))
 	# write results of Pfam to txt file
@@ -213,7 +225,13 @@ def main():
 	# Must have DI for all 3 methods
 	pfam_id = sys.argv[1]
 
-	get_score(pfam_id, data_path = data_path)
+	swarming = False
+	if not swarming:
+		data_path = '/home/eclay/Pfam-A.full'
+		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
+		get_score(pfam_id, data_path = data_path,preprocess_path=preprocess_path)
+	else:
+		get_score(pfam_id)
 	#-----------------------------------------------------------------------------------#
 	#-----------------------------------------------------------------------------------#
 	#-----------------------------------------------------------------------------------#

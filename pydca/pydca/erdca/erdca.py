@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division
 from . import msa_numerics
+from . import ER_protein_msa_numerics as LADER
 from pydca.fasta_reader import fasta_reader
 import logging
 import numpy as np
@@ -8,33 +9,6 @@ from sklearn.preprocessing import OneHotEncoder
 from pydca.fasta_reader.fasta_reader import get_alignment_from_fasta_file
 from pydca.fasta_reader.fasta_reader import get_alignment_int_form
 
-"""This module implements Direc Coupling Analysis (DCA) of residue coevolution
-for protein and RNA sequences using the mean-field algorithm. The final
-coevolution score is computed from the direct probability. The general steps
-carried out are outlined as follows
-
-For a detailed information about Direct Coupling Analysis, one can refer to the
-following articles:
-
-    a)  Identification of direct residue contacts in protein-protein interaction
-        by message-passing
-        Martin Weigt, Robert A White, Hendrik Szurmant, James A Hoch, Terence Hwa
-        Journal: Proceedings of the National Academy of Sciences
-        Volume: 106
-        Issue: 1
-        Pages: 67-72
-    b)  Direct-coupling analysis of residue coevolution captures native contacts
-        across many protein families
-        Faruck Morcos, Andrea Pagnani, Bryan Lunt, Arianna Bertolino,
-        Debora S Marks, Chris Sander, Riccardo Zecchina, Jose N Onuchic,
-        Terence Hwa, Martin Weigt
-        Journal: Proceedings of the National Academy of Sciences
-        Volume: 108
-        Issue: 49
-        Pages: E1293-E1301
-
-Author(s)  Mehari B. Zerihun, Alexander Schug
-"""
 
 logger = logging.getLogger(__name__)
 
@@ -431,6 +405,79 @@ class ERDCA:
     #========================================================================================================#
     # ------- Author: Evan Cresswell-Clay ---------- Date: 8/24/2020 ----------------------------------------#
     #========================================================================================================#
+    #========================================================================================================#
+    def compute_lader_weights(self):
+        """Computing weights by applying Expectation Reflection with LAD inference.
+
+        Parameters
+        ----------
+            self : ERDCA
+                The instance.
+
+        Returns
+        -------
+            couplings : np.array
+                A 2d numpy array of the same shape .
+        """
+
+        # THIS IS ASSUMING sequences passed in via MSA file 
+		# ---> were already preprocessed
+        s0 = np.asarray(self.__sequences)
+        print(s0.shape)
+        
+        n_var = len(s0[0])
+
+        mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+        # use all possible states at all locations 
+        #mx = np.array([self.__num_site_states]* n_var) 
+     
+        mx_cumsum = np.insert(mx.cumsum(),0,0)
+
+        i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
+        
+        onehot_encoder = OneHotEncoder(sparse=False)
+        
+        s = onehot_encoder.fit_transform(s0)
+        
+        mx_sum = mx.sum()
+        my_sum = mx.sum() #!!!! my_sum = mx_sum
+        
+        w = np.zeros((mx_sum,my_sum))
+        h0 = np.zeros(my_sum)
+
+        # Pass computation to parallelization in ER_protein_msa_numerics.py 
+        logger.info('\n\tComputing ER couplings')
+        try:
+            res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads)
+        except Exception as e:
+            logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
+                ' You might need to increase it.'.format(e, self.__pseudocount)
+            )
+            raise
+   
+ 
+        # Set weight-coupling matrix
+        for i0 in range(n_var):
+            i1,i2 = i1i2[i0,0],i1i2[i0,1]
+               
+            h01 = res[i0][0]
+            w1 = res[i0][1]
+        
+            h0[i1:i2] = h01    
+            w[:i1,i1:i2] = w1[:i1,:]
+            w[i2:,i1:i2] = w1[i1:,:]
+        
+        # make w to be symmetric
+        w = (w + w.T)/2.
+    
+        # capture couplings (ie symmetric weights matrix) to avoid recomputing
+        self.__couplings = w
+        logger.info('\n\tMaximum and minimum couplings: {}, {}'.format(
+            np.max(w), np.min(w)))
+
+        return w,s
+
+
     def compute_er_weights(self):
         """Computing weights by applying Expectation Reflection.
 
@@ -503,7 +550,7 @@ class ERDCA:
         return w,s
 
     # altering the following two functions (originally defined) to implement ER
-    def get_site_pair_di_score(self):
+    def get_site_pair_di_score(self,LAD=False):
         # my version
         """Obtains Expectation Reflection weights and computes direct information (DI) scores 
         and puts them a list of tuples of in (site-pair, score) form.
@@ -521,7 +568,10 @@ class ERDCA:
                 such that j > i.
         """
 
-        couplings, s = self.compute_er_weights()
+        if LAD:
+            couplings, s = self.compute_lader_weights()
+        else:
+            couplings, s = self.compute_er_weights()
         print('ER couplings dimensions: ', couplings.shape)
 
         # Compute DI using local computation in msa_numerics.py
@@ -542,7 +592,7 @@ class ERDCA:
         return site_pair_di_score
 
 
-    def compute_sorted_DI(self,seqbackmapper=None):
+    def compute_sorted_DI(self,LAD=False,seqbackmapper=None):
         # my version
         """Computes direct informations for each pair of sites and sorts them in
         descending order of DCA score.
@@ -562,7 +612,7 @@ class ERDCA:
                 site pairs (i, j) such that j > i.
         """
         print('Computing site pair DI scores')
-        unsorted_DI = self.get_site_pair_di_score()
+        unsorted_DI = self.get_site_pair_di_score(LAD)
         print('Sorting DI scores')
         sorted_DI = sorted(unsorted_DI.items(), key = lambda k : k[1], reverse=True)
         if seqbackmapper is not None:
@@ -572,14 +622,33 @@ class ERDCA:
 
         print('Imposing Distance Restraint')
         if self.__s_index is not None:
-            sorted_DI = self.distance_restr_sortedDI(sorted_DI,s_index=self.__s_index)
+            #sorted_DI = self.distance_restr_sortedDI(sorted_DI,s_index=self.__s_index)
+            sorted_DI = self.s_index_map(sorted_DI,s_index=self.__s_index)
         else:
-            print('Imposing Distance Restraint\n(WITHOUT TRUE INDEXING ON PREPROCESSED DATA)')
-            sorted_DI = self.distance_restr_sortedDI(sorted_DI)
+            print('(NO TRUE INDEXING ON PREPROCESSED DATA)')
+            # no longer enforcing distance restr (linear distance handled in contact_visualizer)
+            #sorted_DI = self.distance_restr_sortedDI(sorted_DI)
         print('Deleting DI duplicates')
         sorted_DI = self.delete_sorted_DI_duplicates(sorted_DI)
 
         return sorted_DI
+
+
+    def s_index_map(self,site_pair_DI_in, s_index=None):
+        print(site_pair_DI_in[:10])
+        s_index_DI= dict()
+        for site_pair, score in site_pair_DI_in:
+            pos_0 = s_index[site_pair[0]]
+            pos_1 = s_index[site_pair[1]]
+    
+       	    indices = (pos_0 , pos_1)
+    
+            s_index_DI[indices] = score
+
+        sorted_DI  = sorted(s_index_DI.items(), key = lambda k : k[1], reverse=True)
+        print(sorted_DI[:10])
+        return sorted_DI
+    
 
     def distance_restr_sortedDI(self,site_pair_DI_in, s_index=None):
         print(site_pair_DI_in[:10])

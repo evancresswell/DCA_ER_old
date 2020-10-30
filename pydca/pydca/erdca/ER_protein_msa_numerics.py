@@ -3,6 +3,7 @@ import numpy as np
 from scipy.spatial import distance
 from joblib import Parallel, delayed
 from sklearn.preprocessing import OneHotEncoder
+from scipy.special import erf as sperf
 
 
 """This module implements computationally costly routines while performing
@@ -61,7 +62,7 @@ def compute_sequences_weight(alignment_data=None, seqid=None,num_threads=1):
 
 
 #========================================================================================================#
-#------------------------------------- Expextation Reflection -------------------------------------------#
+#------------------------------------- Expectation Reflection -------------------------------------------#
 #========================================================================================================#
 # ------- Author: Evan Cresswell-Clay ---------- Date: 8/24/2020 ----------------------------------------#
 #========================================================================================================#
@@ -122,23 +123,124 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     
     return H0,W  
 
-def predict_w(s,i0,i1i2,niter_max,l2):
+def er_fit_lad(x,y_onehot,niter_max,l2,couplings= None):       
+    l,n = x.shape
+    m = y_onehot.shape[1] # number of categories
+    
+    x_av = np.mean(x,axis=0)
+    dx = x - x_av
+    c = np.cov(dx,rowvar=False,bias=True)
+
+    c += l2*np.identity(n)/(2*l)
+
+    H0 = np.zeros(m)
+    W = np.zeros((n,m))
+
+    for i in range(m):
+        H0[i],W[:,i] = fit_LAD(x,y_onehot[:,i],niter_max,l2)
+    
+    return H0,W  
+def fit_LAD(x,y,niter_max,l2):      
+    # convert 0, 1 to -1, 1
+    y1 = 2*y - 1.
+   
+    #print(niter_max)    
+    n = x.shape[1]
+    
+    x_av = np.mean(x,axis=0)
+    dx = x - x_av
+    c = np.cov(dx,rowvar=False,bias=True)
+
+    # 2019.07.16:  
+    c += l2*np.identity(n) / (2*len(y))
+
+    # initial values
+    h0 = 0.
+    w = np.random.normal(0.0,1./np.sqrt(n),size=(n))
+    
+    cost = np.full(niter_max,100.)
+    for iloop in range(niter_max):
+        h = h0 + x.dot(w)
+        y1_model = np.tanh(h/2.)    
+
+        # stopping criterion
+        h_too_neg = h < -15
+        h[h_too_neg] = -15.
+        p = 1/(1+np.exp(-h))                
+        cost[iloop] = ((p-y)**2).mean()
+
+        if iloop>0 and cost[iloop] >= cost[iloop-1]: break
+
+        # update local field
+        t = h!=0    
+        h[t] *= y1[t]/y1_model[t]
+        h[~t] = 2*y1[~t]
+        # 2019.12.26: 
+        h0,w = infer_LAD(x,h[:,np.newaxis],regu = l2)
+
+    return h0,w
+def infer_LAD(x, y, regu=0.1,tol=1e-8, max_iter=5000):
+## 2019.12.26: Jungmin's code    
+    weights_limit = sperf(1e-10)*1e10
+    
+    s_sample, s_pred = x.shape
+    s_sample, s_target = y.shape
+    
+    mu = np.zeros(x.shape[1])
+
+    w_sol = 0.0*(np.random.rand(s_pred,s_target) - 0.5)
+    b_sol = np.random.rand(1,s_target) - 0.5
+
+    for index in range(s_target):
+        error, old_error = np.inf, 0
+        weights = np.ones((s_sample, 1))
+        cov = np.cov(np.hstack((x,y[:,index][:,None])), rowvar=False, \
+                     ddof=0, aweights=weights.reshape(s_sample))
+        cov_xx, cov_xy = cov[:s_pred,:s_pred],cov[:s_pred,s_pred:(s_pred+1)]
+        counter = 0
+        while np.abs(error-old_error) > tol and counter < max_iter:
+            counter += 1
+            old_error = np.mean(np.abs(b_sol[0,index] + x.dot(w_sol[:,index]) - y[:,index]))
+            sigma_w = np.std(w_sol[:,index])
+                
+            w_eq_0 = np.abs(w_sol[:,index]) < 1e-10
+            mu[w_eq_0] = 2./np.sqrt(np.pi)
+        
+            mu[~w_eq_0] = sigma_w*sperf(w_sol[:,index][~w_eq_0]/sigma_w)/w_sol[:,index][~w_eq_0]
+                                                        
+            w_sol[:,index] = np.linalg.solve(cov_xx + regu*np.diag(mu),cov_xy).reshape(s_pred)
+        
+            b_sol[0,index] = np.mean(y[:,index]-x.dot(w_sol[:,index]))
+            weights = (b_sol[0,index] + x.dot(w_sol[:,index]) - y[:,index])
+            sigma = np.std((weights))
+            error = np.mean(np.abs(weights))
+            weights_eq_0 = np.abs(weights) < 1e-10
+            weights[weights_eq_0] = weights_limit
+            weights[~weights_eq_0] = sigma*sperf(weights[~weights_eq_0]/sigma)/weights[~weights_eq_0]
+            weights /= np.mean(weights) #now the mean weight is 1.0
+            cov = np.cov(np.hstack((x,y[:,index][:,None])), rowvar=False, \
+                         ddof=0, aweights=weights.reshape(s_sample))
+            cov_xx, cov_xy = cov[:s_pred,:s_pred],cov[:s_pred,s_pred:(s_pred+1)]
+    return b_sol[0][0],w_sol[:,0] # for only one target case
+
+def predict_w_LADER(s,i0,i1i2,niter_max,l2):
     i1,i2 = i1i2[i0,0],i1i2[i0,1]
 
     x = np.hstack([s[:,:i1],s[:,i2:]])
     y = s[:,i1:i2]
 
-    h01,w1 = er_fit(x,y,niter_max,l2)
+    # h01,w1 = er_fit(x,y,niter_max,l2) # old inference
+    h01,w1 = er_fit_lad(x,y,niter_max,l2)
 
     return h01,w1
 
 
-def compute_er_weights(n_var,s,i1i2,num_threads=1,couplings=None):
+def compute_lader_weights(n_var,s,i1i2,num_threads=1,couplings=None):
     # parallel
     # parallel
     print('Compute ER weights in parallel using %d threads for %d variables'%(num_threads,n_var))
     print('matrix s: shape: ',s.shape,'\n\n')
-    res = Parallel(n_jobs = num_threads)(delayed(predict_w)\
+    res = Parallel(n_jobs = num_threads)(delayed(predict_w_LADER)\
             (s, i0, i1i2, niter_max=10, l2=100.0)\
             for i0 in range(n_var))
     print('Done Parallel processing')

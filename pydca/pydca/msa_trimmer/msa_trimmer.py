@@ -230,6 +230,8 @@ class MSATrimmer:
         """
         columns_to_remove = self.trim_by_refseq(remove_all_gaps=remove_all_gaps)
         trimmed_msa = list()
+
+
         for ii,record in enumerate(self.__alignment_data):
             seq, seqid = record.seq, record.id
             trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
@@ -250,7 +252,15 @@ class MSATrimmer:
         
         frequency = [(s[t,:] == '-').sum()/float(n) for t in range(l)]
         bad_seq = [t for t in range(l) if frequency[t] > fgs]
+
+	# We do not want to removed references sequence!
+        if self.__s_ipdb in bad_seq:
+            print('\n\nremove_bad_seqs() trying to remove reference sequence!!\n\n')
+            bad_seq.remove(self.__s_ipdb)
+		
         new_s = np.delete(s,bad_seq,axis=0)
+
+	# If muscle aligning we can lose all sequences
         if new_s.shape[0] <= 1:
             logger.error('\n\tCannot match Reference sequence to MSA structure\n  -->MSA curated by ref-seq loses all sequences')
             raise MSATrimmerException
@@ -258,6 +268,7 @@ class MSATrimmer:
     	# Find new sequence index of Reference sequence tpdb
         print('removing %d bad sequences'%(len(bad_seq)))
         seq_index = np.arange(s.shape[0])
+        print(seq_index)
         seq_index = np.delete(seq_index,bad_seq)
         new_tpdb = np.where(seq_index==tpdb)
         print("tpdb is now ",new_tpdb[0][0])
@@ -457,7 +468,13 @@ class MSATrimmer:
             if ii == self.__s_ipdb:
                 print('in preprocess s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
         s = np.asarray(s)
- 
+
+
+ 	# Define s_index 
+	# s_index should be the shape of reference-gap trimmed alignment
+	# This way we can compare our final alignment to DCA method final alingment (which is assumed for contact vis)
+        self.__s_index = np.arange(s.shape[0])
+
         if printing:
             print('MSA trimmed by internal function\n')
             print('\n\nstarting shape: ',s.shape)
@@ -465,19 +482,22 @@ class MSATrimmer:
             #print("s = \n",s_pydca)
   
 
-        # no pdb_ref structure for covid proteins, ref strucutre is always s[0]
         gap_pdb = s[self.__s_ipdb] =='-' # returns True/False for gaps/no gaps
+
 	# if reference sequence contains gaps, remove them 
         # this is already done in  trim_by_refseq() 
         if any(gap_pdb): 
             s = s[:,~gap_pdb] # removes gaps  
-        s_index = np.arange(s.shape[1])
+            print('\n\ngap_pdb locations (after trimming by refseq): ',gap_pdb,'\n\n')
+
+	# this is now defined in get_msa_trimmed_by_refseq
+        #self.__s_index = np.arange(s.shape[1])
     
         if printing:
             print("s[tpdb] shape is ",s[self.__s_ipdb].shape)
             print("though s still has gaps, s[%d] does not:\n"%(self.__s_ipdb),s[self.__s_ipdb])
             print("s shape is ",s.shape)
-            print("Saving indices of reference sequence s[%d](length=%d):\n"%(self.__s_ipdb,s_index.shape[0]),s_index)
+            print("Saving indices of reference sequence s[%d](length=%d):\n"%(self.__s_ipdb,self.__s_index.shape[0]),self.__s_index)
             print("#--------------------------------------------------------------#\n\n")
       
         lower_cols = np.array([i for i in range(s.shape[1]) if s[self.__s_ipdb,i].islower()])
@@ -506,12 +526,12 @@ class MSATrimmer:
         'T','V','W','Y'])
         s = self.find_and_replace(s,'X',amino_acids)
     
-        # remove conserved cols
+        # define conserved cols
         conserved_cols = self.find_conserved_cols(s,conserved_cols)
         if printing:
             print("found conserved columns (80% repetition):\n",conserved_cols)
     
-	# removed bad columns and conservet columns 
+	# removed bad columns and conserved columns 
         removed_cols = np.array(list(set(bad_cols) | set(conserved_cols)))
         removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
 
@@ -519,11 +539,11 @@ class MSATrimmer:
             print("We remove conserved and bad columns with, at the following indices:\n",removed_cols)
     
         s = np.delete(s,removed_cols,axis=1)
-        s_index = np.delete(s_index,removed_cols)
+        self.__s_index = np.delete(self.__s_index,removed_cols)
         if printing:
             print("Removed Columns...")
             print("s now has shape: ",s.shape)
-            print(s_index)
+            print(self.__s_index)
     
         if printing:
             print("In Data Processing Reference Sequence (shape=",s[self.__s_ipdb].shape,"): \n",s[self.__s_ipdb])
@@ -539,13 +559,13 @@ class MSATrimmer:
 
 	# generate preprocessed alignment file
     	
-        return removed_cols,s_index,s
+        return removed_cols,self.__s_index,s
 
 
     def get_preprocessed_msa(self, printing,saving,conserved_cols=.8):
         """
         """
-        cols_removed,s_index,s  = self.preprocess_msa(printing=printing,conserved_cols=conserved_cols)
+        cols_removed,self.__s_index,s  = self.preprocess_msa(printing=printing,conserved_cols=conserved_cols)
 
         trimmed_msa = list()
         for i,seq in enumerate(s):
@@ -560,7 +580,7 @@ class MSATrimmer:
                 print(id_seq_pair)
             trimmed_msa.append(id_seq_pair)
 
-        return trimmed_msa, s_index, cols_removed, self.__s_ipdb,s
+        return trimmed_msa, self.__s_index, cols_removed, self.__s_ipdb,s
 
 
     #=========================================================================================
