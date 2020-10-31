@@ -248,8 +248,6 @@ class MSATrimmer:
         # remove bad sequences having a gap fraction of fgs  
         l,n = s.shape
 
-        tpdb = self.__s_ipdb
-        
         frequency = [(s[t,:] == '-').sum()/float(n) for t in range(l)]
         bad_seq = [t for t in range(l) if frequency[t] > fgs]
 
@@ -270,8 +268,8 @@ class MSATrimmer:
         seq_index = np.arange(s.shape[0])
         print(seq_index)
         seq_index = np.delete(seq_index,bad_seq)
-        new_tpdb = np.where(seq_index==tpdb)
-        print("tpdb is now ",new_tpdb[0][0])
+        new_tpdb = np.where(seq_index==self.__s_ipdb)
+        print("s_ipdb %d ----> %d "%(self.__s_ipdb,new_tpdb[0][0]))
         self.__s_ipdb = new_tpdb[0][0]
         
         return new_s
@@ -473,6 +471,8 @@ class MSATrimmer:
  	# Define s_index 
 	# s_index should be the shape of reference-gap trimmed alignment
 	# This way we can compare our final alignment to DCA method final alingment (which is assumed for contact vis)
+        print('making sindex (arange(s.shape[1]))')
+        print('s.shape[1] = %d'%(s.shape[1]))
         self.__s_index = np.arange(s.shape[1])
 
         if printing:
@@ -482,13 +482,15 @@ class MSATrimmer:
             #print("s = \n",s_pydca)
   
 
-        gap_pdb = s[self.__s_ipdb] =='-' # returns True/False for gaps/no gaps
 
 	# if reference sequence contains gaps, remove them 
         # this is already done in  trim_by_refseq() 
-        if any(gap_pdb): 
-            s = s[:,~gap_pdb] # removes gaps  
-            print('\n\ngap_pdb locations (after trimming by refseq): ',gap_pdb,'\n\n')
+        if 0:
+            gap_pdb = s[self.__s_ipdb] =='-' # returns True/False for gaps/no gaps
+            if any(gap_pdb): 
+                s = s[:,~gap_pdb] # removes gaps  
+                gap_pdb_indx = [i for i,bl in enumerate(gap_pdb) if bl]
+                print('\n\ngap_pdb locations (after trimming by refseq) trimming %d columns: '%len(gap_pdb_indx),gap_pdb_indx,'\n\n')
 
 	# this is now defined in get_msa_trimmed_by_refseq
         #self.__s_index = np.arange(s.shape[1])
@@ -497,7 +499,7 @@ class MSATrimmer:
             print("s[tpdb] shape is ",s[self.__s_ipdb].shape)
             print("though s still has gaps, s[%d] does not:\n"%(self.__s_ipdb),s[self.__s_ipdb])
             print("s shape is ",s.shape)
-            print("Saving indices of reference sequence s[%d](length=%d):\n"%(self.__s_ipdb,self.__s_index.shape[0]),self.__s_index)
+            print("Saving indices of reference sequence s[%d](len=%d vs s len=%d):\n"%(self.__s_ipdb,self.__s_index.shape[0],s.shape[1]),self.__s_index)
             print("#--------------------------------------------------------------#\n\n")
       
         lower_cols = np.array([i for i in range(s.shape[1]) if s[self.__s_ipdb,i].islower()])
@@ -534,6 +536,8 @@ class MSATrimmer:
 	# removed bad columns and conserved columns 
         removed_cols = np.array(list(set(bad_cols) | set(conserved_cols)))
         removed_cols = np.array(list(set(removed_cols) | set(lower_cols)))
+	## add gap_pdb_indx to removed cols
+        #removed_cols = np.array(list(set(removed_cols) | set(gap_pdb_indx)))
 
         if printing:
             print("We remove conserved and bad columns with, at the following indices:\n",removed_cols)
@@ -543,7 +547,7 @@ class MSATrimmer:
         if printing:
             print("Removed Columns...")
             print("s now has shape: ",s.shape)
-            print(self.__s_index)
+            print("s_index now has shape: ",self.__s_index.shape)
     
         if printing:
             print("In Data Processing Reference Sequence (shape=",s[self.__s_ipdb].shape,"): \n",s[self.__s_ipdb])
