@@ -229,10 +229,10 @@ def main():
 
 	swarming = False
 	if not swarming:
+		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 		data_path = '/home/eclay/Pfam-A.full'
-		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
-		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 
 
 		get_score(pfam_id, data_path = data_path,preprocess_path=preprocess_path)
