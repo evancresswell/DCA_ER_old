@@ -34,6 +34,12 @@ ref_file = root_dir+"subset_ref.fasta"
 msa_file = root_dir+"covid_genome_aligned.fasta"
 ref_file = root_dir+"wuhan_ref.fasta"
 
+# Swarm aligned file 
+msa_file = root_dir+"covid_genome_full_aligned.fasta"
+ref_file = root_dir+"wuhan_ref.fasta"
+
+
+
 
 saving_preprocessed = True
 input_data_file = "cov_genome_DP.pickle"
@@ -103,7 +109,7 @@ def predict_w(s,i0,i1i2,niter_max,l2):
 
 #-------------------------------
 # parallel
-res = Parallel(n_jobs = 16)(delayed(predict_w)\
+res = Parallel(n_jobs = cpus_per_job-4)(delayed(predict_w)\
         (s,i0,i1i2,niter_max=10,l2=100.0)\
         for i0 in range(n_var))
 
