@@ -33,12 +33,12 @@ warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
 #========================================================================================
-data_path = '/home/eclay/Pfam-A.full'
-preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
-
 
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+data_path = '/home/eclay/Pfam-A.full'
+preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
+
 
 #pfam_id = 'PF00025'
 pfam_id = sys.argv[1]
@@ -101,35 +101,74 @@ pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=F
 #---------------------------------------------------------------------------------------------------------------------#            
 #---------------------------------- PreProcess FASTA Alignment -------------------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
-preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
-print(preprocessed_data_outfile)
-try:
-	print('\n\nPre-Processing MSA with Range PP Seq\n\n')
-	trimmer = msa_trimmer.MSATrimmer(
-	    pp_msa_file_range, biomolecule='PROTEIN', 
-	    refseq_file=pp_ref_file_range
-	)
-	pfam_dict['ref_file'] = pp_ref_file_range
-except:
-	print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
-	# create MSATrimmer instance 
-	trimmer = msa_trimmer.MSATrimmer(
-	    pp_msa_file, biomolecule='protein', 
-	    refseq_file=pp_ref_file
-	)
-	pfam_dict['ref_file'] = pp_ref_file
-# Adding the data_processing() curation from tools to erdca.
-try:
-	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-except(MSATrimmerException):
-	ERR = 'PPseq-MSA'
-	print('Error with MSA trimms\n%s\n'%ERR)
-	sys.exit()
+preprocessing = True
+preprocessing = False
+if preprocessing:
+	try:
+		preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
+		print(preprocessed_data_outfile)
+		print('\n\nPre-Processing MSA with Range PP Seq\n\n')
+		trimmer = msa_trimmer.MSATrimmer(
+		    pp_msa_file_range, biomolecule='PROTEIN', 
+		    refseq_file=pp_ref_file_range
+		)
+		pfam_dict['ref_file'] = pp_ref_file_range
+	except:
+		print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
+		# create MSATrimmer instance 
+		trimmer = msa_trimmer.MSATrimmer(
+		    pp_msa_file, biomolecule='protein', 
+		    refseq_file=pp_ref_file
+		)
+		pfam_dict['ref_file'] = pp_ref_file
+	# Adding the data_processing() curation from tools to erdca.
+	try:
+		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+	except(MSATrimmerException):
+		ERR = 'PPseq-MSA'
+		print('Error with MSA trimms\n%s\n'%ERR)
+		sys.exit()
 
-#write trimmed msa to file in FASTA format
-with open(preprocessed_data_outfile, 'w') as fh:
-	for seqid, seq in preprocessed_data:
-		fh.write('>{}\n{}\n'.format(seqid, seq))
+	#write trimmed msa to file in FASTA format
+	with open(preprocessed_data_outfile, 'w') as fh:
+		for seqid, seq in preprocessed_data:
+			fh.write('>{}\n{}\n'.format(seqid, seq))
+	fh.close()
+else:
+	trimmed_data_outfile = preprocess_path+'MSA_%s_Trimmed.fa'%pfam_id
+	print('Pre-Processing MSA')
+	try:
+		print('\n\nPre-Processing MSA with Range PP Seq\n\n')
+		trimmer = msa_trimmer.MSATrimmer(
+		    pp_msa_file_range, biomolecule='PROTEIN', 
+		    refseq_file=pp_ref_file_range
+		)
+		pfam_dict['ref_file'] = pp_ref_file_range
+	except:
+		print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
+		# create MSATrimmer instance 
+		trimmer = msa_trimmer.MSATrimmer(
+		    pp_msa_file, biomolecule='protein', 
+		    refseq_file=pp_ref_file
+		)
+		pfam_dict['ref_file'] = pp_ref_file
+	# Adding the data_processing() curation from tools to erdca.
+	try:
+		trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
+		print('\n\nTrimmed Data: \n',trimmed_data[:10])
+		print(np.shape(trimmed_data))
+	except(MSATrimmerException):
+		ERR = 'PPseq-MSA'
+		print('Error with MSA trimms\n%s\n'%ERR)
+		sys.exit()
+	#write trimmed msa to file in FASTA format
+	with open(trimmed_data_outfile, 'w') as fh:
+		for seqid, seq in trimmed_data:
+			fh.write('>{}\n{}\n'.format(seqid, seq))
+	fh.close()
+
+	s_index = list(np.arange(len(''.join(seq))))
+
 
 #---------------------------------------------------------------------------------------------------------------------#            
 
@@ -140,15 +179,30 @@ with open(preprocessed_data_outfile, 'w') as fh:
 
 
 try:
-	print('Initializing ER instance\n\n')
-	# Compute DI scores using Expectation Reflection algorithm
-	erdca_inst = erdca.ERDCA(
-	    preprocessed_data_outfile,
-	    'PROTEIN',
-	    s_index = s_index,
-	    pseudocount = 0.5,
-	    num_threads = cpus_per_job-4,
-	    seqid = 0.8)
+	print('s_index : ',s_index,'\n')
+	if preprocessing:
+		print('Initializing ER instance\n\n')
+		# Compute DI scores using Expectation Reflection algorithm
+		erdca_inst = erdca.ERDCA(
+		    preprocessed_data_outfile,
+		    #trimmed_data_outfile,
+		    'PROTEIN',
+		    s_index = s_index,
+		    pseudocount = 0.5,
+		    num_threads = cpus_per_job-4,
+		    seqid = 0.8)
+	else:
+		print('Initializing ER instance\n\n')
+		# Compute DI scores using Expectation Reflection algorithm
+		erdca_inst = erdca.ERDCA(
+		    #preprocessed_data_outfile,
+		    trimmed_data_outfile,
+		    'PROTEIN',
+		    s_index = s_index,
+		    pseudocount = 0.5,
+		    num_threads = cpus_per_job-4,
+		    seqid = 0.8)
+
 except:
 	ref_seq = s[tpdb,:]
 	print('Using PDB defined reference sequence from MSA:\n',ref_seq)
@@ -192,11 +246,16 @@ with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
 f.close()
 
 # Save processed data dictionary and FASTA file
-pfam_dict['processed_msa'] = preprocessed_data
 pfam_dict['msa'] = s  
 pfam_dict['s_index'] = s_index
-pfam_dict['s_ipdb'] = s_ipdb
-pfam_dict['cols_removed'] = cols_removed 
+if preprocessing:
+	pfam_dict['processed_msa'] = preprocessed_data
+	pfam_dict['cols_removed'] = cols_removed 
+	pfam_dict['s_ipdb'] = s_ipdb
+else:
+	pfam_dict['processed_msa'] = trimmed_data 
+	pfam_dict['s_ipdb'] = tpdb
+	pfam_dict['cols_removed'] = []
 
 input_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
 with open(input_data_file,"wb") as f:

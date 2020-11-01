@@ -51,6 +51,7 @@ class ERDCA:
             self.__msa_file,
             biomolecule=biomolecule,
         )
+        print('number of sequences:  ',len(self.__sequences))
         if s_index is None:
             logger.info('S_INDEX not passed\nMake sure the indexing on DI is correct!!!\n\n')
         else: 
@@ -623,7 +624,8 @@ class ERDCA:
         print('Imposing Distance Restraint')
         if self.__s_index is not None:
             #sorted_DI = self.distance_restr_sortedDI(sorted_DI,s_index=self.__s_index)
-            sorted_DI = self.s_index_map(sorted_DI,s_index=self.__s_index)
+            #sorted_DI = self.s_index_map(sorted_DI,s_index=self.__s_index)
+            print('\n\nNO COLUMNS REMOVED POST TRIMMING\ns_index should be range 0 - seq_len\ns_index: ',self.__s_index)
         else:
             print('(NO TRUE INDEXING ON PREPROCESSED DATA)')
             # no longer enforcing distance restr (linear distance handled in contact_visualizer)
