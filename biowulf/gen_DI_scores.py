@@ -183,7 +183,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		print(pair ,'  ',DI_mf[i],'  ',DI_plm[i])	
 	print('#----------------------------------------------------------------------------------------------------#\n')
 	#--------------------------------------------------------------------------------#
-	plotting = True
+	plotting = False
 
 	contact_instances = [erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	scores = []
