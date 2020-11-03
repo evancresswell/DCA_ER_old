@@ -234,7 +234,7 @@ except:
 print('Running ER simulation\n\n')
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()
-erdca_DI = erdca_inst.compute_sorted_DI(LAD=False)
+erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,initialize=True)
 run_time = timeit.default_timer() - start_time
 print('ER run time:',run_time)
 

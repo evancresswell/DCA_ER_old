@@ -122,6 +122,30 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     
     return H0,W  
 
+def predict_w_couplings(s,i0,i1i2,niter_max,l2,couplings):
+    #print('i0:',i0)
+    #print('i1i2: length = number of positions: ',len(i1i2))
+    i1,i2 = i1i2[i0,0],i1i2[i0,1]
+    #print(s.shape,': shape of s')
+    #print(couplings.shape,': shape of couplings')
+    #print('coupling matrix is symmetric:',np.allclose(couplings, couplings.T, rtol=1e-5, atol=1e-8))
+
+
+    #print('predict_w, s_onehot: shape', s.shape)
+    x = np.hstack([s[:,:i1],s[:,i2:]])
+    y = s[:,i1:i2]
+    y_couplings = np.delete(couplings,[range(i1,i2)],0)					# remove subject rows  from original coupling matrix 
+    y_couplings = np.delete(y_couplings,[range(i1,i2)],1)					# remove subject columns from original coupling matrix 
+    #print('y_couplings shape: ',y_couplings.shape, ' x-column size: ',x.shape[1])	# Should be same dimensions as x column size as a result
+
+    #print('predict_w, x: shape', x.shape)
+    #print('predict_w, y: shape', y.shape)
+
+    h01,w1 = er_fit(x,y,niter_max,l2,y_couplings)
+
+    return h01,w1
+
+
 def predict_w(s,i0,i1i2,niter_max,l2):
     i1,i2 = i1i2[i0,0],i1i2[i0,1]
 
@@ -138,9 +162,14 @@ def compute_er_weights(n_var,s,i1i2,num_threads=1,couplings=None):
     # parallel
     print('Compute ER weights in parallel using %d threads for %d variables'%(num_threads,n_var))
     print('matrix s: shape: ',s.shape,'\n\n')
-    res = Parallel(n_jobs = num_threads)(delayed(predict_w)\
-            (s, i0, i1i2, niter_max=10, l2=100.0)\
-            for i0 in range(n_var))
+    if couplings is not None:
+        res = Parallel(n_jobs = num_threads)(delayed(predict_w_couplings)\
+                (s, i0, i1i2, niter_max=10, l2=100.0, couplings=couplings)\
+                for i0 in range(n_var))
+    else:
+        res = Parallel(n_jobs = num_threads)(delayed(predict_w)\
+                (s, i0, i1i2, niter_max=10, l2=100.0)\
+                for i0 in range(n_var))
     print('Done Parallel processing')
     return res 
 
