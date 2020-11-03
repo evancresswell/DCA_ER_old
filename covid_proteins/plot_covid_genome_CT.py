@@ -21,8 +21,8 @@ data_path = '/home/eclay/DCA_ER/covid_proteins/'
 root_dir = '/home/eclay/DCA_ER/covid_proteins/'
 data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
-# TO RUN: singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python plot_covid_genome_CT.py cov_genome_DI.pickle cov_genome_DP.pickle
-# FOR PROCESSED RUN: singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python plot_covid_genome_CT.py cov_genome_DI_processed.pickle cov_genome_DP.pickle
+# TO RUN: 		singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/LADER.simg python plot_covid_genome_CT.py cov_genome_DI.pickle cov_genome_DP.pickle
+# FOR PROCESSED RUN: 	singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/LADER.simg python plot_covid_genome_CT.py cov_genome_DI_processed.pickle cov_genome_DP.pickle
 
 def distance_restr_sortedDI(site_pair_DI_in, s_index=None):
 	#print(site_pair_DI_in[:10])
@@ -48,10 +48,11 @@ def distance_restr_sortedDI(site_pair_DI_in, s_index=None):
 
 def delete_sorted_DI_duplicates(sorted_DI):
 	temp1 = []
-	#print(sorted_DI[:10])
+	print(sorted_DI[:10])
+	print(len(sorted_DI))
 	DI_out = dict() 
 	for (a,b), score in sorted_DI:
-		#print('Positions: (%d, %d)'%(a,b))
+		print('Positions: (%d, %d)'%(a,b))
 		if (a,b) not in temp1 and (b,a) not in temp1: #to check for the duplicate tuples
 			temp1.append(((a,b)))
 			if a>b:
@@ -87,7 +88,7 @@ cols_removed  = pf_dict['cols_removed']
 
 
 
-post_processing = False
+post_processing = True
 if post_processing:
 
 	cov_DI_file = root_dir+'cov_genome_DI.pickle'
@@ -111,11 +112,11 @@ if post_processing:
 	print(sorted_DI[:10])
 
 	print('\nDeleting DI Duplicates')
-	sorted_DI = delete_sorted_DI_duplicates(sorted_DI)
+	#sorted_DI = delete_sorted_DI_duplicates(sorted_DI)
 	print('Final DI:')
 	print(sorted_DI[:10])
 
-	with open(root_dir+'cov_genome_DI_processed.pickle', 'wb') as f:
+	with open(root_dir+'cov_full_genome_DI_processed.pickle', 'wb') as f:
 	    pickle.dump(sorted_DI, f)
 	f.close()
 
@@ -146,7 +147,7 @@ i_predictions = []
 j_predictions = []
 
 for coupling in sorted_DI:
-	if coupling[1] > .05:
+	if coupling[1] > .1:
 		strongest_DI.append(coupling)
 		#i_predictions.append(coupling[0][0])
 		#j_predictions.append(coupling[0][1])
@@ -195,7 +196,7 @@ if 0:
 fig, ax = plt.subplots()
 #plt.title('Contact Map')
 plt.imshow(di_predict,cmap='Greys',origin='lower')
-plt.clim(0,.001)
+plt.clim(0,.01)
 plt.xlabel('i')
 plt.ylabel('j')
 plt.xlim((0,len(s_index)))
