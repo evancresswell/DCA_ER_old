@@ -1,5 +1,6 @@
 from pprint import pprint
 import pandas as pd
+from numba import prange as parallel_range
 import numpy as np
 import sys,os,errno
 # Import Bio data processing features 

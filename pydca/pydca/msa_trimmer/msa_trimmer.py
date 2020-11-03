@@ -174,14 +174,16 @@ class MSATrimmer:
         )
         first_matching_seq = matching_seqs[0]
         first_matching_indx = matching_seqs_indx[0]
-        print('first matching indx in alignment: ',self.__s_ipdb)
+        print('first matching indx in alignment: ',first_matching_indx)
         print('first matching seq: in alignment: ',first_matching_seq)
+        self.__s_ipdb = first_matching_indx
 
         alignment_ref_seq = [char for char in first_matching_seq ]
         ref_gap_cols = [a == '-' for a in alignment_ref_seq ]
         alignment_ref_seq = [alignment_ref_seq[ii] for ii in range(len(alignment_ref_seq)) if not ref_gap_cols[ii]]
+        self.__alignment_ref_seq = alignment_ref_seq
 
-        self.__s_ipdb = first_matching_indx
+        """ Not working .. 
         # find out which indx in alignment_data corresponds with s_ipdb
         for ii,record in enumerate(self.__alignment_data):
             seq, seqid = record.seq, record.id
@@ -194,6 +196,7 @@ class MSATrimmer:
                     print(alignment_ref_seq)
                     self.__s_ipdb = ii
                     print('s_ipdb is now %w ', self.__s_ipdb)
+        """
         
 
         logger.info('\n\tSequence in MSA (seq num {}) that matches the reference'
@@ -235,9 +238,19 @@ class MSATrimmer:
         for ii,record in enumerate(self.__alignment_data):
             seq, seqid = record.seq, record.id
             trimmed_seq = [seq[i] for i in range(len(seq)) if i not in columns_to_remove]
+            trimmed_ref = [self.__alignment_ref_seq[i] for i in range(len(self.__alignment_ref_seq))]
+            #print('\n\n',len(trimmed_seq))
+            #print('\n\n',len(trimmed_ref))
             if ii == self.__s_ipdb:
+                print(trimmed_seq)
+                print(trimmed_ref)
+                print([char == trimmed_ref[iii] for iii,char in enumerate(trimmed_seq)])
+                print(all([char == trimmed_ref[iii] for iii,char in enumerate(trimmed_seq)]))
+                print(all([char == trimmed_seq[iii] for iii,char in enumerate(trimmed_seq)]))
                 print('in get_msa_trimmed: s_trimmed[%d] = '%self.__s_ipdb,trimmed_seq)
-            id_seq_pair = seqid, ''.join(trimmed_seq) 
+            if all([char == trimmed_seq[iii] for iii,char in enumerate(trimmed_ref)]):
+                print('FOUND MATCH in get_msa_trimmed:]\nref_seq (s_trimmed[%d]) = '%ii,trimmed_ref)
+            id_seq_pair = seqid, ''.join(trimmed_seq)
             trimmed_msa.append(id_seq_pair)
         return trimmed_msa
 
