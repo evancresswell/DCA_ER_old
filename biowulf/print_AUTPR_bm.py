@@ -66,20 +66,22 @@ f.close()
 print('Plotting for %d Pfams'%len(pf_score.keys()))
 bm = []
 bm_str = []
-for key in pf_scores:
+max_score = 0
+for key in pf_scores.keys():
 	best_method_indx, score = max(enumerate(pf_scores[key]), key=operator.itemgetter(1))
-	#print(pf_score[key])
-	#print(best_method_indx)
 	
 	bm.append(best_method_indx)	
 	if best_method_indx == 0:
 		best_method = 'ER'
+		if max_score<=score:
+			best_pfam = key
+			max_score = score 
 	if best_method_indx == 1:
 		best_method = 'MF'
 	if best_method_indx == 2:
 		best_method = 'PLM'
 	bm_str.append(best_method)
-
+print('Best ER pfam: %s ,score; %f'%(best_pfam,max_score))
 print('ER best for %d methods'%bm.count(0))
 print('MF best for %d methods'%bm.count(1))
 print('PLM best for %d methods'%bm.count(2))
