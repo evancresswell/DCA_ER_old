@@ -184,6 +184,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	print('#----------------------------------------------------------------------------------------------------#\n')
 	#--------------------------------------------------------------------------------#
 	plotting = False
+	plotting = True
 
 	contact_instances = [erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	scores = []
@@ -203,8 +204,8 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		scores.append(score)
 
 		if plotting:
-			#tp_rate_data = visualizer.plot_contact_map()
-			#plt.show()
+			tp_rate_data = visualizer.plot_contact_map()
+			plt.show()
 			tp_rate_data = visualizer.plot_true_positive_rates()
 			plt.show()
 
@@ -229,11 +230,10 @@ def main():
 
 	swarming = False
 	if not swarming:
-		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
-		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 		data_path = '/home/eclay/Pfam-A.full'
-
+		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 
 		get_score(pfam_id, data_path = data_path,preprocess_path=preprocess_path)
 	else:

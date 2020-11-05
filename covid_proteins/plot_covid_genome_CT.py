@@ -5,6 +5,7 @@ import timeit
 # import pydca-ER module
 import matplotlib
 #matplotlib.use('agg')
+#matplotlib.rcParams['text.usetex'] = True
 import matplotlib.pyplot as plt
 from scipy import linalg
 from sklearn.preprocessing import OneHotEncoder
@@ -21,8 +22,9 @@ data_path = '/home/eclay/DCA_ER/covid_proteins/'
 root_dir = '/home/eclay/DCA_ER/covid_proteins/'
 data_path = '/data/cresswellclayec/DCA_ER/covid_proteins/'
 root_dir = '/data/cresswellclayec/DCA_ER/covid_proteins/'
-# TO RUN: singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python plot_covid_genome_CT.py cov_genome_DI.pickle cov_genome_DP.pickle
-# FOR PROCESSED RUN: singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/erdca.simg python plot_covid_genome_CT.py cov_genome_DI_processed.pickle cov_genome_DP.pickle
+# TO RUN: 		singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/LADER.simg python plot_covid_genome_CT.py cov_genome_DI.pickle cov_genome_DP.pickle
+# FOR PROCESSED RUN: 	singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/LADER.simg python plot_covid_genome_CT.py cov_genome_DI_processed.pickle cov_genome_DP.pickle
+
 
 def distance_restr_sortedDI(site_pair_DI_in, s_index=None):
 	#print(site_pair_DI_in[:10])
@@ -48,10 +50,13 @@ def distance_restr_sortedDI(site_pair_DI_in, s_index=None):
 
 def delete_sorted_DI_duplicates(sorted_DI):
 	temp1 = []
-	#print(sorted_DI[:10])
+	print(sorted_DI[:10])
+	print(len(sorted_DI))
 	DI_out = dict() 
+	counter = 0
 	for (a,b), score in sorted_DI:
-		#print('Positions: (%d, %d)'%(a,b))
+		counter = counter + 1
+		print('pair %d of %d '%(counter, len(sorted_DI)))
 		if (a,b) not in temp1 and (b,a) not in temp1: #to check for the duplicate tuples
 			temp1.append(((a,b)))
 			if a>b:
@@ -63,6 +68,8 @@ def delete_sorted_DI_duplicates(sorted_DI):
 	#DI_out.sort(key=lambda x:x[1],reverse=True) 
 	print(DI_out[:10])
 	return DI_out 
+
+
 
 def closest(lst, K): 
       
@@ -87,7 +94,7 @@ cols_removed  = pf_dict['cols_removed']
 
 
 
-post_processing = False
+post_processing = True
 if post_processing:
 
 	cov_DI_file = root_dir+'cov_genome_DI.pickle'
@@ -111,11 +118,11 @@ if post_processing:
 	print(sorted_DI[:10])
 
 	print('\nDeleting DI Duplicates')
-	sorted_DI = delete_sorted_DI_duplicates(sorted_DI)
+	#sorted_DI = delete_sorted_DI_duplicates(sorted_DI)
 	print('Final DI:')
 	print(sorted_DI[:10])
 
-	with open(root_dir+'cov_genome_DI_processed.pickle', 'wb') as f:
+	with open(root_dir+'cov_full_genome_DI_processed.pickle', 'wb') as f:
 	    pickle.dump(sorted_DI, f)
 	f.close()
 
@@ -146,7 +153,9 @@ i_predictions = []
 j_predictions = []
 
 for coupling in sorted_DI:
-	if coupling[1] > .05:
+	if coupling[0][0] > 8000 and coupling[0][0] <9000 and coupling[1] > .1:
+		print (coupling)
+	if coupling[1] > .1:
 		strongest_DI.append(coupling)
 		#i_predictions.append(coupling[0][0])
 		#j_predictions.append(coupling[0][1])
@@ -168,22 +177,17 @@ for coupling in sorted_DI:
 print('Max index: (%d, %d)'%(max(indices_i),max(indices_j)))
 max_index = max(max(indices_i),max(indices_j))
 
-
 i_predictions_full = []
 j_predictions_full = []
 
 di_full = np.zeros((max(s_index),max(s_index)))
 for i,coupling in enumerate(sorted_DI):
 	if coupling[1] > .05:
-		i_predictions_full.append(coupling[0][0])
-		j_predictions_full.append(coupling[0][1])
-		i_predictions_full.append(coupling[0][1])
-		j_predictions_full.append(coupling[0][0])
-
-
-	# couplings indices have already been passed through s_index during post-processing
-	di_full[ coupling[0][0]-1,coupling[0][1]-1 ] = coupling[1]
-	di_full[ coupling[0][1] -1,coupling[0][0]-1 ] = coupling[1]
+		if abs(coupling[0][0] - coupling[0][1]) > 4:
+			i_predictions_full.append(coupling[0][0])
+			j_predictions_full.append(coupling[0][1])
+			i_predictions_full.append(coupling[0][1])
+			j_predictions_full.append(coupling[0][0])
 
 
 if 0:
@@ -192,10 +196,11 @@ if 0:
 	plt.ylim((0,2000))
 	plt.show()
 
-fig, ax = plt.subplots()
+max_infer = .01
+fig, ax = plt.subplots(figsize=(10,10))
 #plt.title('Contact Map')
 plt.imshow(di_predict,cmap='Greys',origin='lower')
-plt.clim(0,.001)
+plt.clim(0,max_infer)
 plt.xlabel('i')
 plt.ylabel('j')
 plt.xlim((0,len(s_index)))
@@ -208,26 +213,34 @@ ax.set_xticklabels(tick_labels)
 ax.set_yticks(tick_locs)
 ax.set_yticklabels(tick_labels)
 
-plt.title('COV-19 Genome Interaction Map\nPredicted')
+#plt.title('hCoV-19 Genome Interaction Map')
 plt.colorbar(fraction=0.045, pad=0.05)
-plt.scatter(i_predictions,j_predictions,marker=  'o',color='g')
-plt.show()
+plt.scatter(i_predictions,j_predictions,marker=  'o',color='r',label='>.05')
+plt.legend(loc='upper left')
+for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
+	item.set_fontsize(12)
+
+
+#plt.show()
+plt.savefig('hCoV19_full_interactions_poster.pdf')
 plt.close()
 
 zooming = True
 if zooming:
+	# https://www.gisaid.org/epiflu-applications/hcov-19-reference-sequence/
 	protein_ranges = {}				#  buffer of 265 --> [0, 264]
-	protein_ranges['ORF1ab']	= [265,21555] 	#  21290
-	protein_ranges['S'] 		= [21556,25378] #  3822
-	protein_ranges['ORF3a'] 	= [25379,26207] #  828 
-	protein_ranges['E'] 		= [26208,26436] #  228 
-	protein_ranges['M'] 		= [26437,27106] #  669 
-	protein_ranges['ORF6a'] 	= [27107,27293] #  186
-	protein_ranges['ORF7a'] 	= [27294,27660] #  366
-	protein_ranges['ORF7b'] 	= [27661,27793] #  132
-	protein_ranges['ORF8'] 		= [27794,27987] #  193
-	protein_ranges['N'] 		= [27988,28896] #  908
-	protein_ranges['ORF10'] 	= [28897,29014] #  117
+	protein_ranges['ORF1ab']	= [266,21555] 	#  21290 	# 21289
+	protein_ranges['S'] 		= [21563,25384] #  3822 	# 3821
+	protein_ranges['ORF3a'] 	= [25393,26220] #  828 		# 827
+	protein_ranges['ORF3b'] 	= [25765,26220] #     	 	# 455
+	protein_ranges['E'] 		= [26245,26472] #  228		# 227 
+	protein_ranges['M'] 		= [26523,27191] #  669		# 668 
+	protein_ranges['ORF6']	 	= [27202,27387] #  186		# 185
+	protein_ranges['ORF7a'] 	= [27394,27759] #  366		# 365
+	protein_ranges['ORF7b'] 	= [27756,27887] #  132		# 131
+	protein_ranges['ORF8'] 		= [27894,28259] #  193		# 265
+	protein_ranges['N'] 		= [28274,29533] #  908		# 1259
+	protein_ranges['ORF10'] 	= [29558,29674] #  117		# 116
 							#  buffer of 229 --> [29015, 29244]
 
 	for protein_name in protein_ranges.keys():
@@ -240,10 +253,11 @@ if zooming:
 		index_range = ( np.where(s_index==index_start)[0], np.where(s_index==index_end)[0] )
 
 
-		fig_zoom, ax_zoom = plt.subplots()
+		fig_zoom, ax_zoom = plt.subplots(figsize=(10,10))
 		#plt.title('Contact Map')
 		plt.imshow(di_predict,cmap='Greys',origin='lower')
-		plt.clim(0,.001)
+		#plt.clim(0,.001)
+		plt.clim(0,max_infer)
 		plt.xlabel('i')
 		plt.ylabel('j')
 
@@ -256,27 +270,17 @@ if zooming:
 		ax_zoom.set_yticklabels(tick_labels)
 		plt.xlim(index_range)
 		plt.ylim(index_range)
-		plt.title('COV-19 Genome Interaction Map\n%s (%d, %d)'%(protein_name,protein_range[0],protein_range[1]))
+		#plt.title('hCoV-19 Genome Interaction Map\n%s (%d, %d)'%(protein_name,protein_range[0],protein_range[1]))
+		for item in ([ax_zoom.title, ax_zoom.xaxis.label, ax_zoom.yaxis.label] +ax_zoom.get_xticklabels() + ax_zoom.get_yticklabels()):
+			item.set_fontsize(12)
+
 		plt.colorbar(fraction=0.045, pad=0.05)
-		plt.scatter(i_predictions,j_predictions,marker=  'o',color='g')
-		plt.show()
+		plt.scatter(i_predictions,j_predictions,marker=  'o',color='r',label = '>.05')
+		plt.legend(loc='upper left')
+		#plt.show()
+		plt.savefig('hCoV19_%s _interactions_poster.pdf'%(protein_name))
 		plt.close()
 
-
-
-if 0:
-	fig, ax = plt.subplots()
-	#plt.title('Contact Map')
-	plt.imshow(di_full,cmap='Greys',origin='lower')
-	plt.clim(0,.001)
-	plt.xlabel('i')
-	plt.ylabel('j')
-	plt.xlim((0,max_index))
-	plt.ylim((0,max_index))
-	plt.title('COV-19 Genome Interaction Map\nFull')
-	plt.colorbar(fraction=0.045, pad=0.05)
-	plt.scatter(i_predictions_full,j_predictions_full,marker=  'o',color='g')
-	plt.show()
 
 print('#-----------------------------------------------------------------------------------#\n')
 
