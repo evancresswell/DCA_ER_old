@@ -6,6 +6,8 @@ import timeit
 import matplotlib
 #matplotlib.use('agg')
 import matplotlib.pyplot as plt
+from scipy import linalg
+from sklearn.preprocessing import OneHotEncoder
 
 from pydca.erdca import erdca
 from pydca.sequence_backmapper import sequence_backmapper
@@ -156,7 +158,22 @@ else:
 	try:
 		trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
 		print('\n\nTrimmed Data: \n',trimmed_data[:10])
-		print(np.shape(trimmed_data))
+
+
+		#----- generate data for erdca to calculate couplings -----#
+		s0 = []
+		for sequence_data in trimmed_data:
+			s0.append([char for char in sequence_data[1]])
+		s0 = np.array(s0)
+		print('\ns0: \n',s0[:10],'\n\n')
+		print(s0.shape)
+
+		n_var = s0.shape[1]
+		mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+		mx_cumsum = np.insert(mx.cumsum(),0,0)
+		i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
+		#----------------------------------------------------------#
+
 	except(MSATrimmerException):
 		ERR = 'PPseq-MSA'
 		print('Error with MSA trimms\n%s\n'%ERR)
@@ -175,6 +192,59 @@ else:
 #---------------------------------------------------------------------------------------------------------------------#            
 #----------------------------------------- Run Simulation ERDCA ------------------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
+
+#========================================================================================
+# Compute ER couplings using MF initialization
+#========================================================================================
+if 1:
+	seqs_weight = tools.compute_sequences_weight(alignment_data = s0, seqid = .8)
+	np.save('pfam_ecc/%s_seqs_weight.npy'%(pfam_id),np.array(seqs_weight))
+
+	single_site_freqs = tools.compute_single_site_freqs(alignment_data = s0,seqs_weight=seqs_weight,mx= mx)
+	np.save('pfam_ecc/%s_single_site_freqs.npy'%(pfam_id),np.array(single_site_freqs))
+
+	reg_single_site_freqs = tools.get_reg_single_site_freqs(
+		    single_site_freqs = single_site_freqs,
+		    seqs_len = n_var,
+		    mx = mx,
+		    pseudocount = .5) # default pseudocount value used in regularization
+	#print (len(reg_single_site_freqs))
+	#print(reg_single_site_freqs[0])
+
+	pair_site_freqs = tools.compute_pair_site_freqs_serial(alignment_data=s0, mx=mx,seqs_weight=seqs_weight)
+	np.save('pfam_ecc/%s_pair_site_freqs.npy'%(pfam_id),np.array(pair_site_freqs))
+
+	corr_mat =  tools.construct_corr_mat(reg_fi = reg_single_site_freqs, reg_fij = pair_site_freqs, seqs_len = n_var, mx = mx)
+	np.save('pfam_ecc/%s_corr_mat.npy'%(pfam_id),corr_mat)
+
+	couplings = tools.compute_couplings(corr_mat = corr_mat)
+	np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
+else:
+	#========================================================================================
+	# ER - COV-COUPLINGS
+	#========================================================================================
+        
+	onehot_encoder = OneHotEncoder(sparse=False)
+        
+	s = onehot_encoder.fit_transform(s0)
+	
+	s_av = np.mean(s,axis=0)
+	ds = s - s_av
+	l,n = s.shape
+
+	l2 = 100.
+	# calculate covariance of s (NOT DS) why not???
+	s_cov = np.cov(s,rowvar=False,bias=True)
+	# tai-comment: 2019.07.16:  l2 = lamda/(2L)
+	s_cov += l2*np.identity(n)/(2*l)
+	s_inv = linalg.pinvh(s_cov)
+	couplings = s_inv
+	print('couplings (s_inv) shape: ', s_inv.shape)
+     
+#========================================================================================
+
+
+
 
 
 
@@ -234,7 +304,7 @@ except:
 print('Running ER simulation\n\n')
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()
-erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,initialize=True)
+erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = couplings)
 run_time = timeit.default_timer() - start_time
 print('ER run time:',run_time)
 

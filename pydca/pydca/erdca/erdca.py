@@ -8,6 +8,7 @@ from scipy import linalg
 from sklearn.preprocessing import OneHotEncoder
 from pydca.fasta_reader.fasta_reader import get_alignment_from_fasta_file
 from pydca.fasta_reader.fasta_reader import get_alignment_int_form
+from pydca.meanfield_dca import meanfield_dca
 
 
 logger = logging.getLogger(__name__)
@@ -407,80 +408,7 @@ class ERDCA:
     # ------- Author: Evan Cresswell-Clay ---------- Date: 8/24/2020 ----------------------------------------#
     #========================================================================================================#
     #========================================================================================================#
-    def compute_cov_weights(self):
-        """Computing weights by applying Expectation Reflection initializing with the inverse of the covariance (ie cov_coupling) .
-
-        Parameters
-        ----------
-            self : ERDCA
-                The instance.
-
-        Returns
-        -------
-            couplings : np.array
-                A 2d numpy array of the same shape .
-        """
-
-        # THIS IS ASSUMING sequences passed in via MSA file 
-		# ---> were already preprocessed
-        s0 = np.asarray(self.__sequences)
-        print(s0.shape)
-        
-        n_var = len(s0[0])
-
-        mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
-        # use all possible states at all locations 
-        #mx = np.array([self.__num_site_states]* n_var) 
-     
-        mx_cumsum = np.insert(mx.cumsum(),0,0)
-
-        i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
-        
-        onehot_encoder = OneHotEncoder(sparse=False)
-        
-        s = onehot_encoder.fit_transform(s0)
-        
-        mx_sum = mx.sum()
-        my_sum = mx.sum() #!!!! my_sum = mx_sum
-        
-        w = np.zeros((mx_sum,my_sum))
-        h0 = np.zeros(my_sum)
-
-        # Pass computation to parallelization in ER_protein_msa_numerics.py 
-        logger.info('\n\tComputing ER couplings')
-        try:
-            res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads)
-        except Exception as e:
-            logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
-                ' You might need to increase it.'.format(e, self.__pseudocount)
-            )
-            raise
-   
- 
-        # Set weight-coupling matrix
-        for i0 in range(n_var):
-            i1,i2 = i1i2[i0,0],i1i2[i0,1]
-               
-            h01 = res[i0][0]
-            w1 = res[i0][1]
-        
-            h0[i1:i2] = h01    
-            w[:i1,i1:i2] = w1[:i1,:]
-            w[i2:,i1:i2] = w1[i1:,:]
-        
-        # make w to be symmetric
-        w = (w + w.T)/2.
-    
-        # capture couplings (ie symmetric weights matrix) to avoid recomputing
-        self.__couplings = w
-        logger.info('\n\tMaximum and minimum couplings: {}, {}'.format(
-            np.max(w), np.min(w)))
-
-        return w,s
-
-
-
-    def compute_lader_weights(self,initialize):
+    def compute_lader_weights(self,init_w=None):
         """Computing weights by applying Expectation Reflection with LAD inference.
 
         Parameters
@@ -522,7 +450,10 @@ class ERDCA:
         # Pass computation to parallelization in ER_protein_msa_numerics.py 
         logger.info('\n\tComputing ER couplings')
         try:
-            res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads)
+            if init_w is not None: 
+                res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings = int_w)
+            else:
+                res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads)
         except Exception as e:
             logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
                 ' You might need to increase it.'.format(e, self.__pseudocount)
@@ -552,7 +483,7 @@ class ERDCA:
         return w,s
 
 
-    def compute_er_weights(self,initialize):
+    def compute_er_weights(self,init_w = None):
         """Computing weights by applying Expectation Reflection.
 
         Parameters
@@ -591,31 +522,13 @@ class ERDCA:
         w = np.zeros((mx_sum,my_sum))
         h0 = np.zeros(my_sum)
 
-        # Iinitialize weights using pseuod inverse.
-        if initialize:
-             #========================================================================================
-             # ER - COV-COUPLINGS
-             #========================================================================================
-             
-             s_av = np.mean(s,axis=0)
-             ds = s - s_av
-             l,n = s.shape
-             
-             l2 = 100.
-             # calculate covariance of s (NOT DS) why not???
-             s_cov = np.cov(s,rowvar=False,bias=True)
-             # tai-comment: 2019.07.16:  l2 = lamda/(2L)
-             s_cov += l2*np.identity(n)/(2*l)
-             s_inv = linalg.pinvh(s_cov)
-             print('s_inv shape: ', s_inv.shape)
-             
              
 
         # Pass computation to parallelization in msa_numerics.py 
         logger.info('\n\tComputing ER couplings')
         try:
-            if initialize:
-                res = msa_numerics.compute_er_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings=s_inv)
+            if init_w is not None:
+                res = msa_numerics.compute_er_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings=init_w)
             else:
                 res = msa_numerics.compute_er_weights(n_var,s,i1i2,num_threads= self.__num_threads)
 
@@ -648,7 +561,7 @@ class ERDCA:
         return w,s
 
     # altering the following two functions (originally defined) to implement ER
-    def get_site_pair_di_score(self,LAD=False,initialize=False):
+    def get_site_pair_di_score(self,LAD=False,init_w=None):
         # my version
         """Obtains Expectation Reflection weights and computes direct information (DI) scores 
         and puts them a list of tuples of in (site-pair, score) form.
@@ -665,11 +578,17 @@ class ERDCA:
                 list [((i, j), score), ...] for all unique ite pairs (i, j) 
                 such that j > i.
         """
-
-        if LAD:
-            couplings, s = self.compute_lader_weights(initialize)
+        if init_w is not None: 
+            print('using initial w:\n',init_w)
+            if LAD:
+                couplings, s = self.compute_lader_weights(init_w)
+            else:
+                couplings, s = self.compute_er_weights(init_w)
         else:
-            couplings, s = self.compute_er_weights(initialize)
+            if LAD:
+                couplings, s = self.compute_lader_weights()
+            else:
+                couplings, s = self.compute_er_weights()
         print('ER couplings dimensions: ', couplings.shape)
 
         # Compute DI using local computation in msa_numerics.py
@@ -690,7 +609,7 @@ class ERDCA:
         return site_pair_di_score
 
 
-    def compute_sorted_DI(self,LAD=False,initialize=False,seqbackmapper=None):
+    def compute_sorted_DI(self,LAD=False,init_w=None,seqbackmapper=None):
         # my version
         """Computes direct informations for each pair of sites and sorts them in
         descending order of DCA score.
@@ -710,7 +629,7 @@ class ERDCA:
                 site pairs (i, j) such that j > i.
         """
         print('Computing site pair DI scores')
-        unsorted_DI = self.get_site_pair_di_score(LAD,initialize)
+        unsorted_DI = self.get_site_pair_di_score(LAD,init_w)
         print('Sorting DI scores')
         sorted_DI = sorted(unsorted_DI.items(), key = lambda k : k[1], reverse=True)
         if seqbackmapper is not None:
