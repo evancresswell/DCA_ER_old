@@ -94,7 +94,7 @@ cols_removed  = pf_dict['cols_removed']
 
 
 
-post_processing = True
+post_processing = False
 if post_processing:
 
 	cov_DI_file = root_dir+'cov_genome_DI.pickle'
@@ -132,13 +132,18 @@ else:
 	with open(root_dir+sys.argv[1], 'rb') as f:
 		sorted_DI = pickle.load( f)
 	f.close()
+	print('\n#-----------------------------------------------------------------------------------#')
+	print('Processed DI')
+	print(sorted_DI[:10])
+	print('#-----------------------------------------------------------------------------------#\n')
+
 
 
 
 print('\n#-----------------------------------------------------------------------------------#')
 print('Plotting Regular Distance Map')
 print('We have predictions for %d Positions'%len(s_index))
-print(sorted_DI[:10])
+print('#-----------------------------------------------------------------------------------#\n')
 
 
 strongest_DI = []
@@ -152,8 +157,13 @@ indices_j = []
 i_predictions = []
 j_predictions = []
 
+#focus_range = (26140,26150) # Focus range for ORF3A V-determinant position  26144
+focus_range = (11080,11090) # Focus range for NSP6 V-determinant position  11083 
+focus_range = (0,0) # Do not Focus range
+
 for coupling in sorted_DI:
-	if coupling[0][0] > 8000 and coupling[0][0] <9000 and coupling[1] > .1:
+	if coupling[0][0] > focus_range[0] and coupling[0][0] <focus_range[1] and coupling[1] > .001:
+	#if coupling[0][0] > focus_range[0] and coupling[0][0] <focus_range[1]:
 		print (coupling)
 	if coupling[1] > .1:
 		strongest_DI.append(coupling)
@@ -215,7 +225,7 @@ ax.set_yticklabels(tick_labels)
 
 #plt.title('hCoV-19 Genome Interaction Map')
 plt.colorbar(fraction=0.045, pad=0.05)
-plt.scatter(i_predictions,j_predictions,marker=  'o',color='r',label='>.05')
+plt.scatter(i_predictions,j_predictions,marker=  'o',color='r',label='>.1')
 plt.legend(loc='upper left')
 for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +ax.get_xticklabels() + ax.get_yticklabels()):
 	item.set_fontsize(12)

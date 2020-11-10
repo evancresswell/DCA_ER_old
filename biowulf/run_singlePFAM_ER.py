@@ -148,12 +148,15 @@ else:
 		pfam_dict['ref_file'] = pp_ref_file_range
 	except:
 		print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
+		sys.exit()
+		"""
 		# create MSATrimmer instance 
 		trimmer = msa_trimmer.MSATrimmer(
 		    pp_msa_file, biomolecule='protein', 
 		    refseq_file=pp_ref_file
 		)
 		pfam_dict['ref_file'] = pp_ref_file
+		"""
 	# Adding the data_processing() curation from tools to erdca.
 	try:
 		trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
@@ -165,12 +168,13 @@ else:
 		for sequence_data in trimmed_data:
 			s0.append([char for char in sequence_data[1]])
 		s0 = np.array(s0)
-		print('\ns0: \n',s0[:10],'\n\n')
+		print('\nMSA ref-trimmed\ns0: \n',s0[:10],'\n\n')
 		print(s0.shape)
 
 		n_var = s0.shape[1]
 		mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
 		mx_cumsum = np.insert(mx.cumsum(),0,0)
+		print('mx cumsum: ',mx_cumsum)
 		i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
 		#----------------------------------------------------------#
 
@@ -193,10 +197,11 @@ else:
 #----------------------------------------- Run Simulation ERDCA ------------------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
 
-#========================================================================================
-# Compute ER couplings using MF initialization
-#========================================================================================
 if 1:
+	#========================================================================================
+	# Compute ER couplings using MF initialization
+	#========================================================================================
+
 	seqs_weight = tools.compute_sequences_weight(alignment_data = s0, seqid = .8)
 	np.save('pfam_ecc/%s_seqs_weight.npy'%(pfam_id),np.array(seqs_weight))
 
@@ -219,7 +224,8 @@ if 1:
 
 	couplings = tools.compute_couplings(corr_mat = corr_mat)
 	np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
-else:
+	print(np.shape(couplings))
+#else:
 	#========================================================================================
 	# ER - COV-COUPLINGS
 	#========================================================================================
@@ -227,6 +233,7 @@ else:
 	onehot_encoder = OneHotEncoder(sparse=False)
         
 	s = onehot_encoder.fit_transform(s0)
+	print('s shape: ',s.shape)
 	
 	s_av = np.mean(s,axis=0)
 	ds = s - s_av
@@ -239,6 +246,8 @@ else:
 	s_cov += l2*np.identity(n)/(2*l)
 	s_inv = linalg.pinvh(s_cov)
 	couplings = s_inv
+	print(np.shape(couplings))
+	#sys.exit()
 	print('couplings (s_inv) shape: ', s_inv.shape)
      
 #========================================================================================
@@ -251,6 +260,7 @@ else:
 try:
 	print('s_index : ',s_index,'\n')
 	if preprocessing:
+		print('USING DCA TRIMMED DATA')
 		print('Initializing ER instance\n\n')
 		# Compute DI scores using Expectation Reflection algorithm
 		erdca_inst = erdca.ERDCA(
@@ -275,11 +285,16 @@ try:
 
 except:
 	ref_seq = s[tpdb,:]
-	print('Using PDB defined reference sequence from MSA:\n',ref_seq)
+	print('\nERROR using trimmed DATA\n\nUsing PDB defined reference sequence from MSA:\n',ref_seq)
+
+
+	sys.exit()
+
+	"""
 	msa_file, ref_file = tools.write_FASTA(ref_seq, s, pfam_id, number_form=False,processed=False,path=preprocess_path)
 	pfam_dict['ref_file'] = ref_file
 
-	print('Re-trimming MSA with pdb index defined ref_seq')
+	print('Re-trimming MSA with pdb index defined ref_seq\n\n\n')
 	# create MSATrimmer instance 
 	trimmer = msa_trimmer.MSATrimmer(
 	    msa_file, biomolecule='protein', 
@@ -299,7 +314,7 @@ except:
 		    pseudocount = 0.5,
 		    num_threads = cpus_per_job-4,
 		    seqid = 0.8)
-
+	"""
 
 print('Running ER simulation\n\n')
 # Compute average product corrected Frobenius norm of the couplings
@@ -316,6 +331,8 @@ with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
 f.close()
 
 # Save processed data dictionary and FASTA file
+print('s shape (msa): ',s.shape)
+print('s_index shape: ',len(s_index))
 pfam_dict['msa'] = s  
 pfam_dict['s_index'] = s_index
 if preprocessing:

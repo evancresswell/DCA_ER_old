@@ -583,6 +583,7 @@ class ERDCA:
             if LAD:
                 couplings, s = self.compute_lader_weights(init_w)
             else:
+                print(init_w.shape)
                 couplings, s = self.compute_er_weights(init_w)
         else:
             if LAD:
