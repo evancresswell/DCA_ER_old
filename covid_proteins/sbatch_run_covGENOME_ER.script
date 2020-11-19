@@ -1,4 +1,5 @@
 #!/bin/bash
 
-sbatch --mem=600g  --cpus-per-task=40 --partition=largemem --time=2-0:00:00 run_covGENOME_ER 
+#sbatch --mem=500g  --cpus-per-task=40 --partition=largemem --time=2-0:00:00 run_covGENOME_ER 
+sbatch --mem=50g  --cpus-per-task=6 --time=10:00:00 run_covGENOME_ER 
 

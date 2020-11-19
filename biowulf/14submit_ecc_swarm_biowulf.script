@@ -1,10 +1,12 @@
 #!/bin/bash
 
 # DI calculations using PDB-Range PP seq (no matching)
-swarm -f er.swarm -t 20 -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+#swarm -f er.swarm -t 20 -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
 #swarm -f er_large.swarm -t 20 -g 250.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
 #swarm -f plm.swarm -t 20 -g 15.0 --time=1-10:00:00 --partition norm --module singularity --logdir swarm_output  #  quick # norm
 #swarm -f mf.swarm -t 20 -g 15.0 --time=1-0:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f er_coup.swarm -t 20 -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f er_coup_large.swarm -t 20 -g 250.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
 
 
 # New style holistic DI calculations with MSA-PDB matching and muscling.

@@ -105,6 +105,7 @@ preprocessing = True
 preprocessing = False
 
 using_saved_msa = True
+using_saved_msa = False
 
 if preprocessing:
 	try:

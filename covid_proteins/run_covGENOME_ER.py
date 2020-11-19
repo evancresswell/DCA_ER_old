@@ -38,15 +38,24 @@ ref_file = root_dir+"wuhan_ref.fasta"
 msa_file = root_dir+"covid_genome_full_aligned.fasta"
 ref_file = root_dir+"wuhan_ref.fasta"
 
-
-
-
-preprocessing = False
-saving_preprocessed = False
-
-
 input_data_file = "cov_genome_DP.pickle"
 print('\n\nPre-Processing MSA with muscle alignment\n\n')
+
+
+# Clade aligned File 
+if len(sys.argv) > 2:
+	clade_file = sys.argv[2]
+	msa_file = root_dir+clade_file
+	ref_file = root_dir+"wuhan_ref.fasta"
+
+	input_data_file = "cov_genome_clade__%s_DP.pickle"%(clade_file[:2])
+	print(input_data_file)
+	print('\n\nPre-Processing MSA with muscle alignment\n\n')
+
+
+
+preprocessing = True
+saving_preprocessed = True
 
 
 
@@ -81,7 +90,13 @@ if saving_preprocessed:
 		pickle.dump(pf_dict, f)
 	f.close()
 
-# data processing
+
+
+# if  data processing do not compute
+if preprocessing:
+	sys.exit()
+
+
 
 nucleotide_letters_full = np.array(['A','C','G','T','N','R','Y','S','W','K','M','B','D','H','V','U','-'])
 
@@ -108,7 +123,7 @@ my_sum = mx.sum() #!!!! my_sum = mx_sum
 w = np.zeros((mx_sum,my_sum))
 h0 = np.zeros(my_sum)
 
-saving_onehot = True
+saving_onehot = False
 if saving_onehot:
 	nucleotide_count = {}
 	if s0_letter.shape[1] == len(s_index):
@@ -123,9 +138,15 @@ if saving_onehot:
 			print('nucleotide_counts[%d] : '%(s_index[i]),nucleotide_count[s_index[i]])
 
 		print(len(nucleotide_count))	
-		with open('cov_genome_nucleotide_count.pickle', 'wb') as f:
-			pickle.dump(nucleotide_count, f)
-		f.close()
+		if len(sys.argv) > 2:
+			with open('cov_genome_nucleotide_count.pickle', 'wb') as f:
+				pickle.dump(nucleotide_count, f)
+			f.close()
+		else:
+			with open('cov_genome_clade_%s_nucleotide_count.pickle'%(clade_file[:2]), 'wb') as f:
+				pickle.dump(nucleotide_count, f)
+			f.close()
+
 	else:
 		print('S_index and s0 shape do not match!!')
 	for i0 in range(n_var):
@@ -180,8 +201,13 @@ er_gen_DI = sort_di(di)
 for site_pair, score in er_gen_DI[:5]:
     print(site_pair, score)
 
-with open(root_dir+'cov_genome_DI.pickle', 'wb') as f:
-    pickle.dump(er_gen_DI, f)
-f.close()
+if len(sys.argv) > 2:
+	with open(root_dir+ "cov_genome_clade_%s_DI.pickle"%(clade_file[:2]),'wb') as f:
+	    pickle.dump(er_gen_DI, f)
+	f.close()
+else:
+	with open(root_dir+'cov_genome_DI.pickle', 'wb') as f:
+	    pickle.dump(er_gen_DI, f)
+	f.close()
 
 

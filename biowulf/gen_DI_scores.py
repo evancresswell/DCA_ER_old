@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-method_map = {0: 'ER', 1:'MF',2:'PLM'}
+method_map = {0: 'ER', 1:'MF',2:'PLM',3:'ER_INIT'}
 
 
 #--- Load PDB sequence from contact_visualizer ---#
@@ -152,6 +152,10 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		with open("DI/MF/mf_DI_%s.pickle"%(pfam_id),"rb") as f:
 			DI_mf = pickle.load(f)
 		f.close()
+		with open("DI/ER/er_coup_DI_%s.pickle"%(pfam_id),"rb") as f:
+			DI_er_coup = pickle.load(f)
+		f.close()
+
 	except(FileNotFoundError):
 		print('Not all methods have a DI!!!')
 		sys.exit()
@@ -177,6 +181,12 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	linear_dist = 5,
 	contact_dist = 8. )
 
+	er_coup_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
+	refseq_file = dca_ref_file, # eith _match or _range depending on how pre-processing went
+	sorted_dca_scores = DI_er_coup,
+	linear_dist = 5,
+	contact_dist = 8. )
+
 	# Print Ranked DIs size by side A
 	print('\n#-------- ER ------------------------------------ MF --------------------------- PLM ----------------#')
 	for i,pair in enumerate(DI_er[:25]):
@@ -186,7 +196,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	plotting = False
 	plotting = True
 
-	contact_instances = [erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
+	contact_instances = [erdca_visualizer, mfdca_visualizer, plmdca_visualizer,er_coup_visualizer]
 	scores = []
 
 	for visualizer in contact_instances:
@@ -210,10 +220,10 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 			plt.show()
 
 
-	print('Scores:\n%s %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], dca_num_seqs))
+	print('Scores:\n%s %f %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], scores[3], dca_num_seqs))
 	# write results of Pfam to txt file
 	f = open('DI/%s.txt'%pfam_id,'w')
-	f.write('%s %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], dca_num_seqs) )    
+	f.write('%s %f %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], scores[3], dca_num_seqs) )    
 	f.close()
 
 
@@ -230,11 +240,11 @@ def main():
 
 	swarming = False
 	if not swarming:
-		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
-		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 		data_path = '/home/eclay/Pfam-A.full'
-	
+		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+
 		get_score(pfam_id, data_path = data_path,preprocess_path=preprocess_path)
 	else:
 		get_score(pfam_id)

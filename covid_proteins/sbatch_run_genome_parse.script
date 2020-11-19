@@ -1,0 +1,4 @@
+#!/bin/bash
+
+sbatch --mem=10g   --time=2-0:00:00 run_genome_parse
+
