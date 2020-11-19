@@ -16,20 +16,30 @@ np.random.seed(1)
 pfam_id = sys.argv[1]
 
 
-input_data_file = "pfam_ecc/%s_DP.pickle"%(pfam_id)
+input_data_file = "pfam_ecc/%s_DP_ER.pickle"%(pfam_id)
 with open(input_data_file,"rb") as f:
 	pfam_dict = pickle.load(f)
 f.close()
 #s0,cols_removed,s_index,s_ipdb = dp.data_processing(data_path,pfam_id,ipdb,\
 #				gap_seqs=0.2,gap_cols=0.2,prob_low=0.004,conserved_cols=0.9)
 ipdb = 0
-s_index = pfam_dict['s_index']	
+#s_index = pfam_dict['s_index']	
 s_ipdb = pfam_dict['s_ipdb']	
-cols_removed = pfam_dict['cols_removed']
+#cols_removed = pfam_dict['cols_removed']
 
 # LOADING S0
 #s0 = pfam_dict['s0']	
-s0 = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id))
+#s0 = np.loadtxt('pfam_ecc/%s_s0.txt'%(pfam_id))\
+
+# For testing to fix DCA-coupling in erdca..
+trimmed_data = pfam_dict['processed_msa']
+
+#----- generate data for erdca to calculate couplings -----#
+s0 = []
+for sequence_data in trimmed_data:
+	s0.append([char for char in sequence_data[1]])
+s0 = np.array(s0)
+print('\nMSA ref-trimmed\ns0: \n',s0[:10],'\n\n')
 print(s0.shape)
 
 
@@ -71,7 +81,9 @@ np.save('pfam_ecc/%s_corr_mat.npy'%(pfam_id),corr_mat)
 
 couplings = tools.compute_couplings(corr_mat = corr_mat)
 np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
-
+print('couplings first row:\n', couplings[0])
+print('couplings (1MAIN, DCA_tools_coupling) shape: ', couplings.shape)
+             
 #========================================================================================
 
 
@@ -116,7 +128,7 @@ h0 = np.zeros(mx_sum)
 
 #-------------------------------
 # parallel
-res_couplings = Parallel(n_jobs = 16)(delayed(predict_w_couplings)\
+res_couplings = Parallel(n_jobs = 4)(delayed(predict_w_couplings)\
 		(s,i0,i1i2,niter_max=10,l2=100.0,couplings=couplings)\
 		for i0 in range(n_var))
 #-------------------------------

@@ -34,13 +34,11 @@ warnings.simplefilter('ignore', ResourceWarning)
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-#========================================================================================
 data_path = '/home/eclay/Pfam-A.full'
 preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
-
-
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+
 
 #pfam_id = 'PF00025'
 pfam_id = sys.argv[1]
@@ -105,6 +103,9 @@ pp_msa_file, pp_ref_file = tools.write_FASTA(poly_seq, s, pfam_id, number_form=F
 #---------------------------------------------------------------------------------------------------------------------#            
 preprocessing = True
 preprocessing = False
+
+using_saved_msa = True
+
 if preprocessing:
 	try:
 		preprocessed_data_outfile = preprocess_path+'MSA_%s_PreProcessed.fa'%pfam_id
@@ -138,57 +139,77 @@ if preprocessing:
 	fh.close()
 else:
 	trimmed_data_outfile = preprocess_path+'MSA_%s_Trimmed.fa'%pfam_id
-	print('Pre-Processing MSA')
-	try:
-		print('\n\nPre-Processing MSA with Range PP Seq\n\n')
-		trimmer = msa_trimmer.MSATrimmer(
-		    pp_msa_file_range, biomolecule='PROTEIN', 
-		    refseq_file=pp_ref_file_range
-		)
-		pfam_dict['ref_file'] = pp_ref_file_range
-	except:
-		print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
-		sys.exit()
-		"""
-		# create MSATrimmer instance 
-		trimmer = msa_trimmer.MSATrimmer(
-		    pp_msa_file, biomolecule='protein', 
-		    refseq_file=pp_ref_file
-		)
-		pfam_dict['ref_file'] = pp_ref_file
-		"""
-	# Adding the data_processing() curation from tools to erdca.
-	try:
-		trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
-		print('\n\nTrimmed Data: \n',trimmed_data[:10])
+	if not using_saved_msa:	
+		print('Pre-Processing MSA')
+		try:
+			print('\n\nPre-Processing MSA with Range PP Seq\n\n')
+			trimmer = msa_trimmer.MSATrimmer(
+			    pp_msa_file_range, biomolecule='PROTEIN', 
+			    refseq_file=pp_ref_file_range
+			)
+			pfam_dict['ref_file'] = pp_ref_file_range
+		except:
+			print('\nDidnt work, using full PP seq\nPre-Processing MSA wth PP Seq\n\n')
+			sys.exit()
+			"""
+			# create MSATrimmer instance 
+			trimmer = msa_trimmer.MSATrimmer(
+			    pp_msa_file, biomolecule='protein', 
+			    refseq_file=pp_ref_file
+			)
+			pfam_dict['ref_file'] = pp_ref_file
+			"""
+		# Adding the data_processing() curation from tools to erdca.
+		try:
+			trimmed_data = trimmer.get_msa_trimmed_by_refseq(remove_all_gaps=True)
+			print('\n\nTrimmed Data: \n',trimmed_data[:10])
 
 
-		#----- generate data for erdca to calculate couplings -----#
-		s0 = []
-		for sequence_data in trimmed_data:
-			s0.append([char for char in sequence_data[1]])
-		s0 = np.array(s0)
-		print('\nMSA ref-trimmed\ns0: \n',s0[:10],'\n\n')
-		print(s0.shape)
+			#----- generate data for erdca to calculate couplings -----#
 
-		n_var = s0.shape[1]
-		mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
-		mx_cumsum = np.insert(mx.cumsum(),0,0)
-		print('mx cumsum: ',mx_cumsum)
-		i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
-		#----------------------------------------------------------#
+			s0 = []
+			for seq_id,sequence_data in trimmed_data:
+				s0.append([char for char in sequence_data])
+			s0 = np.array(s0)
+			print('\nMSA ref-trimmed\ns0: \n',s0[:10],'\n\n')
+			print('\n\n Trimmed Data (s0) shape:\n',s0.shape,'\n\n')
+			n_var = s0.shape[1]
+			mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+			mx_cumsum = np.insert(mx.cumsum(),0,0)
+			print('mx cumsum: ',mx_cumsum)
+			i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
+			#----------------------------------------------------------#
 
-	except(MSATrimmerException):
-		ERR = 'PPseq-MSA'
-		print('Error with MSA trimms\n%s\n'%ERR)
-		sys.exit()
-	#write trimmed msa to file in FASTA format
-	with open(trimmed_data_outfile, 'w') as fh:
-		for seqid, seq in trimmed_data:
-			fh.write('>{}\n{}\n'.format(seqid, seq))
-	fh.close()
+		except(MSATrimmerException):
+			ERR = 'PPseq-MSA'
+			print('Error with MSA trimms\n%s\n'%ERR)
+			sys.exit()
+		#write trimmed msa to file in FASTA format
+		with open(trimmed_data_outfile, 'w') as fh:
+			for seqid, seq in trimmed_data:
+				fh.write('>{}\n{}\n'.format(seqid, seq))
+		fh.close()
 
-	s_index = list(np.arange(len(''.join(seq))))
+		s_index = list(np.arange(len(''.join(seq))))
+	else:
+		print('\n\nUsing existing MSA file: ', trimmed_data_outfile,'\n\n')
+
+		input_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
+		with open(input_data_file,"rb") as f:
+			pfam_dict = pickle.load(f)
+		f.close()
+
+
+		s = pfam_dict['msa']  
+		s_index = pfam_dict['s_index']
+		if preprocessing:
+			preprocessed_data=pfam_dict['processed_msa']
+			cols_removed  = pfam_dict['cols_removed']
+			s_ipdb = pfam_dict['s_ipdb'] 
+		else:
+			trimmed_data = pfam_dict['processed_msa']
+			tpdb = pfam_dict['s_ipdb']
+			cols_removed = pfam_dict['cols_removed']
 
 
 #---------------------------------------------------------------------------------------------------------------------#            
@@ -197,7 +218,7 @@ else:
 #----------------------------------------- Run Simulation ERDCA ------------------------------------------------------#            
 #---------------------------------------------------------------------------------------------------------------------#            
 
-if 1:
+if 0:
 	#========================================================================================
 	# Compute ER couplings using MF initialization
 	#========================================================================================
@@ -225,7 +246,7 @@ if 1:
 	couplings = tools.compute_couplings(corr_mat = corr_mat)
 	np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
 	print(np.shape(couplings))
-#else:
+elif 0:
 	#========================================================================================
 	# ER - COV-COUPLINGS
 	#========================================================================================
@@ -248,7 +269,6 @@ if 1:
 	couplings = s_inv
 	print(np.shape(couplings))
 	#sys.exit()
-	print('couplings (s_inv) shape: ', s_inv.shape)
      
 #========================================================================================
 
@@ -287,7 +307,6 @@ except:
 	ref_seq = s[tpdb,:]
 	print('\nERROR using trimmed DATA\n\nUsing PDB defined reference sequence from MSA:\n',ref_seq)
 
-
 	sys.exit()
 
 	"""
@@ -319,14 +338,15 @@ except:
 print('Running ER simulation\n\n')
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()
-erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = couplings)
+#erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = couplings)
+erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = None) # initializes with DCA couplings
 run_time = timeit.default_timer() - start_time
 print('ER run time:',run_time)
 
 for site_pair, score in erdca_DI[:5]:
     print(site_pair, score)
 
-with open('DI/ER/er_DI_%s.pickle'%(pfam_id), 'wb') as f:
+with open('DI/ER/er_coup_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(erdca_DI, f)
 f.close()
 
@@ -344,7 +364,7 @@ else:
 	pfam_dict['s_ipdb'] = tpdb
 	pfam_dict['cols_removed'] = []
 
-input_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
+input_data_file = preprocess_path+"%s_DP_ER_coup.pickle"%(pfam_id)
 with open(input_data_file,"wb") as f:
 	pickle.dump(pfam_dict, f)
 f.close()

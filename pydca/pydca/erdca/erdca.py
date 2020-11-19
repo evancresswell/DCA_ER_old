@@ -1,5 +1,8 @@
 from __future__ import absolute_import, division
+import sys
 from . import msa_numerics
+from . import dca_msa_numerics as dca_numerics
+from . import dca_orig_msa_numerics as dca_orig_numerics
 from . import ER_protein_msa_numerics as LADER
 from pydca.fasta_reader import fasta_reader
 import logging
@@ -9,7 +12,7 @@ from sklearn.preprocessing import OneHotEncoder
 from pydca.fasta_reader.fasta_reader import get_alignment_from_fasta_file
 from pydca.fasta_reader.fasta_reader import get_alignment_int_form
 from pydca.meanfield_dca import meanfield_dca
-
+import ecc_tools as tools
 
 logger = logging.getLogger(__name__)
 
@@ -307,7 +310,218 @@ class ERDCA:
 
         return np.sum(self.__sequences_weight)
     
-    
+    def compute_sequences_weight(self):
+        """Computes the weight of each sequences in the alignment. If the
+        sequences identity is one, each sequences has equal weight and this is
+        the maximum weight a sequence in the alignment data can have. Whenever
+        the sequence identity is set a value less than one, sequences that have
+        similarity beyond the sequence identity are lumped together. If there are
+        m similar sequences, their corresponding weight is the reciprocal.
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance
+
+        Returns
+        -------
+            weights : np.array
+                A 1d numpy array of size self.__num_sequences containing the
+                weight of each sequence.
+        """
+
+        logger.info('\n\tComputing sequences weights')
+        weights = dca_orig_numerics.compute_sequences_weight(
+            alignment_data= np.array(self.__sequences, dtype=np.int32),
+            seqid = self.__seqid,
+        )
+        return weights
+
+
+    def get_single_site_freqs(self):
+        """Computes single site frequency counts.
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance.
+
+        Returns
+        -------
+            single_site_freqs : np.array
+                A 2d numpy array of shape (L, q) containing the frequency
+                count of residues at sequence sites. L is the length of
+                sequences in the alignment, and q is the maximum possible
+                states a site can accommodate. The last state (q) of each
+                site represents a gap.
+        """
+
+        logger.info('\n\tComputing single site frequencies')
+
+        single_site_freqs = dca_orig_numerics.compute_single_site_freqs(
+            alignment_data = np.array(self.__sequences),
+            num_site_states = self.__num_site_states,
+            #unique_vals = self.__unique_states,
+            seqs_weight = self.__sequences_weight,
+            )
+        return single_site_freqs
+
+
+    def get_reg_single_site_freqs(self):
+        """Regularizes single site frequencies.
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance
+
+        Returns
+        -------
+            reg_single_site_freqs : np.array
+                A 2d numpy array of shape (L, q) containing regularized single
+                site frequencies. L and q are the sequences length and maximum
+                number of site-states respectively.
+        """
+
+        single_site_freqs = self.get_single_site_freqs()
+
+        logger.info('\n\tRegularizing single site frequencies')
+
+        reg_single_site_freqs = dca_orig_numerics.get_reg_single_site_freqs(
+            single_site_freqs = single_site_freqs,
+            seqs_len = self.__sequences_len,
+            num_site_states = self.__num_site_states,
+            #mx = self.__mx,
+            pseudocount = self.__pseudocount,
+        )
+        return reg_single_site_freqs
+
+
+    def get_pair_site_freqs(self):
+        """Computes pair site frequencies
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance.
+
+        Returns
+        -------
+            pair_site_freqs : np.array
+                A 2d numpy array of pair site frequncies. It has a shape of
+                (N, q-1, q-1) where N is the number of unique site pairs and q
+                is the maximum number of states a site can accommodate. Note
+                site pairig is performed in the following order: (0, 0), (0, 1),
+                ..., (0, L-1), ...(L-1, L) where L is the sequences length. This
+                ordering is critical that any computation involding pair site
+                frequencies must be implemented in the righ order of pairs.
+        """
+
+        logger.info('\n\tComputing pair site frequencies')
+        #pair_site_freqs = dca_numerics.compute_pair_site_freqs(
+        pair_site_freqs = dca_orig_numerics.compute_pair_site_freqs_serial(
+        alignment_data = np.array(self.__sequences),
+        num_site_states = self.__num_site_states,
+        #mx = self.__mx,
+        seqs_weight = self.__sequences_weight,
+        )
+        return pair_site_freqs
+
+
+    def get_reg_pair_site_freqs(self):
+        """Regularizes pair site frequencies
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance.
+
+        Returns
+        -------
+            reg_pair_site_freqs : np.array
+                A 3d numpy array of shape (N, q-1, q-1) containing regularized
+                pair site frequencies. N is the number of unique site pairs and
+                q is the maximum number of states in a sequence site. The
+                ordering of pairs follows numbering like (unregularized) pair
+                site frequencies.
+        """
+
+        pair_site_freqs = self.get_pair_site_freqs()
+        logger.info('\n\tRegularizing pair site frequencies')
+        reg_pair_site_freqs = dca_orig_numerics.get_reg_pair_site_freqs(
+            pair_site_freqs = pair_site_freqs,
+            seqs_len = self.__sequences_len,
+            num_site_states = self.__num_site_states,
+            #mx = self.__mx,
+            pseudocount = self.__pseudocount,
+        )
+        return reg_pair_site_freqs
+
+
+    def construct_corr_mat(self, reg_fi, reg_fij):
+        """Constructs the correlation matrix from regularized frequencies.
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance.
+            reg_fi : np.array
+                Regularized single site frequencies.
+            reg_fij : np.array
+                Regularized pair site frequncies.
+
+        Returns
+        -------
+            corr_mat : np.array
+                A 2d numpy array of (N, N) where N = L*(q-1) where L and q are
+                the length of sequences and number of states in a site
+                respectively.
+        """
+
+        logger.info('\n\tConstructing the correlation matrix')
+        corr_mat = dca_orig_numerics.construct_corr_mat(
+            reg_fi = reg_fi,
+            reg_fij = reg_fij,
+            seqs_len = self.__sequences_len,
+            num_site_states = self.__num_site_states,
+            #mx = self.__mx,
+        )
+        return corr_mat
+
+
+    def compute_couplings(self, corr_mat):
+        """Computing couplings by inverting the matrix of correlations. Note that
+        the couplings are the negative of the inverse of the correlation matrix.
+
+        Parameters
+        ----------
+            self : MeanFieldDCA
+                The instance.
+            corr_mat : np.array
+                The correlation matrix formed from regularized  pair site and
+                single site frequencies.
+
+        Returns
+        -------
+            couplings : np.array
+                A 2d numpy array of the same shape as the correlation matrix.
+        """
+
+        logger.info('\n\tComputing couplings')
+        try:
+            couplings = dca_orig_numerics.compute_couplings(corr_mat = corr_mat)
+        except Exception as e:
+            logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
+                ' You might need to increase it.'.format(e, self.__pseudocount)
+            )
+            raise
+        # capture couplings to avoid recomputing
+        self.__couplings = couplings 
+        logger.info('\n\tMaximum and minimum couplings: {}, {}'.format(
+            np.max(couplings), np.min(couplings)))
+        return couplings
+
+
     def shift_couplings(self, couplings_ij):
         """Shifts the couplings value.
 
@@ -429,11 +643,12 @@ class ERDCA:
         
         n_var = len(s0[0])
 
-        mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+        self.__mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+        self.__unique_states = np.array([np.unique(s0[:,i]) for i in range(n_var)])
         # use all possible states at all locations 
         #mx = np.array([self.__num_site_states]* n_var) 
      
-        mx_cumsum = np.insert(mx.cumsum(),0,0)
+        mx_cumsum = np.insert(self.__mx.cumsum(),0,0)
 
         i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
         
@@ -500,37 +715,123 @@ class ERDCA:
         # THIS IS ASSUMING sequences passed in via MSA file 
 		# ---> were already preprocessed
         s0 = np.asarray(self.__sequences)
-        print(s0.shape)
+        print('in compute_er_weights\ns0 shape:',s0.shape)
         
-        n_var = len(s0[0])
+        n_var = s0.shape[1]
 
-        mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+        self.__mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+
+        self.__unique_states = np.array([np.unique(s0[:,i]) for i in range(n_var)])
+        unique_aminos = []
+        for states in self.__unique_states: 
+            unique_aminos.append(states[states!=21])
+        print('uniqe_aminos[0]:\n',unique_aminos[0])
         # use all possible states at all locations 
         #mx = np.array([self.__num_site_states]* n_var) 
      
-        mx_cumsum = np.insert(mx.cumsum(),0,0)
+        mx_cumsum = np.insert(self.__mx.cumsum(),0,0)
 
         i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
         
         onehot_encoder = OneHotEncoder(sparse=False)
         
         s = onehot_encoder.fit_transform(s0)
+        print('s shape:',s.shape)
         
-        mx_sum = mx.sum()
-        my_sum = mx.sum() #!!!! my_sum = mx_sum
-        
+        mx_sum = self.__mx.sum()
+        my_sum = self.__mx.sum() #!!!! my_sum = mx_sum
+
+    
+        #========================================================================================
+        # Compute ER couplings using MF initialization
+        #========================================================================================
+  
+        if init_w is None: 
+            if 1:
+                print('\n\n#--------------------------------------------------------------------------------- Calulating DCA-couplings for initial weights ---------------------------------------------------------------------------------\n\n')
+                reg_fi = self.get_reg_single_site_freqs()
+                reg_fij = self.get_reg_pair_site_freqs()
+                corr_mat = self.construct_corr_mat(reg_fi, reg_fij)
+                print('corr_mat (orig DCA-couplings) shape: ', corr_mat.shape)
+                couplings = self.compute_couplings(corr_mat)
+                print('couplings (orig DCA-couplings) shape: ', couplings.shape)
+                print('couplings first row:\n', couplings[0,:21])
+
+                gap_state_indices = [x for x in range(couplings.shape[1] +1) if x % 20==0 and x!=0]
+                print('gap_stat_indices (len=%d): '%(len(gap_state_indices)), gap_state_indices)
+
+                er_couplings = np.insert(couplings,gap_state_indices,0 ,axis=1)
+                er_couplings = np.insert(er_couplings,gap_state_indices,0,axis=0)
+                print('er_couplings (orig DCA-couplings with -) shape: ', er_couplings.shape)
+                print('er_couplings first row:\n', er_couplings[0,:21])
+
+
+                # list of columns 
+                print(mx_cumsum)
+                non_states = []
+                col = 0
+                mx_col = 0
+                for i in range(n_var):
+                    #print(mx_col)
+                    for j in range(1,self.__num_site_states+1):
+                        if i==0:
+                            print(j)
+                        if j!=21:
+                            if j not in unique_aminos[i]:
+                                non_states.append(col)
+                            else:
+                                mx_col+=1
+                        col += 1
+                print('deleting %d colums/rows of %d, column/row count should be %d '%(len(non_states),col,s.shape[1]))
+                er_couplings = np.delete(er_couplings,non_states,axis=0)
+                er_couplings = np.delete(er_couplings,non_states,axis=1)
+
+                #np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
+                print('er_couplings (orig DCA-couplings trimmed non-states) shape: ', er_couplings.shape)
+                print('er_couplings first row:\n', couplings[0][:21])
+                print('\n\n#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n')
+                w_in = er_couplings
+
+		 
+            else:
+                #========================================================================================
+                # ER - COV-COUPLINGS
+                #========================================================================================
+                
+                s_av = np.mean(s,axis=0)
+                ds = s - s_av
+                l,n = s.shape
+                
+                l2 = 100.
+                # calculate covariance of s (NOT DS) why not???
+                s_cov = np.cov(s,rowvar=False,bias=True)
+                print('s_cov (orig DCA-couplings) shape: ', s_cov.shape)
+                # tai-comment: 2019.07.16:  l2 = lamda/(2L)
+                s_cov += l2*np.identity(n)/(2*l)
+
+                theta_by_qsqrd = self.__pseudocount / float(self.__num_site_states ** 2. )
+                s_cov += theta_by_qsqrd*np.identity(n)
+
+                s_inv = linalg.pinvh(s_cov)
+
+                w_in = s_inv
+                print(np.shape(s_inv))
+                #sys.exit()
+
+
+        else:
+            print('\n\nUsing passed init_w for initial weights\n',init_w)
+            w_in = init_w    
+ 
         w = np.zeros((mx_sum,my_sum))
         h0 = np.zeros(my_sum)
 
-             
+
 
         # Pass computation to parallelization in msa_numerics.py 
         logger.info('\n\tComputing ER couplings')
         try:
-            if init_w is not None:
-                res = msa_numerics.compute_er_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings=init_w)
-            else:
-                res = msa_numerics.compute_er_weights(n_var,s,i1i2,num_threads= self.__num_threads)
+            res = msa_numerics.compute_er_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings=w_in)
 
         except Exception as e:
             logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
@@ -580,16 +881,11 @@ class ERDCA:
         """
         if init_w is not None: 
             print('using initial w:\n',init_w)
-            if LAD:
-                couplings, s = self.compute_lader_weights(init_w)
-            else:
-                print(init_w.shape)
-                couplings, s = self.compute_er_weights(init_w)
+            print(init_w.shape)
+        if LAD:
+            couplings, s = self.compute_lader_weights(init_w)
         else:
-            if LAD:
-                couplings, s = self.compute_lader_weights()
-            else:
-                couplings, s = self.compute_er_weights()
+            couplings, s = self.compute_er_weights(init_w)
         print('ER couplings dimensions: ', couplings.shape)
 
         # Compute DI using local computation in msa_numerics.py

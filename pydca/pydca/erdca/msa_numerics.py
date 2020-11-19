@@ -134,9 +134,10 @@ def predict_w_couplings(s,i0,i1i2,niter_max,l2,couplings):
     #print('predict_w, s_onehot: shape', s.shape)
     x = np.hstack([s[:,:i1],s[:,i2:]])
     y = s[:,i1:i2]
-    y_couplings = np.delete(couplings,[range(i1,i2)],0)					# remove subject rows  from original coupling matrix 
-    y_couplings = np.delete(y_couplings,[range(i1,i2)],1)					# remove subject columns from original coupling matrix 
-    #print('y_couplings shape: ',y_couplings.shape, ' x-column size: ',x.shape[1])	# Should be same dimensions as x column size as a result
+    y_couplings = np.delete(couplings,[range(i1,i2)],0)	# remove subject rows  from original coupling matrix 
+    y_couplings = np.delete(y_couplings,[range(i1,i2)],1)# remove subject columns from original coupling matrix 
+    #print('y_couplings shape: ',y_couplings.shape, ' x-column size: ',x.shape[1])	
+    # Should be same dimensions as x column size as a result
 
     #print('predict_w, x: shape', x.shape)
     #print('predict_w, y: shape', y.shape)
@@ -163,6 +164,7 @@ def compute_er_weights(n_var,s,i1i2,num_threads=1,couplings=None):
     print('Compute ER weights in parallel using %d threads for %d variables'%(num_threads,n_var))
     print('matrix s: shape: ',s.shape,'\n\n')
     if couplings is not None:
+        print('couplings vector: shape: ',couplings.shape,'\n')
         res = Parallel(n_jobs = num_threads)(delayed(predict_w_couplings)\
                 (s, i0, i1i2, niter_max=10, l2=100.0, couplings=couplings)\
                 for i0 in range(n_var))
