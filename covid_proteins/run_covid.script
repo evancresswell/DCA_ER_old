@@ -1,4 +1,5 @@
 #!/bin/bash
 
-sbatch --mem=150g  --cpus-per-task=20  --time=2-0:00:00 run_ER_covid
+#sbatch --mem=150g  --cpus-per-task=20  --time=2-0:00:00 run_ER_covid
+
 
