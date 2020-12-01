@@ -299,6 +299,7 @@ try:
 		    #preprocessed_data_outfile,
 		    trimmed_data_outfile,
 		    'PROTEIN',
+		    refseq_file=pp_ref_file_range,
 		    s_index = s_index,
 		    pseudocount = 0.5,
 		    num_threads = cpus_per_job-4,

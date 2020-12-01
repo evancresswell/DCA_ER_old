@@ -188,18 +188,20 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	contact_dist = 8. )
 
 	# Print Ranked DIs size by side A
-	print('\n#-------- ER ------------------------------------ MF --------------------------- PLM ----------------#')
+	print('\n#-------- ER ------------------------------------ MF --------------------------- PLM ------------------------ ER INIT ----------------#')
 	for i,pair in enumerate(DI_er[:25]):
-		print(pair ,'  ',DI_mf[i],'  ',DI_plm[i])	
+		print(pair ,'  ',DI_mf[i],'  ',DI_plm[i], '  ',DI_er_coup[i])	
 	print('#----------------------------------------------------------------------------------------------------#\n')
 	#--------------------------------------------------------------------------------#
-	plotting = False
 	plotting = True
+	plotting = False
 
-	contact_instances = [erdca_visualizer, mfdca_visualizer, plmdca_visualizer,er_coup_visualizer]
+	contact_instance_labels = ['er_coup_visualizer','erdca_visualizer', 'mfdca_visualizer', 'plmdca_visualizer']
+	contact_instances = [er_coup_visualizer,erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	scores = []
 
-	for visualizer in contact_instances:
+	for i,visualizer in enumerate(contact_instances):
+		print(contact_instance_labels[i])
 		contact_categories_dict = visualizer.contact_categories()
 		tp = contact_categories_dict['tp']	
 		fp = contact_categories_dict['fp']	
@@ -240,10 +242,12 @@ def main():
 
 	swarming = False
 	if not swarming:
-		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
-		data_path = '/home/eclay/Pfam-A.full'
+
 		preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
 		data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
+
+		preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
+		data_path = '/home/eclay/Pfam-A.full'
 
 		get_score(pfam_id, data_path = data_path,preprocess_path=preprocess_path)
 	else:

@@ -13,6 +13,7 @@ from pydca.fasta_reader.fasta_reader import get_alignment_from_fasta_file
 from pydca.fasta_reader.fasta_reader import get_alignment_int_form
 from pydca.meanfield_dca import meanfield_dca
 import ecc_tools as tools
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +26,7 @@ class ERDCA:
     Coupling Analysis (DCA) of residue coevolution using the mean-field DCA
     algorithm.
     """
-    def __init__(self, msa_file, biomolecule,s_index = None, num_threads = None, pseudocount=None, seqid=None):
+    def __init__(self, msa_file,biomolecule, refseq_file = None,s_index = None, num_threads = None, pseudocount=None, seqid=None):
         self.__pseudocount = pseudocount  if pseudocount is not None else 0.5
         self.__seqid = seqid if seqid is not None else 0.8
         #Validate the value of pseudo count incase user provide an invalid one
@@ -41,6 +42,16 @@ class ERDCA:
             raise ValueError
         biomolecule = biomolecule.strip().upper()
         self.__msa_file = msa_file
+
+        # get references sequence in int form
+        if refseq_file is not None:
+            self.__ref_file = refseq_file
+            ref_seq_array = fasta_reader.get_alignment_int_form(
+                self.__ref_file,
+                biomolecule=biomolecule,
+            )
+            self.__refseq = ref_seq_array[0]
+            print('Reference Sequence (%d)'%len(self.__refseq),self.__refseq)
         if biomolecule=='RNA':
             self.__num_site_states = 5
         elif biomolecule=='PROTEIN':
@@ -55,6 +66,7 @@ class ERDCA:
             self.__msa_file,
             biomolecule=biomolecule,
         )
+
         print('number of sequences:  ',len(self.__sequences))
         if s_index is None:
             logger.info('S_INDEX not passed\nMake sure the indexing on DI is correct!!!\n\n')
@@ -66,8 +78,8 @@ class ERDCA:
         self.__biomolecule = biomolecule
 
         #--- Joblib Parallel for msa_numerics.py:computing_sequences_weight() does not yet work ---#
-        print('Not accounting for sequence similarity...\n    (must get Joblib, Parallel working first)')
-        self.__seqid = 1.0 # therefore you pass on below if statement
+        #print('Not accounting for sequence similarity...\n    (must get Joblib, Parallel working first)')
+        #self.__seqid = 1.0 # therefore you pass on below if statement
         if self.__seqid < 1.0:
             self.__sequences_weight = self.compute_seqs_weight()
         else :
@@ -603,10 +615,9 @@ class ERDCA:
             get_alignment_int_form(self.__msa_file, 
             biomolecule = self.__biomolecule)
         )
-        seqs_weight = msa_numerics.compute_sequences_weight(
+        seqs_weight = dca_orig_numerics.compute_sequences_weight(
             alignment_data=alignment_data, 
             seqid = self.__seqid,
-            num_threads = self.__num_threads
         )
         Meff = np.sum(seqs_weight)
         logger.info('\n\tEffective number of sequences: {}'.format(Meff))
@@ -697,6 +708,20 @@ class ERDCA:
 
         return w,s
 
+    def replace_gaps(self, s0 = None):
+        amino_acid_ints = [ 1,  2,  3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15,16,  17, 18, 19, 20]
+        if s0 is None:
+            s0 = self.__sequences
+        s0_nogap = s0
+        for i,seq in enumerate(s0):
+            #print('\n',seq)
+            for ii,aa in enumerate(seq):
+                if aa  == 21:
+                    #s0_nogap[i,ii] = random.choice(s0[:,ii][s0[:,ii]!= 21])
+                    s0_nogap[i,ii] = self.__refseq[ii]
+                    #print('at %d replace %d with %d '% (ii,aa,self.__refseq[ii]))
+            #print(s0_nogap[i],'\n')
+        return s0_nogap
 
     def compute_er_weights(self,init_w = None):
         """Computing weights by applying Expectation Reflection.
@@ -712,12 +737,18 @@ class ERDCA:
                 A 2d numpy array of the same shape .
         """
 
+
         # THIS IS ASSUMING sequences passed in via MSA file 
 		# ---> were already preprocessed
         s0 = np.asarray(self.__sequences)
         print('in compute_er_weights\ns0 shape:',s0.shape)
-        
+ 
+        s0 = self.replace_gaps(s0)
+        self.__sequences = s0       
+        print('    in compute_er_weights\n    after replacing gaps...\n    s0 shape:',s0.shape)
+
         n_var = s0.shape[1]
+
 
         self.__mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
 
@@ -748,7 +779,7 @@ class ERDCA:
   
         if init_w is None: 
             if 1:
-                print('\n\n#--------------------------------------------------------------------------------- Calulating DCA-couplings for initial weights ---------------------------------------------------------------------------------\n\n')
+                print('\n\n#----------------------------------------------------------- Calulating DCA-couplings for initial weights ------------------------------------------------------------\n\n')
                 reg_fi = self.get_reg_single_site_freqs()
                 reg_fij = self.get_reg_pair_site_freqs()
                 corr_mat = self.construct_corr_mat(reg_fi, reg_fij)
@@ -757,39 +788,33 @@ class ERDCA:
                 print('couplings (orig DCA-couplings) shape: ', couplings.shape)
                 print('couplings first row:\n', couplings[0,:21])
 
-                gap_state_indices = [x for x in range(couplings.shape[1] +1) if x % 20==0 and x!=0]
-                print('gap_stat_indices (len=%d): '%(len(gap_state_indices)), gap_state_indices)
+                # gap states are now replaced
+                #gap_state_indices = [x for x in range(couplings.shape[1] +1) if x % 20==0 and x!=0]
+                #print('gap_stat_indices (len=%d): '%(len(gap_state_indices)), gap_state_indices)
 
-                er_couplings = np.insert(couplings,gap_state_indices,0 ,axis=1)
-                er_couplings = np.insert(er_couplings,gap_state_indices,0,axis=0)
-                print('er_couplings (orig DCA-couplings with -) shape: ', er_couplings.shape)
-                print('er_couplings first row:\n', er_couplings[0,:21])
+                #er_couplings = np.insert(couplings,gap_state_indices,0 ,axis=1)
+                #er_couplings = np.insert(er_couplings,gap_state_indices,0,axis=0)
+                #print('er_couplings (orig DCA-couplings with -) shape: ', er_couplings.shape)
+                #print('er_couplings first row:\n', er_couplings[0,:21])
 
 
                 # list of columns 
                 print(mx_cumsum)
                 non_states = []
                 col = 0
-                mx_col = 0
                 for i in range(n_var):
-                    #print(mx_col)
-                    for j in range(1,self.__num_site_states+1):
-                        if i==0:
-                            print(j)
-                        if j!=21:
-                            if j not in unique_aminos[i]:
-                                non_states.append(col)
-                            else:
-                                mx_col+=1
+                    for j in range(1,self.__num_site_states):
+                        if j not in unique_aminos[i]:
+                            non_states.append(col)
                         col += 1
                 print('deleting %d colums/rows of %d, column/row count should be %d '%(len(non_states),col,s.shape[1]))
-                er_couplings = np.delete(er_couplings,non_states,axis=0)
+                er_couplings = np.delete(couplings,non_states,axis=0)
                 er_couplings = np.delete(er_couplings,non_states,axis=1)
 
                 #np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
                 print('er_couplings (orig DCA-couplings trimmed non-states) shape: ', er_couplings.shape)
                 print('er_couplings first row:\n', couplings[0][:21])
-                print('\n\n#----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n')
+                print('\n\n#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n')
                 w_in = er_couplings
 
 		 
@@ -802,15 +827,14 @@ class ERDCA:
                 ds = s - s_av
                 l,n = s.shape
                 
-                l2 = 100.
-                # calculate covariance of s (NOT DS) why not???
-                s_cov = np.cov(s,rowvar=False,bias=True)
-                print('s_cov (orig DCA-couplings) shape: ', s_cov.shape)
-                # tai-comment: 2019.07.16:  l2 = lamda/(2L)
-                s_cov += l2*np.identity(n)/(2*l)
+                c = np.cov(s,rowvar=False,bias=True)
+                c = np.maximum(c,c.transpose())
+                cov_eigen = 10.*np.linalg.eigvalsh(c)
+                cov_eiv = max(cov_eigen)
+                s_cov += cov_eiv*np.identity(n)
 
-                theta_by_qsqrd = self.__pseudocount / float(self.__num_site_states ** 2. )
-                s_cov += theta_by_qsqrd*np.identity(n)
+                #theta_by_qsqrd = self.__pseudocount / float(self.__num_site_states ** 2. )
+                #s_cov += theta_by_qsqrd*np.identity(n)
 
                 s_inv = linalg.pinvh(s_cov)
 
@@ -826,6 +850,8 @@ class ERDCA:
         w = np.zeros((mx_sum,my_sum))
         h0 = np.zeros(my_sum)
 
+        print('w shape:',w.shape)
+        print(' shape:',w_in.shape)
 
 
         # Pass computation to parallelization in msa_numerics.py 
