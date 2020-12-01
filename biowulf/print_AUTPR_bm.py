@@ -36,8 +36,12 @@ if genreating_txt:
 		f_input = f.read().split()
 		f.close()
 		pfam_id = f_input[0]
-		pf_score[pfam_id] = [float(f_input[1]),float(f_input[2]),float(f_input[3])]
-		pf_num_seq[pfam_id] = int(f_input[4])
+
+		# ER_coup vs ER
+		#pf_score[pfam_id] = [float(f_input[1]),float(f_input[2]),float(f_input[3]),float(f_input[4])]
+		pf_score[pfam_id] = [float(f_input[4]),float(f_input[2]),float(f_input[3])]
+
+		pf_num_seq[pfam_id] = int(f_input[5])
 		if testing:
 			print(f_input)
 			print(pfam_id) 
@@ -85,6 +89,7 @@ print('Best ER pfam: %s ,score; %f'%(best_pfam,max_score))
 print('ER best for %d methods'%bm.count(0))
 print('MF best for %d methods'%bm.count(1))
 print('PLM best for %d methods'%bm.count(2))
+print('ER_coup best for %d methods'%bm.count(3))
 
 ER_AUTPR = []
 MF_AUTPR = []
@@ -98,12 +103,15 @@ for key in pf_scores:
 
 num_seq_bins = np.arange(min(pf_num_seq.values()),max(pf_num_seq.values()),1000)
 #print('Divding scores by number of sequences:\n',num_seq_bins)
+
 df = pd.DataFrame( { 'ER': ER_AUTPR, 'MF':MF_AUTPR, 'PLM':PLM_AUTPR,'BM':bm_str, 'num_seq':pf_num_seq.values() } )
+
 df['num_seq_range'] = pd.cut(x=df['num_seq'], bins=num_seq_bins )
 
 print(df.head())
 bm_ranges = {}
 er_bm_ranges = []
+er_coup_bm_ranges = []
 mf_bm_ranges = []
 plm_bm_ranges = []
 
@@ -114,7 +122,10 @@ intervals = interval_ranges.sort_values()
 for num_seq_range in intervals:
 	df_temp = df.loc[df['num_seq_range'] ==num_seq_range ]
 	#print('%d pfams in range: '%(len(df_temp)),num_seq_range)
+
+	# ER_coup vs ER
 	bm_ranges[num_seq_range] = [len(df_temp.loc[df['BM']=='ER']),len(df_temp.loc[df['BM']=='MF']),len(df_temp.loc[df['BM']=='PLM'])]
+
 	#print('Best method counts: ',bm_ranges[num_seq_range])
 
 	er_bm_ranges.append(len(df_temp.loc[df['BM']=='ER']))
