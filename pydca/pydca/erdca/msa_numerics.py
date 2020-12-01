@@ -76,7 +76,21 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     dx = x - x_av
     c = np.cov(dx,rowvar=False,bias=True)
 
-    c += l2*np.identity(n)/(2*l)
+    # explicitly symmetrize matrix
+    c = np.maximum(c,c.transpose())
+    #print('eigen values of cov: ',np.linalg.eigvalsh(c))
+    cov_eigen = np.linalg.eigvalsh(c)
+    eig_hist, eig_ranges = np.histogram(cov_eigen) 
+    #print(eig_hist)
+    #print(eig_ranges)
+    #print(min(eig_ranges[eig_ranges > 1e-4]))
+    #cov_eiv = max(cov_eigen)
+    cov_eiv = min(eig_ranges[eig_ranges > 1e-4])
+    #print('cov eigenvalue: ' ,np.linalg.eigvalsh(c))
+    #print('cov std: ', c.std())
+    
+    #c += l2*np.identity(n)/(2*l)
+    c += cov_eiv*np.identity(n)
     c_inv = linalg.pinvh(c)
 
     H0 = np.zeros(m)
