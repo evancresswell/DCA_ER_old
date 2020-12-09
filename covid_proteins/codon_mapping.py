@@ -149,6 +149,105 @@ def convert_codon(subject_index=14407, subject_encoding_region='NSP12', gene_ran
 	f.close()
 	print('...Done\n')
 
+
+def get_aa_pair_counts(pos1,pos1_gene_range, pos2, pos2_gene_range, aligned_file = root_dir+"covid_genome_full_aligned.fasta", ref_file= root_dir+"wuhan_ref.fasta"):
+	with open(aligned_file,"r") as handle:
+
+		aa_pairs = []
+
+		for i,record in enumerate(SeqIO.parse(handle, "fasta")):
+			seq_array = [char for char in ''.join(record.seq).upper()]
+			seq_indices = [i for i,char in enumerate(''.join(record.seq))]
+
+			# get position 1 sequence array
+			pos1_seq_range_array = []
+			pos1_seq_range_indices = []
+			for start,end in pos1_gene_range:
+				pos1_seq_range_indices.extend( seq_indices[start:end+1])
+				pos1_seq_range_array.extend(seq_array[start:end+1])
+
+			# get position 2 sequence array
+			pos2_seq_range_array = []
+			pos2_seq_range_indices = []
+			for start,end in pos2_gene_range:
+				pos2_seq_range_indices.extend(seq_indices[start:end+1])
+				pos2_seq_range_array.extend(seq_array[start:end+1])
+
+
+			if i==0:
+				# get position 1 index mapping with reference sequence to use for the entire alignment
+				pos1_protein_seq,pos1_codon_index_map,pos1_codon_indices = translate_sequence(''.join(pos1_seq_range_array),pos1_seq_range_indices,pos1)
+				# get position 2 index mapping with reference sequence to use for the entire alignment
+				pos2_protein_seq,pos2_codon_index_map,pos2_codon_indices = translate_sequence(''.join(pos2_seq_range_array),pos2_seq_range_indices,pos2)
+
+				print('#----- Position 1 -----#')
+				print('\n\namino acid array len:', len(pos1_protein_seq))
+				print('bp to amino acid mapping len: ',len(pos1_codon_index_map))
+				print('#----------------------#')
+				print('#----- Position 2 -----#')
+				print('\n\namino acid array len:', len(pos1_protein_seq))
+				print('bp to amino acid mapping len: ',len(pos1_codon_index_map))
+				print('#----------------------#')
+
+				print('\n#------------------------Mapping Pair:  %d, %d -----------------------------#'%(pos1,pos2) )
+				print('#---------------------------- Pos 1 Seq -----------------------------#')
+				#test_index = 14407
+				#print( '	14408 index in array: ',test_index)
+				pos1_i1,pos1_i2,pos1_i3 = pos1_codon_indices
+				pos1_codon_indices = (pos1_seq_range_indices[pos1_i1],pos1_seq_range_indices[pos1_i2],pos1_seq_range_indices[pos1_i3])
+				pos1_bp1,pos1_bp2,pos1_bp3 = pos1_codon_indices
+				pos1_codon = [pos1_seq_range_array[pos1_i1],pos1_seq_range_array[pos1_i2],pos1_seq_range_array[pos1_i3]]
+				print( '	%d codon indices: '%pos1,pos1_codon_indices)
+				print( '	%d codon nucleotieds: '%pos1,pos1_codon,' --> ',table[''.join(pos1_codon)])
+				pos1_amino_index = pos1_codon_index_map[pos1]
+				print(	'	corresponding amino acid index and letter: %d, %s'%(pos1_amino_index, pos1_protein_seq[pos1_amino_index]))
+				print('#--------------------------------------------------------------------#')
+				print('#---------------------------- Pos 2 Seq -----------------------------#')
+				#test_index = 14407
+				#print( '	14408 index in array: ',test_index)
+				pos2_i1,pos2_i2,pos2_i3 = pos2_codon_indices
+				pos2_codon_indices = (pos2_seq_range_indices[pos2_i1],pos2_seq_range_indices[pos2_i2],pos2_seq_range_indices[pos2_i3])
+				pos2_bp1,pos2_bp2,pos2_bp3 = pos2_codon_indices
+				pos2_codon = [pos2_seq_range_array[pos2_i1],pos2_seq_range_array[pos2_i2],pos2_seq_range_array[pos2_i3]]
+				print( '	%d codon indices: '%pos2,pos2_codon_indices)
+				print( '	%d codon nucleotieds: '%pos2,pos2_codon,' --> ',table[''.join(pos2_codon)])
+				pos2_amino_index = pos2_codon_index_map[pos2]
+				print(	'	corresponding amino acid index and letter: %d, %s'%(pos2_amino_index, pos2_protein_seq[pos2_amino_index]))
+				print('#--------------------------------------------------------------------#\n\n')
+
+			# add aa pair corresponding to gene index pos1 and pos2
+			pos1_codon = [pos1_seq_range_array[pos1_i1],pos1_seq_range_array[pos1_i2],pos1_seq_range_array[pos1_i3]]
+			pos2_codon = [pos2_seq_range_array[pos2_i1],pos2_seq_range_array[pos2_i2],pos2_seq_range_array[pos2_i3]]
+			# Position 1
+			for ii,nucleotide in enumerate(pos1_codon):
+				if nucleotide not in base_pairs:
+					print('index %d has abnormal nucleotide: '%i,nucleotide)
+					pos1_codon[ii] = translate_weird_nucleotide(nucleotide)
+			try:
+				pos1_codon_aa = table[''.join(pos1_codon)]
+			except:
+				print('index %d could not convert codon: '%i,''.join(pos1_codon))
+				pass
+			# Position 2
+			for ii,nucleotide in enumerate(pos2_codon):
+				if nucleotide not in base_pairs:
+					print('index %d has abnormal nucleotide: '%i,nucleotide)
+					pos2_codon[ii] = translate_weird_nucleotide(nucleotide)
+			try:
+				pos2_codon_aa = table[''.join(pos2_codon)]
+			except:
+				print('index %d could not convert codon: '%i,''.join(pos2_codon))
+				pass
+
+			aa_pairs.append((pos1_codon_aa,pos2_codon_aa))	
+
+	print('#--------------------------------------------------------------------#')
+	print('\n\nSaving Pairs Array...')
+	np.save('%d_%d_aa_pairs.npy'%(pos1,pos2),aa_pairs)
+	print('...Done\n')
+
+
+
 # Swarm aligned file 
 msa_file = root_dir+"covid_genome_full_aligned.fasta"
 ref_file = root_dir+"wuhan_ref.fasta"
@@ -166,26 +265,48 @@ encoding_ranges =	{
 			'Full' : [(266-1,29674-1)]
 			}
 
-#subject_index = 14407
-#subject_encoding_region = 'nsp12'
-subject_index = int(sys.argv[1])
-subject_encoding_region = sys.argv[2] 
-gene_range = encoding_ranges[subject_encoding_region]
+# RUN COMMAND:
+# singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/LADER.simg python codon_mapping.py 14407 NSP12
+# ---------------------------------- Find Subject AA-BP ------------------------------------------ #
 
-if 1:
+if len(sys.argv) == 3:
+	subject_index = int(sys.argv[1])
+	subject_encoding_region = sys.argv[2] 
+	gene_range = encoding_ranges[subject_encoding_region]
+
+
 	convert_codon(subject_index=subject_index, subject_encoding_region=subject_encoding_region, gene_range = gene_range)
 
-aa = np.load('%d_aa_column.npy'%subject_index)
-bp = np.load('%d_bp_column.npy'%subject_index)
+	aa = np.load('%d_aa_column.npy'%subject_index)
+	bp = np.load('%d_bp_column.npy'%subject_index)
 
-unique, counts = np.unique(aa, return_counts=True)
-bp_unique, bp_counts = np.unique(bp, return_counts=True)
+	unique, counts = np.unique(aa, return_counts=True)
+	bp_unique, bp_counts = np.unique(bp, return_counts=True)
 
-print(unique)	
-print(counts)	
-print(bp_unique)	
-print(bp_counts)	
+	print(unique)	
+	print(counts)	
+	print(bp_unique)	
+	print(bp_counts)	
+# ------------------------------------------------------------------------------------------------ #
+
+# RUN COMMAND:
+# singularity exec -B /data/cresswellclayec/DCA_ER/biowulf/,/data/cresswellclayec/DCA_ER/covid_proteins /data/cresswellclayec/DCA_ER/LADER.simg python codon_mapping.py 3036 NSP3 14407 NSP12
+# ----------------------------------- Get Pair AA Counts ----------------------------------------- #
+elif len(sys.argv) == 5:
+	pos1 = int(sys.argv[1])
+	pos1_encoding_region = sys.argv[2] 
+	pos1_gene_range = encoding_ranges[pos1_encoding_region]
+
+	pos2 = int(sys.argv[3])
+	pos2_encoding_region = sys.argv[4] 
+	pos2_gene_range = encoding_ranges[pos2_encoding_region]
 
 
 
+	get_aa_pair_counts(pos1,pos1_gene_range, pos2, pos2_gene_range)
+
+# ------------------------------------------------------------------------------------------------ #
+
+else: 
+	print('Incorrect parameters')
 
