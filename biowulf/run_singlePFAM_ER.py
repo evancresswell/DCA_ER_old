@@ -345,7 +345,7 @@ erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = None) # initializes w
 run_time = timeit.default_timer() - start_time
 print('ER run time:',run_time)
 
-for site_pair, score in erdca_DI[:5]:
+for site_pair, score in erdca_DI[:10]:
     print(site_pair, score)
 
 with open('DI/ER/er_coup_DI_%s.pickle'%(pfam_id), 'wb') as f:

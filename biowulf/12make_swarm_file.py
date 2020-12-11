@@ -57,6 +57,38 @@ for pfam in s_er:
 f.close()
 f_large.close()
 
+f = open('er_clean.swarm','w')
+f_large = open('er_clean_large.swarm','w')
+for pfam in s_er:
+    #f.write('python 1main_DCA.py %s\n'%(pfam))
+    if pfam in top_10p_pfam:
+        #f_large.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_ER.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+        f_large.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca_regularized.simg python er_basic_run.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+    else:
+        #f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_ER.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+        f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca_regularized.simg python  er_basic_run.py  %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+    #f.write('python 1main_ERM.py %s\n'%(pfam))
+f.close()
+f_large.close()
+
+f = open('lader_clean.swarm','w')
+f_large = open('lader_clean_large.swarm','w')
+for pfam in s_er:
+    #f.write('python 1main_DCA.py %s\n'%(pfam))
+    if pfam in top_10p_pfam:
+        #f_large.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_ER.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+        f_large.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca_regularized.simg python lader_basic_run.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+    else:
+        #f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca.simg python run_singlePFAM_ER.py %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+        f.write('singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca_regularized.simg python  lader_basic_run.py  %s $SLURM_CPUS_PER_TASK $SLURM_ARRAY_JOB_ID\n'%(pfam))    
+    #f.write('python 1main_ERM.py %s\n'%(pfam))
+f.close()
+f_large.close()
+
+
+
+
+
 f = open('er_coup.swarm','w')
 f_large = open('er_coup_large.swarm','w')
 for pfam in s_er:

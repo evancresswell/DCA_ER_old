@@ -75,3 +75,72 @@ def fit(x,y_onehot,niter_max,l2,couplings= None):
         W[:,i] = w
     
     return H0,W  
+
+def reg_fit(x,y_onehot,niter_max,l2,couplings= None):       
+    l,n = x.shape
+    m = y_onehot.shape[1] # number of categories
+    
+    x_av = np.mean(x,axis=0)
+    dx = x - x_av
+    c = np.cov(dx,rowvar=False,bias=True)
+
+    # Explicitly symmetrize matrix
+    c = np.maximum(c,c.transpose())
+
+    # Calculate Eigenvalue of covariance matrix
+    cov_eigen = np.linalg.eigvalsh(c)
+    eig_hist, eig_ranges = np.histogram(cov_eigen) 
+
+    #cov_eiv = max(cov_eigen)						# largest eigenvalue
+    cov_eiv = min(eig_ranges[eig_ranges > 1e-4]) 			# smallest non-zero eigenvalue
+    #cov_eiv = sorted(list(set(cov_eigen.flatten().tolist())))[-5]	# 5th largest eigenvalue
+    #print('Regularizing using EV of Cov Mat: ',cov_eiv)
+    
+    #c += l2*np.identity(n)/(2*l)
+    c += cov_eiv*np.identity(n)
+    c_inv = linalg.pinvh(c)
+
+    H0 = np.zeros(m)
+    W = np.zeros((n,m))
+
+    for i in range(m):
+        y = y_onehot[:,i]  # y = {0,1}
+        y1 = 2*y - 1       # y1 = {-1,1}
+        # initial values
+        h0 = 0.
+
+        # If couplings (ie initial weight state) is passed, use it otherwise random.
+        if couplings is not None: 
+            w = couplings[:,i]
+        else: 
+            w = np.random.normal(0.0,1./np.sqrt(n),size=(n))
+        
+        cost = np.full(niter_max,100.)
+        for iloop in range(niter_max):
+            h = h0 + x.dot(w)
+            y1_model = np.tanh(h/2.)    
+
+            cost[iloop] = ((y1[:]-y1_model[:])**2).mean()
+
+            if iloop > 0 and cost[iloop] >= cost[iloop-1] : break
+                        
+            # update local field
+            t = h!=0    
+            h[t] *= y1[t]/y1_model[t]
+            h[~t] = 2*y1[~t]
+
+            # find w from h    
+            h_av = h.mean()
+            dh = h - h_av 
+            dhdx = dh[:,np.newaxis]*dx[:,:]
+
+            dhdx_av = dhdx.mean(axis=0)
+            w = c_inv.dot(dhdx_av)
+            h0 = h_av - x_av.dot(w)
+
+        H0[i] = h0
+        W[:,i] = w
+    
+    return H0,W  
+
+

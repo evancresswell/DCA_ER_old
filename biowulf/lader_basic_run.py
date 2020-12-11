@@ -47,12 +47,11 @@ singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DC
 #-------------------------------------------------------------------------------------------------------#
 #------------------------------- LAD ER Implementation -------------------------------------------------#
 #-------------------------------------------------------------------------------------------------------#
-def fit_LAD(x,y,niter_max,l2,couplings = None):      
-    # convert 0, 1 to -1, 1
-    y1 = 2*y - 1.
+def fit_LAD(x,y_onehot,niter_max,l2,couplings = None):      
    
     #print(niter_max)    
     n = x.shape[1]
+    m = y_onehot.shape[1] # number of categories
     
     x_av = np.mean(x,axis=0)
     dx = x - x_av
@@ -73,45 +72,62 @@ def fit_LAD(x,y,niter_max,l2,couplings = None):
     #----------------------------------------------------------@
 
     # 2019.07.16:  
-    c += l2*np.identity(n) / (2*len(y))
+    c += l2*np.identity(n) / (2*len(y_onehot))
 
-    # initial values
-    h0 = 0.
+    H0 = np.zeros(m)
+    W = np.zeros((n,m))
+    #print('y_onehot shape: ',y_onehot.shape)
 
-    # If couplings (ie initial weight state) is passed, use it otherwise random.
-    if couplings is not None: 
-        w = couplings[:,i]
-    else: 
-        w = np.random.normal(0.0,1./np.sqrt(n),size=(n))
-   
-    cost = np.full(niter_max,100.)
-    #for iloop in range(niter_max):
-    # instead of n_iter times, we iterate through scalling values of regu
-    regu_scalling_vals = [0.2,0.4,0.6,1.]
-    cost = np.full(len(regu_scalling_vals),100.) # redefine cost to be regu scalling iterations
-    for iloop,regu_coef in enumerate(regu_scalling_vals):
-        h = h0 + x.dot(w)
-        y1_model = np.tanh(h/2.)    
 
-        # stopping criterion
-        h_too_neg = h < -15
-        h[h_too_neg] = -15.
-        p = 1/(1+np.exp(-h))                
-        cost[iloop] = ((p-y)**2).mean()
+    for i in range(m):
+        y = y_onehot[:,i]  # y = {0,1}
+        y1 = 2*y - 1       # y1 = {-1,1}
 
-        if iloop>0 and cost[iloop] >= cost[iloop-1]: break
+        # initial values
+        h0 = 0.
+    
+        # If couplings (ie initial weight state) is passed, use it otherwise random.
+        if couplings is not None: 
+            w = couplings[:,i]
+        else: 
+            w = np.random.normal(0.0,1./np.sqrt(n),size=(n))
+       
+        cost = np.full(niter_max,100.)
+        #for iloop in range(niter_max):
+        # instead of n_iter times, we iterate through scalling values of regu
+        regu_scalling_vals = [0.2,0.4,0.6,1.]
+        cost = np.full(len(regu_scalling_vals),100.) # redefine cost to be regu scalling iterations
+        for iloop,regu_coef in enumerate(regu_scalling_vals):
+            h = h0 + x.dot(w)
+            y1_model = np.tanh(h/2.)    
+            #print('h shape ', h.shape)
+    
+            # stopping criterion
+            h_too_neg = h < -15
+            h[h_too_neg] = -15.
+            p = 1/(1+np.exp(-h))                
+            #print('p shape ', p.shape)
+            #print('y shape ', y.shape)
+            cost[iloop] = ((p-y)**2).mean()
+    
+            if iloop>0 and cost[iloop] >= cost[iloop-1]: break
+    
+            # update local field
+            t = h!=0    
+            h[t] *= y1[t]/y1_model[t]
+            h[~t] = 2*y1[~t]
+            # 2019.12.26: 
+            h0,w = infer_LAD(x,h[:,np.newaxis],regu = regu_coef*l2)
 
-        # update local field
-        t = h!=0    
-        h[t] *= y1[t]/y1_model[t]
-        h[~t] = 2*y1[~t]
-        # 2019.12.26: 
-        h0,w = infer_LAD(x,h[:,np.newaxis],regu = regu_coef*l2)
+        H0[i] = h0
+        W[:,i] = w
 
-    return h0,w
+    return H0,W
+
 def infer_LAD(x, y, regu=0.1,tol=1e-8, max_iter=5000):
 ## 2019.12.26: Jungmin's code    
-    weights_limit = sperf(1e-10)*1e10
+    #weights_limit = sperf(1e-10)*1e10
+    weights_limit = (1e-10)*1e10
     
     s_sample, s_pred = x.shape
     s_sample, s_target = y.shape
@@ -138,7 +154,8 @@ def infer_LAD(x, y, regu=0.1,tol=1e-8, max_iter=5000):
             w_eq_0 = np.abs(w_sol[:,index]) < 1e-10
             mu[w_eq_0] = 2./np.sqrt(np.pi)
         
-            mu[~w_eq_0] = sigma_w*sperf(w_sol[:,index][~w_eq_0]/sigma_w)/w_sol[:,index][~w_eq_0]
+            #mu[~w_eq_0] = sigma_w*sperf(w_sol[:,index][~w_eq_0]/sigma_w)/w_sol[:,index][~w_eq_0]
+            mu[~w_eq_0] = sigma_w*(w_sol[:,index][~w_eq_0]/sigma_w)/w_sol[:,index][~w_eq_0]
                                                         
             w_sol[:,index] = np.linalg.solve(cov_xx + regu * np.diag(mu),cov_xy).reshape(s_pred)
         
@@ -148,7 +165,10 @@ def infer_LAD(x, y, regu=0.1,tol=1e-8, max_iter=5000):
             error = np.mean(np.abs(weights))
             weights_eq_0 = np.abs(weights) < 1e-10
             weights[weights_eq_0] = weights_limit
-            weights[~weights_eq_0] = sigma*sperf(weights[~weights_eq_0]/sigma)/weights[~weights_eq_0]
+
+            #weights[~weights_eq_0] = sigma*sperf(weights[~weights_eq_0]/sigma)/weights[~weights_eq_0]
+            weights[~weights_eq_0] = sigma*(weights[~weights_eq_0]/sigma)/weights[~weights_eq_0]
+            
             weights /= np.mean(weights) #now the mean weight is 1.0
             cov = np.cov(np.hstack((x,y[:,index][:,None])), rowvar=False, \
                          ddof=0, aweights=weights.reshape(s_sample))
@@ -401,7 +421,7 @@ h0 = np.zeros(my_sum)
 #-------------------------------
 # parallel
 res = Parallel(n_jobs = cpus_per_job - 4)(delayed(predict_w_LADER)\
-        (s,i0,i1i2,niter_max=10,l2=100.0,couplings = None)\
+        (s,i0,i1i2,niter_max=10,l2=100.0,couplings=er_couplings)\
         for i0 in range(n_var))
 
 #-------------------------------

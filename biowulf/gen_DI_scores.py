@@ -21,7 +21,13 @@ import matplotlib
 import matplotlib.pyplot as plt
 
 
-method_map = {0: 'ER', 1:'MF',2:'PLM',3:'ER_INIT'}
+
+"""
+RUN COMMAND:
+singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/biowulf/ /data/cresswellclayec/DCA_ER/erdca_regularized.simg python gen_DI_scores.py PF00186
+"""
+
+method_map = {0:'ER_clean',1:'ER_INIT',2: 'ER', 3:'MF',4:'PLM'}
 
 
 #--- Load PDB sequence from contact_visualizer ---#
@@ -163,6 +169,9 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		with open("DI/ER/er_coup_DI_%s.pickle"%(pfam_id),"rb") as f:
 			DI_er_coup = pickle.load(f)
 		f.close()
+		with open("DI/ER/er_clean_DI_%s.pickle"%(pfam_id),"rb") as f:
+			DI_er_clean = pickle.load(f)
+		f.close()
 
 	except(FileNotFoundError):
 		print('Not all methods have a DI!!!')
@@ -190,16 +199,22 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	contact_dist = 8. )
 
 	er_coup_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
-	refseq_file = dca_ref_file, # eith _match or _range depending on how pre-processing went
+	refseq_file = ER_ref_file, # eith _match or _range depending on how pre-processing went
 	sorted_dca_scores = DI_er_coup,
 	linear_dist = 5,
 	contact_dist = 8. )
 
+	er_clean_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
+	refseq_file = ER_ref_file, # eith _match or _range depending on how pre-processing went
+	sorted_dca_scores = DI_er_clean,
+	linear_dist = 5,
+	contact_dist = 8. )
+
 	# Print Ranked DIs size by side A
-	print('\n#-------- ER ------------------------------------ MF --------------------------- PLM ------------------------ ER INIT ----------------#')
+	print('\n#-------- ER ---------------------- MF --------------------------- PLM ------------------------ ER INIT ------------ ER clean----#')
 	for i,pair in enumerate(DI_er[:25]):
-		print(pair ,'  ',DI_mf[i],'  ',DI_plm[i], '  ',DI_er_coup[i])	
-	print('#----------------------------------------------------------------------------------------------------#\n')
+		print(pair ,'  ',DI_mf[i],'  ',DI_plm[i], '  ',DI_er_coup[i], DI_er_clean[i])	
+	print('#----------------------------------------------------------------------------------------------------------------------------------#\n')
 	#--------------------------------------------------------------------------------#
 
 
@@ -211,8 +226,8 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	#---------------------------------------------------------------------------------------------------------------------#
 	# Get AUTPR using PYDCA plotting
 	#---------------------------------------------------------------------------------------------------------------------#
-	contact_instance_labels = ['er_coup_visualizer','erdca_visualizer', 'mfdca_visualizer', 'plmdca_visualizer']
-	contact_instances = [er_coup_visualizer,erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
+	contact_instance_labels = ['er_clean_visualizer','er_coup_visualizer','erdca_visualizer', 'mfdca_visualizer', 'plmdca_visualizer']
+	contact_instances = [er_clean_visualizer, er_coup_visualizer,erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	scores = []
 
 	for i,visualizer in enumerate(contact_instances):
@@ -244,7 +259,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	#---------------------------------------------------------------------------------------------------------------------#
 	# Get AUC using roc_curve from tools..
 	#---------------------------------------------------------------------------------------------------------------------#            
-	DIs = [DI_er_coup, DI_er, DI_mf, DI_plm] # SHOULD HAVE SAME ORDER AS contact_instances!!!!
+	DIs = [DI_er_clean, DI_er_coup, DI_er, DI_mf, DI_plm] # SHOULD HAVE SAME ORDER AS contact_instances!!!!
 	AUCs = []
 
 	#-------------------------- Get PP sequences coordinates ------------------------#            
@@ -311,16 +326,16 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 
 		
 	# Save scores and AUC
-	print('Scores:\n%s %f %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], scores[3], dca_num_seqs))
+	print('Scores:\n%s %f %f %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], scores[3],  scores[4], dca_num_seqs))
 	# write results of Pfam to txt file
 	f = open('DI/%s.txt'%pfam_id,'w')
-	f.write('%s %f %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], scores[3], dca_num_seqs) )    
+	f.write('%s %f %f %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], scores[3], scores[4],  dca_num_seqs) )    
 	f.close()
 
-	print('AUC: %s %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3], dca_num_seqs) )
+	print('AUC: %s %f %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3], AUCs[4], dca_num_seqs) )
 	# write results of Pfam to txt file
 	f = open('DI/%s_auc.txt'%pfam_id,'w')
-	f.write('%s %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3], dca_num_seqs) )    
+	f.write('%s %f %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3], AUCs[3], dca_num_seqs) )    
 	f.close()
 
 def main():
