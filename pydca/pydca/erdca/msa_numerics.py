@@ -83,7 +83,7 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     eig_hist, eig_ranges = np.histogram(cov_eigen) 
     #print(eig_hist)
     #print(eig_ranges)
-    #print(min(eig_ranges[eig_ranges > 1e-4]))
+    print('cov_ev min non-zero: ',min(eig_ranges[eig_ranges > 1e-4]))
     #cov_eiv = max(cov_eigen)
     cov_eiv = min(eig_ranges[eig_ranges > 1e-4])
     #print('cov eigenvalue: ' ,np.linalg.eigvalsh(c))
