@@ -650,99 +650,8 @@ class ERDCA:
         # THIS IS ASSUMING sequences passed in via MSA file 
 		# ---> were already preprocessed
         s0 = np.asarray(self.__sequences)
-        print(s0.shape)
-        
-        n_var = len(s0[0])
-
-        self.__mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
-        self.__unique_states = np.array([np.unique(s0[:,i]) for i in range(n_var)])
-        # use all possible states at all locations 
-        #mx = np.array([self.__num_site_states]* n_var) 
-     
-        mx_cumsum = np.insert(self.__mx.cumsum(),0,0)
-
-        i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
-        
-        onehot_encoder = OneHotEncoder(sparse=False)
-        
-        s = onehot_encoder.fit_transform(s0)
-        
-        mx_sum = mx.sum()
-        my_sum = mx.sum() #!!!! my_sum = mx_sum
-        
-        w = np.zeros((mx_sum,my_sum))
-        h0 = np.zeros(my_sum)
-
-        # Pass computation to parallelization in ER_protein_msa_numerics.py 
-        logger.info('\n\tComputing ER couplings')
-        try:
-            if init_w is not None: 
-                res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings = int_w)
-            else:
-                res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads)
-        except Exception as e:
-            logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
-                ' You might need to increase it.'.format(e, self.__pseudocount)
-            )
-            raise
-   
- 
-        # Set weight-coupling matrix
-        for i0 in range(n_var):
-            i1,i2 = i1i2[i0,0],i1i2[i0,1]
-               
-            h01 = res[i0][0]
-            w1 = res[i0][1]
-        
-            h0[i1:i2] = h01    
-            w[:i1,i1:i2] = w1[:i1,:]
-            w[i2:,i1:i2] = w1[i1:,:]
-        
-        # make w to be symmetric
-        w = (w + w.T)/2.
-    
-        # capture couplings (ie symmetric weights matrix) to avoid recomputing
-        self.__couplings = w
-        logger.info('\n\tMaximum and minimum couplings: {}, {}'.format(
-            np.max(w), np.min(w)))
-
-        return w,s
-
-    def replace_gaps(self, s0 = None):
-        amino_acid_ints = [ 1,  2,  3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15,16,  17, 18, 19, 20]
-        if s0 is None:
-            s0 = self.__sequences
-        s0_nogap = s0
-        for i,seq in enumerate(s0):
-            #print('\n',seq)
-            for ii,aa in enumerate(seq):
-                if aa  == 21:
-                    #s0_nogap[i,ii] = random.choice(s0[:,ii][s0[:,ii]!= 21])
-                    s0_nogap[i,ii] = self.__refseq[ii]
-                    #print('at %d replace %d with %d '% (ii,aa,self.__refseq[ii]))
-            #print(s0_nogap[i],'\n')
-        return s0_nogap
-
-    def compute_er_weights(self,init_w = None):
-        """Computing weights by applying Expectation Reflection.
-
-        Parameters
-        ----------
-            self : ERDCA
-                The instance.
-
-        Returns
-        -------
-            couplings : np.array
-                A 2d numpy array of the same shape .
-        """
-
-
-        # THIS IS ASSUMING sequences passed in via MSA file 
-		# ---> were already preprocessed
-        s0 = np.asarray(self.__sequences)
         print('in compute_er_weights\ns0 shape:',s0.shape)
- 
+        
         s0 = self.replace_gaps(s0)
         self.__sequences = s0       
         print('    in compute_er_weights\n    after replacing gaps...\n    s0 shape:',s0.shape)
@@ -759,7 +668,7 @@ class ERDCA:
         print('uniqe_aminos[0]:\n',unique_aminos[0])
         # use all possible states at all locations 
         #mx = np.array([self.__num_site_states]* n_var) 
-     
+    
         mx_cumsum = np.insert(self.__mx.cumsum(),0,0)
 
         i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
@@ -767,17 +676,16 @@ class ERDCA:
         onehot_encoder = OneHotEncoder(sparse=False)
         
         s = onehot_encoder.fit_transform(s0)
-        print('s shape:',s.shape)
         
         mx_sum = self.__mx.sum()
         my_sum = self.__mx.sum() #!!!! my_sum = mx_sum
 
-    
+      
         #========================================================================================
         # Compute ER couplings using MF initialization
         #========================================================================================
   
-        if init_w is None: 
+        if init_w: 
             if 1:
                 print('\n\n#----------------------------------------------------------- Calulating DCA-couplings for initial weights ------------------------------------------------------------\n\n')
                 reg_fi = self.get_reg_single_site_freqs()
@@ -844,14 +752,189 @@ class ERDCA:
 
 
         else:
-            print('\n\nUsing passed init_w for initial weights\n',init_w)
-            w_in = init_w    
+            print('\n\nUsing Random init_w for initial weights\n',init_w)
+            w_in = None
+
+        w = np.zeros((mx_sum,my_sum))
+        h0 = np.zeros(my_sum)
+
+        # Pass computation to parallelization in ER_protein_msa_numerics.py 
+        logger.info('\n\tComputing ER couplings')
+        try:
+            if init_w is not None: 
+                res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads,couplings = init_w)
+            else:
+                res = LADER.compute_lader_weights(n_var,s,i1i2,num_threads= self.__num_threads)
+        except Exception as e:
+            logger.error('\n\tCorrelation {}\n\tYou set the pseudocount {}.'
+                ' You might need to increase it.'.format(e, self.__pseudocount)
+            )
+            raise
+   
+ 
+        # Set weight-coupling matrix
+        for i0 in range(n_var):
+            i1,i2 = i1i2[i0,0],i1i2[i0,1]
+               
+            h01 = res[i0][0]
+            w1 = res[i0][1]
+        
+            h0[i1:i2] = h01    
+            w[:i1,i1:i2] = w1[:i1,:]
+            w[i2:,i1:i2] = w1[i1:,:]
+        
+        # make w to be symmetric
+        w = (w + w.T)/2.
+    
+        # capture couplings (ie symmetric weights matrix) to avoid recomputing
+        self.__couplings = w
+        logger.info('\n\tMaximum and minimum couplings: {}, {}'.format(
+            np.max(w), np.min(w)))
+
+        return w,s
+
+    def replace_gaps(self, s0 = None):
+        amino_acid_ints = [ 1,  2,  3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15,16,  17, 18, 19, 20]
+        if s0 is None:
+            s0 = self.__sequences
+        s0_nogap = s0
+        for i,seq in enumerate(s0):
+            #print('\n',seq)
+            for ii,aa in enumerate(seq):
+                if aa  == 21:
+                    #s0_nogap[i,ii] = random.choice(s0[:,ii][s0[:,ii]!= 21])
+                    s0_nogap[i,ii] = self.__refseq[ii]
+                    #print('at %d replace %d with %d '% (ii,aa,self.__refseq[ii]))
+            #print(s0_nogap[i],'\n')
+        return s0_nogap
+
+    def compute_er_weights(self,init_w = None):
+        """Computing weights by applying Expectation Reflection.
+
+        Parameters
+        ----------
+            self : ERDCA
+                The instance.
+
+        Returns
+        -------
+            couplings : np.array
+                A 2d numpy array of the same shape .
+        """
+
+        # THIS IS ASSUMING sequences passed in via MSA file 
+		# ---> were already preprocessed
+        s0 = np.asarray(self.__sequences)
+        print('in compute_er_weights\ns0 shape:',s0.shape)
+ 
+        s0 = self.replace_gaps(s0)
+        self.__sequences = s0       
+        print('    in compute_er_weights\n    after replacing gaps...\n    s0 shape:',s0.shape)
+
+        n_var = s0.shape[1]
+
+
+        self.__mx = np.array([len(np.unique(s0[:,i])) for i in range(n_var)])
+
+        self.__unique_states = np.array([np.unique(s0[:,i]) for i in range(n_var)])
+        unique_aminos = []
+        for states in self.__unique_states: 
+            unique_aminos.append(states[states!=21])
+        print('uniqe_aminos[0]:\n',unique_aminos[0])
+        # use all possible states at all locations 
+        #mx = np.array([self.__num_site_states]* n_var) 
+     
+        mx_cumsum = np.insert(self.__mx.cumsum(),0,0)
+
+        i1i2 = np.stack([mx_cumsum[:-1],mx_cumsum[1:]]).T 
+        
+        onehot_encoder = OneHotEncoder(sparse=False)
+        
+        s = onehot_encoder.fit_transform(s0)
+        print('s shape:',s.shape)
+        
+        mx_sum = self.__mx.sum()
+        my_sum = self.__mx.sum() #!!!! my_sum = mx_sum
+
+    
+        #========================================================================================
+        # Compute ER couplings using MF initialization
+        #========================================================================================
+  
+        if init_w: 
+            if 1:
+                print('\n\n#----------------------------------------------------------- Calulating DCA-couplings for initial weights ------------------------------------------------------------\n\n')
+                reg_fi = self.get_reg_single_site_freqs()
+                reg_fij = self.get_reg_pair_site_freqs()
+                corr_mat = self.construct_corr_mat(reg_fi, reg_fij)
+                print('corr_mat (orig DCA-couplings) shape: ', corr_mat.shape)
+                couplings = self.compute_couplings(corr_mat)
+                print('couplings (orig DCA-couplings) shape: ', couplings.shape)
+                print('couplings first row:\n', couplings[0,:21])
+
+                # gap states are now replaced
+                #gap_state_indices = [x for x in range(couplings.shape[1] +1) if x % 20==0 and x!=0]
+                #print('gap_stat_indices (len=%d): '%(len(gap_state_indices)), gap_state_indices)
+
+                #er_couplings = np.insert(couplings,gap_state_indices,0 ,axis=1)
+                #er_couplings = np.insert(er_couplings,gap_state_indices,0,axis=0)
+                #print('er_couplings (orig DCA-couplings with -) shape: ', er_couplings.shape)
+                #print('er_couplings first row:\n', er_couplings[0,:21])
+
+
+                # list of columns 
+                print(mx_cumsum)
+                non_states = []
+                col = 0
+                for i in range(n_var):
+                    for j in range(1,self.__num_site_states):
+                        if j not in unique_aminos[i]:
+                            non_states.append(col)
+                        col += 1
+                print('deleting %d colums/rows of %d, column/row count should be %d '%(len(non_states),col,s.shape[1]))
+                er_couplings = np.delete(couplings,non_states,axis=0)
+                er_couplings = np.delete(er_couplings,non_states,axis=1)
+
+                #np.save('pfam_ecc/%s_couplings.npy'%(pfam_id),couplings)
+                print('er_couplings (orig DCA-couplings trimmed non-states) shape: ', er_couplings.shape)
+                print('er_couplings first row:\n', couplings[0][:21])
+                print('\n\n#-----------------------------------------------------------------------------------------------------------------------------------------------------------------------\n\n')
+                w_in = er_couplings
+
+		 
+            else:
+                #========================================================================================
+                # ER - COV-COUPLINGS
+                #========================================================================================
+                
+                s_av = np.mean(s,axis=0)
+                ds = s - s_av
+                l,n = s.shape
+                
+                c = np.cov(s,rowvar=False,bias=True)
+                c = np.maximum(c,c.transpose())
+                cov_eigen = 10.*np.linalg.eigvalsh(c)
+                cov_eiv = max(cov_eigen)
+                s_cov += cov_eiv*np.identity(n)
+
+                #theta_by_qsqrd = self.__pseudocount / float(self.__num_site_states ** 2. )
+                #s_cov += theta_by_qsqrd*np.identity(n)
+
+                s_inv = linalg.pinvh(s_cov)
+
+                w_in = s_inv
+                print(np.shape(s_inv))
+                #sys.exit()
+
+
+        else:
+            print('\n\nUsing Random init_w for initial weights\n',init_w)
+            w_in = None
  
         w = np.zeros((mx_sum,my_sum))
         h0 = np.zeros(my_sum)
 
         print('w shape:',w.shape)
-        print(' shape:',w_in.shape)
 
 
         # Pass computation to parallelization in msa_numerics.py 
@@ -906,8 +989,7 @@ class ERDCA:
                 such that j > i.
         """
         if init_w is not None: 
-            print('using initial w:\n',init_w)
-            print(init_w.shape)
+            print('using initial w:\n',init_w) # init_w should be boolean False
         if LAD:
             couplings, s = self.compute_lader_weights(init_w)
         else:

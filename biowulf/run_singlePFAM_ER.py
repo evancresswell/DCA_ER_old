@@ -34,10 +34,10 @@ warnings.simplefilter('ignore', ResourceWarning)
 warnings.filterwarnings("ignore", message="numpy.dtype size changed")
 warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
 
-data_path = '/home/eclay/Pfam-A.full'
-preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.full'
 preprocess_path = '/data/cresswellclayec/DCA_ER/biowulf/pfam_ecc/'
+data_path = '/home/eclay/Pfam-A.full'
+preprocess_path = '/home/eclay/DCA_ER/biowulf/pfam_ecc/'
 
 
 #pfam_id = 'PF00025'
@@ -341,7 +341,7 @@ print('Running ER simulation\n\n')
 # Compute average product corrected Frobenius norm of the couplings
 start_time = timeit.default_timer()
 #erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = couplings)
-erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = None) # initializes with DCA couplings
+erdca_DI = erdca_inst.compute_sorted_DI(LAD=True,init_w =True) # initializes with DCA couplings
 run_time = timeit.default_timer() - start_time
 print('ER run time:',run_time)
 
