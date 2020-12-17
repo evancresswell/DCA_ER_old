@@ -70,6 +70,7 @@ import math
 dates = []
 timestmp = []
 stmps = []
+bad_time_count = 0
 with open(aligned_fasta,"r") as handle:
 	for i,record in enumerate(SeqIO.parse(handle, "fasta")):
 		#print('record %d '%(i))
@@ -83,15 +84,25 @@ with open(aligned_fasta,"r") as handle:
 				timestmp.append((i,time.mktime(datetime.datetime.strptime(record.id[0:7],"%Y-%m").timetuple())))
 				stmps.append(time.mktime(datetime.datetime.strptime(record.id[0:7],"%Y-%m").timetuple()))
 			except:
-				print('unknown time in ID: ', record.id)
+				#print('unknown time in ID: ', record.id)
+				bad_time_count += 1
 				pass
 
 	sorted_timestmp = sorted(timestmp,key=lambda x: x[1])
 handle.close()	
 
+
 chrono_bins = create_bins(int(min(stmps))-10, math.ceil(((max(stmps)+10)-(min(stmps)-10))/3.), 3)
-print('with max %d and min %d timestamps we have the following choro-bins:\n'%(max(stmps),min(stmps)),chrono_bins)
-		
+from scipy.stats import binned_statistic
+
+
+hist, bin_edges = np.histogram(stmps, bins=10, range=(int(min(stmps)), int(max(stmps))))
+print(hist)
+print(bin_edges)
+print('with max %d and min %d timestamps we have the following chrono-bins:\n'%(max(stmps),min(stmps)),chrono_bins)
+print('%d timed sequences'%len(stmps)) 
+
+print('%d bad timestmps'%bad_time_count) 
 for clade in clade_determinants.keys():
 	print('Clade: %s has %d sequences'%(clade,len(clade_records[clade])))
 	print('writing...')		
@@ -99,4 +110,18 @@ for clade in clade_determinants.keys():
 	with open(out_file1,"w") as output_handle:
 		SeqIO.write(clade_records[clade],output_handle,"fasta")
 	output_handle.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
