@@ -345,10 +345,10 @@ erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = None) # initializes w
 run_time = timeit.default_timer() - start_time
 print('ER run time:',run_time)
 
-for site_pair, score in erdca_DI[:10]:
+for site_pair, score in erdca_DI[:5]:
     print(site_pair, score)
 
-with open('DI/ER/erdca_DI_%s.pickle'%(pfam_id), 'wb') as f:
+with open('DI/ER/er_coup_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(erdca_DI, f)
 f.close()
 
@@ -366,7 +366,7 @@ else:
 	pfam_dict['s_ipdb'] = tpdb
 	pfam_dict['cols_removed'] = []
 
-input_data_file = preprocess_path+"%s_DP_erdca.pickle"%(pfam_id)
+input_data_file = preprocess_path+"%s_DP_ER_coup.pickle"%(pfam_id)
 with open(input_data_file,"wb") as f:
 	pickle.dump(pfam_dict, f)
 f.close()

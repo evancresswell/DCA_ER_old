@@ -76,6 +76,8 @@ def fit(x,y_onehot,niter_max,l2,couplings= None):
     
     return H0,W  
 
+
+
 def reg_fit(x,y_onehot,niter_max,l2,couplings= None):       
     l,n = x.shape
     m = y_onehot.shape[1] # number of categories
@@ -92,8 +94,8 @@ def reg_fit(x,y_onehot,niter_max,l2,couplings= None):
     eig_hist, eig_ranges = np.histogram(cov_eigen) 
 
     #cov_eiv = max(cov_eigen)						# largest eigenvalue
-    cov_eiv = min(eig_ranges[eig_ranges > 1e-4]) 			# smallest non-zero eigenvalue
-    #cov_eiv = sorted(list(set(cov_eigen.flatten().tolist())))[-5]	# 5th largest eigenvalue
+    #cov_eiv = min(eig_ranges[eig_ranges > 1e-4]) 			# smallest non-zero eigenvalue
+    cov_eiv = sorted(list(set(cov_eigen.flatten().tolist())))[-5]	# 5th largest eigenvalue
     #print('Regularizing using EV of Cov Mat: ',cov_eiv)
     
     #c += l2*np.identity(n)/(2*l)

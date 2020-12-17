@@ -1,0 +1,8 @@
+#!/bin/bash
+swarm -f orf1ab_pair_aa_counts.swarm -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f s_pair_aa_counts.swarm -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f orf3a_pair_aa_counts.swarm -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f orf7a_pair_aa_counts.swarm -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f orf7b_pair_aa_counts.swarm -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+swarm -f n_pair_aa_counts.swarm -g 100.0 --time=0-04:00:00 --partition norm --module singularity --logdir swarm_output #  quick # norm
+

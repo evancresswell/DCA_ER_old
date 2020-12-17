@@ -44,159 +44,6 @@ RUN COMMAND:
 singularity exec -B /data/cresswellclayec/hoangd2_data/,/data/cresswellclayec/DCA_ER/ER_clean/ /data/cresswellclayec/DCA_ER/erdca_regularized.simg python er_basic_run.py PF00186 $SLURM_CPUS_PER_TASK $SLURM_JOB_ID
 """
 
-#-------------------------------------------------------------------------------------------------------#
-#------------------------------- LAD ER Implementation -------------------------------------------------#
-#-------------------------------------------------------------------------------------------------------#
-def fit_LAD(x,y_onehot,niter_max,l2,couplings = None):      
-   
-    #print(niter_max)    
-    n = x.shape[1]
-    m = y_onehot.shape[1] # number of categories
-    
-    x_av = np.mean(x,axis=0)
-    dx = x - x_av
-    c = np.cov(dx,rowvar=False,bias=True)
-
-    #------------------ EigenValue Reg ------------------------@
-    # Calculate Eigenvalue of covariance matrix
-    # Eigenvalue replaces l2 for regularization strength
-    cov_eigen = np.linalg.eigvalsh(c)
-    eig_hist, eig_ranges = np.histogram(cov_eigen) 
-
-    #cov_eiv = max(cov_eigen)						# largest eigenvalue
-    cov_eiv = min(eig_ranges[eig_ranges > 1e-4]) 			# smallest non-zero eigenvalue
-    #cov_eiv = sorted(list(set(cov_eigen.flatten().tolist())))[-5]	# 5th largest eigenvalue
-    #print('Regularizing using EV of Cov Mat: ',cov_eiv)
-
-    l2 = cov_eiv # replace l2 (fit_LAD passed parmeter)
-    #----------------------------------------------------------@
-
-    # 2019.07.16:  
-    c += l2*np.identity(n) / (2*len(y_onehot))
-
-    H0 = np.zeros(m)
-    W = np.zeros((n,m))
-    #print('y_onehot shape: ',y_onehot.shape)
-
-
-    for i in range(m):
-        y = y_onehot[:,i]  # y = {0,1}
-        y1 = 2*y - 1       # y1 = {-1,1}
-
-        # initial values
-        h0 = 0.
-    
-        # If couplings (ie initial weight state) is passed, use it otherwise random.
-        if couplings is not None: 
-            w = couplings[:,i]
-        else: 
-            w = np.random.normal(0.0,1./np.sqrt(n),size=(n))
-       
-        cost = np.full(niter_max,100.)
-        #for iloop in range(niter_max):
-        # instead of n_iter times, we iterate through scalling values of regu
-        regu_scalling_vals = [0.2,0.4,0.6,1.]
-        cost = np.full(len(regu_scalling_vals),100.) # redefine cost to be regu scalling iterations
-        for iloop,regu_coef in enumerate(regu_scalling_vals):
-            h = h0 + x.dot(w)
-            y1_model = np.tanh(h/2.)    
-            #print('h shape ', h.shape)
-    
-            # stopping criterion
-            h_too_neg = h < -15
-            h[h_too_neg] = -15.
-            p = 1/(1+np.exp(-h))                
-            #print('p shape ', p.shape)
-            #print('y shape ', y.shape)
-            cost[iloop] = ((p-y)**2).mean()
-    
-            if iloop>0 and cost[iloop] >= cost[iloop-1]: break
-    
-            # update local field
-            t = h!=0    
-            h[t] *= y1[t]/y1_model[t]
-            h[~t] = 2*y1[~t]
-            # 2019.12.26: 
-            h0,w = infer_LAD(x,h[:,np.newaxis],regu = regu_coef*l2)
-
-        H0[i] = h0
-        W[:,i] = w
-
-    return H0,W
-
-def infer_LAD(x, y, regu=0.1,tol=1e-8, max_iter=5000):
-## 2019.12.26: Jungmin's code    
-    #weights_limit = sperf(1e-10)*1e10
-    weights_limit = (1e-10)*1e10
-    
-    s_sample, s_pred = x.shape
-    s_sample, s_target = y.shape
-    
-    mu = np.zeros(x.shape[1])
-
-    w_sol = 0.0*(np.random.rand(s_pred,s_target) - 0.5)
-    b_sol = np.random.rand(1,s_target) - 0.5
-
-    for index in range(s_target):
-        error, old_error = np.inf, 0
-        weights = np.ones((s_sample, 1))
-        cov = np.cov(np.hstack((x,y[:,index][:,None])), rowvar=False, \
-                     ddof=0, aweights=weights.reshape(s_sample))
-        cov_xx, cov_xy = cov[:s_pred,:s_pred],cov[:s_pred,s_pred:(s_pred+1)]
-        counter = 0
-        while np.abs(error-old_error) > tol and counter < max_iter:
-            counter += 1
-
-
-            old_error = np.mean(np.abs(b_sol[0,index] + x.dot(w_sol[:,index]) - y[:,index]))
-            sigma_w = np.std(w_sol[:,index])
-                
-            w_eq_0 = np.abs(w_sol[:,index]) < 1e-10
-            mu[w_eq_0] = 2./np.sqrt(np.pi)
-        
-            #mu[~w_eq_0] = sigma_w*sperf(w_sol[:,index][~w_eq_0]/sigma_w)/w_sol[:,index][~w_eq_0]
-            mu[~w_eq_0] = sigma_w*(w_sol[:,index][~w_eq_0]/sigma_w)/w_sol[:,index][~w_eq_0]
-                                                        
-            w_sol[:,index] = np.linalg.solve(cov_xx + regu * np.diag(mu),cov_xy).reshape(s_pred)
-        
-            b_sol[0,index] = np.mean(y[:,index]-x.dot(w_sol[:,index]))
-            weights = (b_sol[0,index] + x.dot(w_sol[:,index]) - y[:,index])
-            sigma = np.std((weights))
-            error = np.mean(np.abs(weights))
-            weights_eq_0 = np.abs(weights) < 1e-10
-            weights[weights_eq_0] = weights_limit
-
-            #weights[~weights_eq_0] = sigma*sperf(weights[~weights_eq_0]/sigma)/weights[~weights_eq_0]
-            weights[~weights_eq_0] = sigma*(weights[~weights_eq_0]/sigma)/weights[~weights_eq_0]
-            
-            weights /= np.mean(weights) #now the mean weight is 1.0
-            cov = np.cov(np.hstack((x,y[:,index][:,None])), rowvar=False, \
-                         ddof=0, aweights=weights.reshape(s_sample))
-            cov_xx, cov_xy = cov[:s_pred,:s_pred],cov[:s_pred,s_pred:(s_pred+1)]
-    return b_sol[0][0],w_sol[:,0] # for only one target case
-
-def predict_w_LADER(s,i0,i1i2,niter_max,l2,couplings = None):
-    i1,i2 = i1i2[i0,0],i1i2[i0,1]
-
-    x = np.hstack([s[:,:i1],s[:,i2:]])
-    y = s[:,i1:i2]
-
-    # h01,w1 = er_fit(x,y,niter_max,l2) # old inference
-    if couplings is not None:
-        y_couplings = np.delete(couplings,[range(i1,i2)],0)	# remove subject rows  from original coupling matrix 
-        y_couplings = np.delete(y_couplings,[range(i1,i2)],1)   # remove subject columns from original coupling matrix 
-
-        h01,w1 = fit_LAD(x,y,niter_max,l2,couplings = y_couplings)
-
-    else:
-        h01,w1 = fit_LAD(x,y,niter_max,l2)
-
-    return h01,w1
-
-#-------------------------------------------------------------------------------------------------------#
-#-------------------------------------------------------------------------------------------------------#
-#-------------------------------------------------------------------------------------------------------#
-
 def delete_sorted_DI_duplicates(sorted_DI):
 	temp1 = []
 	print(sorted_DI[:10])
@@ -417,11 +264,26 @@ w = np.zeros((mx_sum,my_sum))
 h0 = np.zeros(my_sum)
 
 #=========================================================================================
+def predict_w(s,i0,i1i2,niter_max,l2,couplings = None):
+    #print('i0:',i0)
+    i1,i2 = i1i2[i0,0],i1i2[i0,1]
+
+    x = np.hstack([s[:,:i1],s[:,i2:]])
+    y = s[:,i1:i2]
+
+    if couplings is None:
+        h01,w1 = ER.reg_fit(x,y,niter_max,l2)
+    else:
+        y_couplings = np.delete(couplings,[range(i1,i2)],0)	# remove subject rows  from original coupling matrix 
+        y_couplings = np.delete(y_couplings,[range(i1,i2)],1)   # remove subject columns from original coupling matrix 
+        h01,w1 = ER.reg_fit(x,y,niter_max,l2,y_couplings)
+        
+    return h01,w1
 
 #-------------------------------
 # parallel
-res = Parallel(n_jobs = cpus_per_job - 4)(delayed(predict_w_LADER)\
-        (s,i0,i1i2,niter_max=10,l2=100.0,couplings=er_couplings)\
+res = Parallel(n_jobs = cpus_per_job - 4)(delayed(predict_w)\
+        (s,i0,i1i2,niter_max=10,l2=100.0,couplings = None)\
         for i0 in range(n_var))
 
 #-------------------------------
@@ -447,7 +309,7 @@ sorted_DI_er = delete_sorted_DI_duplicates(sorted_DI_er)
 
 
 
-with open('DI/ER/lader_clean_DI_%s.pickle'%(pfam_id), 'wb') as f:
+with open('DI/ER/er_clean_DI_%s.pickle'%(pfam_id), 'wb') as f:
     pickle.dump(sorted_DI_er, f)
 f.close()# Save processed data dictionary and FASTA file
 print('s shape (msa): ',s.shape)
@@ -458,7 +320,7 @@ pfam_dict['processed_msa'] = trimmed_data
 pfam_dict['s_ipdb'] = tpdb
 pfam_dict['cols_removed'] = []
 
-input_data_file = preprocess_path+"%s_DP_LADER_clean.pickle"%(pfam_id)
+input_data_file = preprocess_path+"%s_DP_ER_clean.pickle"%(pfam_id)
 with open(input_data_file,"wb") as f:
 	pickle.dump(pfam_dict, f)
 f.close()

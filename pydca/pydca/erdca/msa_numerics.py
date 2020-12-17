@@ -85,7 +85,8 @@ def er_fit(x,y_onehot,niter_max,l2,couplings= None):
     #print(eig_ranges)
     print('cov_ev min non-zero: ',min(eig_ranges[eig_ranges > 1e-4]))
     #cov_eiv = max(cov_eigen)
-    cov_eiv = min(eig_ranges[eig_ranges > 1e-4])
+    #cov_eiv = min(eig_ranges[eig_ranges > 1e-4]) 			j# smallest non-zero eigenvalue
+    cov_eiv = sorted(list(set(cov_eigen.flatten().tolist())))[-5]	# 5th largest eigenvalue
     #print('cov eigenvalue: ' ,np.linalg.eigvalsh(c))
     #print('cov std: ', c.std())
     

@@ -85,7 +85,8 @@ def convert_codon(subject_index=14407, subject_encoding_region='NSP12', gene_ran
 		column_aa = []
 		column_bp = []
 
-
+		n_codon = 0
+		dash_codon = 0
 		for i,record in enumerate(SeqIO.parse(handle, "fasta")):
 			seq_array = [char for char in ''.join(record.seq).upper()]
 			seq_indices = [i for i,char in enumerate(''.join(record.seq))]
@@ -126,10 +127,21 @@ def convert_codon(subject_index=14407, subject_encoding_region='NSP12', gene_ran
 				print('#--------------------------------------------------------------------#\n\n')
 			# add aa corresponding to gene subject index
 			subject_codon = [seq_range_array[i1],seq_range_array[i2],seq_range_array[i3]]
+			n_nuc = False
+			dash_nuc = False
 			for ii,nucleotide in enumerate(subject_codon):
 				if nucleotide not in base_pairs:
 					print('index %d has abnormal nucleotide: '%i,nucleotide)
 					subject_codon[ii] = translate_weird_nucleotide(nucleotide)
+				if nucleotide == 'N':
+					n_nuc= True 
+				if nucleotide == '-':
+					dash_nuc=True
+			if n_nuc:
+				n_codon += 1
+			if dash_nuc:
+				dash_codon += 1
+				
 			try:
 				subject_codon_aa = table[''.join(subject_codon)]
 			except:
@@ -140,6 +152,7 @@ def convert_codon(subject_index=14407, subject_encoding_region='NSP12', gene_ran
 			column_bp.append(seq_array[subject_index])	
 			#print(	'	seq %d aa letter:  %s'%(i, subject_codon_aa))
 
+	print('\n\nThere were %d codons with N nucleotides and %d codons with dashes...\n\n'%(n_codon,dash_codon))
 	print('#--------------------------------------------------------------------#')
 	print('\n\nSaving...')
 	np.save('%d_aa_column.npy'%subject_index,column_aa)
@@ -256,11 +269,15 @@ encoding_ranges =	{
 			'NSP2' : [(806-1,2719-1)],
 			'NSP3' : [(2720-1,8554-1)],
 			'NSP12' : [(13442-1,13468-1),(13468-1,16236-1)],
+			'NSP13' : [(16237-1,18039-1)],
 			'NSP14a2' : [(18040-1,19620-1)],
+			'NSP15' : [(19621-1,20658-1)],
 			'NSP16' : [(20659-1,21552-1)],
 			'S' : [(21563-1,25384-1)],
 			'ORF3a' : [(25393-1,26220-1)],
 			'E' : [(26245-1,26472-1)],
+			'ORF7a' : [(27394-1,27759-1)],
+			'ORF7b' : [(27756-1,27887-1)],
 			'N' : [(28274-1,29533-1)],
 			'Full' : [(266-1,29674-1)]
 			}
