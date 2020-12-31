@@ -19,6 +19,8 @@ import operator
 # ---> ORDER SHOULD MATCH WITH gen_DI_scores.py ORDER OF STORED SCORES IN .txt FILES !!!!
 methods = ['LADER_clean','ER_clean','ER_coup','ER','MF','PLM']
 methods = ['ERDCA','ER','MF','PLM']
+methods = ['ER','MF','PLM']
+methods = ['LADERDCA','ERDCA','ER','MF','PLM']
 
 
 
@@ -99,9 +101,9 @@ max_score = 0
 
 
 kill_index = [0,1,2] # No LADER/ER clean or ER coup
-kill_index = [2] # ER coup is obsolete..
 kill_index = [1] # get rid of original ER
 kill_index = [] # keep all scores
+kill_index = [1,2]
 
 print('REMOVING FOLLOWING SCORE INDICES FROM CONTENTION:')
 for index in kill_index:
@@ -190,7 +192,7 @@ elif score_type == 'AUC':
 
 plt.xticks(ind + width / 4, [str(interval) for interval in intervals])
 plt.legend(loc='best')
-plt.show()
+plt.savefig(score_type+'_bm.pdf')
 	
 	
 

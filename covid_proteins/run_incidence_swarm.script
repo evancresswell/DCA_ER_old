@@ -1,0 +1,6 @@
+#!/bin/bash
+
+# for generating data for incidence plots
+swarm -f incidence.swarm -t 20 -g 100.0 --time=0-04:00:00 --partition norm --module python/3.7 --logdir swarm_output #  quick # norm
+
+

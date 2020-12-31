@@ -275,83 +275,80 @@ elif 0:
 #========================================================================================
 
 
+if 0:
+	print('Running ER simulation\n\n')
 
+	try:
+		print('s_index : ',s_index,'\n')
+		if preprocessing:
+			print('USING DCA TRIMMED DATA')
+			print('Initializing ER instance\n\n')
+			# Compute DI scores using Expectation Reflection algorithm
+			erdca_inst = erdca.ERDCA(
+			    preprocessed_data_outfile,
+			    #trimmed_data_outfile,
+			    'PROTEIN',
+			    s_index = s_index,
+			    pseudocount = 0.5,
+			    num_threads = cpus_per_job-4,
+			    seqid = 0.8)
+		else:
+			print('Initializing ER instance\n\n')
+			# Compute DI scores using Expectation Reflection algorithm
+			erdca_inst = erdca.ERDCA(
+			    #preprocessed_data_outfile,
+			    trimmed_data_outfile,
+			    'PROTEIN',
+			    refseq_file=pp_ref_file_range,
+			    s_index = s_index,
+			    pseudocount = 0.5,
+			    num_threads = cpus_per_job-4,
+			    seqid = 0.8)
 
+	except:
+		ref_seq = s[tpdb,:]
+		print('\nERROR using trimmed DATA\n\nUsing PDB defined reference sequence from MSA:\n',ref_seq)
 
+		sys.exit()
 
-try:
-	print('s_index : ',s_index,'\n')
-	if preprocessing:
-		print('USING DCA TRIMMED DATA')
-		print('Initializing ER instance\n\n')
-		# Compute DI scores using Expectation Reflection algorithm
+		"""
+		msa_file, ref_file = tools.write_FASTA(ref_seq, s, pfam_id, number_form=False,processed=False,path=preprocess_path)
+		pfam_dict['ref_file'] = ref_file
+
+		print('Re-trimming MSA with pdb index defined ref_seq\n\n\n')
+		# create MSATrimmer instance 
+		trimmer = msa_trimmer.MSATrimmer(
+		    msa_file, biomolecule='protein', 
+		    refseq_file=ref_file
+		)
+
+		preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
+		#write trimmed msa to file in FASTA format
+		with open(preprocessed_data_outfile, 'w') as fh:
+			for seqid, seq in preprocessed_data:
+				fh.write('>{}\n{}\n'.format(seqid, seq))
+
 		erdca_inst = erdca.ERDCA(
-		    preprocessed_data_outfile,
-		    #trimmed_data_outfile,
-		    'PROTEIN',
-		    s_index = s_index,
-		    pseudocount = 0.5,
-		    num_threads = cpus_per_job-4,
-		    seqid = 0.8)
-	else:
-		print('Initializing ER instance\n\n')
-		# Compute DI scores using Expectation Reflection algorithm
-		erdca_inst = erdca.ERDCA(
-		    #preprocessed_data_outfile,
-		    trimmed_data_outfile,
-		    'PROTEIN',
-		    refseq_file=pp_ref_file_range,
-		    s_index = s_index,
-		    pseudocount = 0.5,
-		    num_threads = cpus_per_job-4,
-		    seqid = 0.8)
+			    preprocessed_data_outfile,
+			    'PROTEIN',
+			    s_index = s_index,
+			    pseudocount = 0.5,
+			    num_threads = cpus_per_job-4,
+			    seqid = 0.8)
+		"""
+	# Compute average product corrected Frobenius norm of the couplings
+	start_time = timeit.default_timer()
+	#erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = couplings)
+	erdca_DI = erdca_inst.compute_sorted_DI(LAD=True,init_w =False) # initializes with DCA couplings
+	run_time = timeit.default_timer() - start_time
+	print('ER run time:',run_time)
 
-except:
-	ref_seq = s[tpdb,:]
-	print('\nERROR using trimmed DATA\n\nUsing PDB defined reference sequence from MSA:\n',ref_seq)
+	for site_pair, score in erdca_DI[:10]:
+	    print(site_pair, score)
 
-	sys.exit()
-
-	"""
-	msa_file, ref_file = tools.write_FASTA(ref_seq, s, pfam_id, number_form=False,processed=False,path=preprocess_path)
-	pfam_dict['ref_file'] = ref_file
-
-	print('Re-trimming MSA with pdb index defined ref_seq\n\n\n')
-	# create MSATrimmer instance 
-	trimmer = msa_trimmer.MSATrimmer(
-	    msa_file, biomolecule='protein', 
-	    refseq_file=ref_file
-	)
-
-	preprocessed_data,s_index, cols_removed,s_ipdb,s = trimmer.get_preprocessed_msa(printing=True, saving = False)
-	#write trimmed msa to file in FASTA format
-	with open(preprocessed_data_outfile, 'w') as fh:
-		for seqid, seq in preprocessed_data:
-			fh.write('>{}\n{}\n'.format(seqid, seq))
-
-	erdca_inst = erdca.ERDCA(
-		    preprocessed_data_outfile,
-		    'PROTEIN',
-		    s_index = s_index,
-		    pseudocount = 0.5,
-		    num_threads = cpus_per_job-4,
-		    seqid = 0.8)
-	"""
-
-print('Running ER simulation\n\n')
-# Compute average product corrected Frobenius norm of the couplings
-start_time = timeit.default_timer()
-#erdca_DI = erdca_inst.compute_sorted_DI(LAD=False,init_w = couplings)
-erdca_DI = erdca_inst.compute_sorted_DI(LAD=True,init_w =False) # initializes with DCA couplings
-run_time = timeit.default_timer() - start_time
-print('ER run time:',run_time)
-
-for site_pair, score in erdca_DI[:10]:
-    print(site_pair, score)
-
-with open('DI/ER/laderdca_DI_%s.pickle'%(pfam_id), 'wb') as f:
-    pickle.dump(erdca_DI, f)
-f.close()
+	with open('DI/ER/laderdca_DI_%s.pickle'%(pfam_id), 'wb') as f:
+	    pickle.dump(erdca_DI, f)
+	f.close()
 
 # Save processed data dictionary and FASTA file
 print('s shape (msa): ',s.shape)
@@ -370,10 +367,10 @@ else:
 input_data_file = preprocess_path+"%s_DP_laderdca.pickle"%(pfam_id)
 
 # not enough room to save input_data. DO this once you have finalized ERDCA
-if 0:
-	with open(input_data_file,"wb") as f:
-		pickle.dump(pfam_dict, f)
-	f.close()
+
+with open(input_data_file,"wb") as f:
+	pickle.dump(pfam_dict, f)
+f.close()
 
 
 

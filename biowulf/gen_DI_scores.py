@@ -61,80 +61,80 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	#--------------------------------------------------------------------------------#
 
 	#------------------------------- Load Simulation Data ---------------------------#
-	try:
-		# Load ER data file #
-		er_data_file = preprocess_path+"%s_DP_ER.pickle"%(pfam_id)
-		with open(er_data_file,"rb") as f:
-			ER_pfam_dict = pickle.load(f)
-		f.close()
+	#try:
+	# Load ER data file #
+	er_data_file = preprocess_path+"%s_DP_laderdca.pickle"%(pfam_id)
+	with open(er_data_file,"rb") as f:
+		ER_pfam_dict = pickle.load(f)
+	f.close()
 
-		ER_s0 = ER_pfam_dict['processed_msa']	
-		processed_msa = ER_pfam_dict['msa']
-		s_index = ER_pfam_dict['s_index']	
-		ER_s_ipdb = ER_pfam_dict['s_ipdb']	 # this is actually seq num
-		ER_seq_row = ER_s_ipdb 
-		cols_removed = ER_pfam_dict['cols_removed']
-		ER_ref_file = ER_pfam_dict['ref_file']
+	ER_s0 = ER_pfam_dict['processed_msa']	
+	processed_msa = ER_pfam_dict['msa']
+	s_index = ER_pfam_dict['s_index']	
+	ER_s_ipdb = ER_pfam_dict['s_ipdb']	 # this is actually seq num
+	ER_seq_row = ER_s_ipdb 
+	cols_removed = ER_pfam_dict['cols_removed']
+	ER_ref_file = ER_pfam_dict['ref_file']
 
-		# change s0 (processed_msa) from record list to character array		
-		s = []
-		for seq_record in ER_s0:
-			s.append([char for char in seq_record[1]])		
-		ER_s0 = np.array(s)
-		er_n_var = ER_s0.shape[1]
-		er_num_seqs =ER_s0.shape[0]
-
-
-		# Load References file (from both sim output and saved fasta)
-		with open(ER_ref_file,"r") as handle:
-			for record in SeqIO.parse(handle, "fasta"):
-				sequence = str(record.seq).upper()
-				er_ref_seq = np.array([char for char in sequence])
-		er_ref_seq_s0 = ER_s0[ER_s_ipdb]	
-		ref_seq_temp = list(er_ref_seq_s0)
-		print(len(er_ref_seq))
-		print('passed ref seq (%d): '%(len(er_ref_seq)),''.join(er_ref_seq))
-		print('s0 ref seq (%d):'%(len(er_ref_seq_s0)),''.join(ref_seq_temp))
-		print('s_index: ',s_index)
-		print(len(s_index))
-		er_rs_s0_full = []
-		for indx in range(len(er_ref_seq)):
-			if indx in s_index:
-				#print('popping indx ',np.where(s_index==indx)[0][0])
-				er_rs_s0_full.append(ref_seq_temp.pop(0)) 
-			else:
-				er_rs_s0_full.append('-')
-		#-------------------#
+	# change s0 (processed_msa) from record list to character array		
+	s = []
+	for seq_record in ER_s0:
+		s.append([char for char in seq_record[1]])		
+	ER_s0 = np.array(s)
+	er_n_var = ER_s0.shape[1]
+	er_num_seqs =ER_s0.shape[0]
 
 
-		# Load DCA data file #
-		dca_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
-		with open(dca_data_file,"rb") as f:
-			pfam_dict = pickle.load(f)
-		f.close()
+	# Load References file (from both sim output and saved fasta)
+	with open(ER_ref_file,"r") as handle:
+		for record in SeqIO.parse(handle, "fasta"):
+			sequence = str(record.seq).upper()
+			er_ref_seq = np.array([char for char in sequence])
+	er_ref_seq_s0 = ER_s0[ER_s_ipdb]	
+	ref_seq_temp = list(er_ref_seq_s0)
+	print(len(er_ref_seq))
+	print('passed ref seq (%d): '%(len(er_ref_seq)),''.join(er_ref_seq))
+	print('s0 ref seq (%d):'%(len(er_ref_seq_s0)),''.join(ref_seq_temp))
+	print('s_index: ',s_index)
+	print(len(s_index))
+	er_rs_s0_full = []
+	for indx in range(len(er_ref_seq)):
+		if indx in s_index:
+			#print('popping indx ',np.where(s_index==indx)[0][0])
+			er_rs_s0_full.append(ref_seq_temp.pop(0)) 
+		else:
+			er_rs_s0_full.append('-')
+	#-------------------#
 
-		dca_s0 = pfam_dict['processed_msa']	
-		dca_s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
-		dca_seq_row = dca_s_ipdb 
-		dca_ref_file = pfam_dict['ref_file']
 
-		# change s0 (processed_msa) from record list to character array		
-		s = []
-		for seq_record in dca_s0:
-			s.append([char for char in seq_record[1]])		
-		dca_s0 = np.array(s)
-		dca_n_var = dca_s0.shape[1]
-		dca_num_seqs =dca_s0.shape[0]
+	# Load DCA data file #
+	dca_data_file = preprocess_path+"%s_DP.pickle"%(pfam_id)
+	with open(dca_data_file,"rb") as f:
+		pfam_dict = pickle.load(f)
+	f.close()
 
-		with open(dca_ref_file,"r") as handle:
-			for record in SeqIO.parse(handle, "fasta"):
-				sequence = str(record.seq).upper()
-				dca_ref_seq = np.array([char for char in sequence])
-		dca_ref_seq_s0 = dca_s0[dca_s_ipdb]	
-		#--------------------#
-	except(FileNotFoundError):
-		print('Not all methods have a DP!!!')
-		sys.exit()
+	dca_s0 = pfam_dict['processed_msa']	
+	dca_s_ipdb = pfam_dict['s_ipdb']	 # this is actually seq num
+	dca_seq_row = dca_s_ipdb 
+	dca_ref_file = pfam_dict['ref_file']
+
+	# change s0 (processed_msa) from record list to character array		
+	s = []
+	for seq_record in dca_s0:
+		s.append([char for char in seq_record[1]])		
+	dca_s0 = np.array(s)
+	dca_n_var = dca_s0.shape[1]
+	dca_num_seqs =dca_s0.shape[0]
+
+	with open(dca_ref_file,"r") as handle:
+		for record in SeqIO.parse(handle, "fasta"):
+			sequence = str(record.seq).upper()
+			dca_ref_seq = np.array([char for char in sequence])
+	dca_ref_seq_s0 = dca_s0[dca_s_ipdb]	
+	#--------------------#
+	#except(FileNotFoundError):
+#		print('Not all methods have a DP!!!')
+#		sys.exit()
 	#--------------------------------------------------------------------------------#
 
 	# Print Specs
@@ -169,6 +169,10 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 		with open("DI/ER/erdca_DI_%s.pickle"%(pfam_id),"rb") as f:
 			DI_erdca = pickle.load(f)
 		f.close()
+		with open("DI/ER/laderdca_DI_%s.pickle"%(pfam_id),"rb") as f:
+			DI_laderdca = pickle.load(f)
+		f.close()
+
 		"""
 		with open("DI/ER/er_clean_DI_%s.pickle"%(pfam_id),"rb") as f:
 			DI_er_clean = pickle.load(f)
@@ -211,6 +215,12 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	linear_dist = 5,
 	contact_dist = 8. )
 
+	laderdca_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
+	refseq_file = ER_ref_file, # eith _match or _range depending on how pre-processing went
+	sorted_dca_scores = DI_laderdca,
+	linear_dist = 5,
+	contact_dist = 8. )
+
 	"""
 	er_clean_visualizer = contact_visualizer.DCAVisualizer('protein', pdb_chain, pdb_id,
 	refseq_file = ER_ref_file, # eith _match or _range depending on how pre-processing went
@@ -244,8 +254,8 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	contact_instance_labels = ['lader_clean_visualizer','er_clean_visualizer','erdca_new_visualizer','erdca_visualizer', 'mfdca_visualizer', 'plmdca_visualizer']
 	contact_instances = [lader_clean_visualizer,er_clean_visualizer, erdca_new_visualizer,erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 	"""
-	contact_instance_labels = ['erdca_new_visualizer','erdca_visualizer', 'mfdca_visualizer', 'plmdca_visualizer']
-	contact_instances = [erdca_new_visualizer,erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
+	contact_instance_labels = ['laderdca_visualizer','erdca_new_visualizer','erdca_visualizer', 'mfdca_visualizer', 'plmdca_visualizer']
+	contact_instances = [laderdca_visualizer,erdca_new_visualizer,erdca_visualizer, mfdca_visualizer, plmdca_visualizer]
 
 	scores = []
 
@@ -281,7 +291,7 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	"""
 	DIs = [DI_lader_clean, DI_er_clean, DI_erdca, DI_er, DI_mf, DI_plm] # SHOULD HAVE SAME ORDER AS contact_instances!!!!
 	"""
-	DIs = [DI_erdca, DI_er, DI_mf, DI_plm] # SHOULD HAVE SAME ORDER AS contact_instances!!!!
+	DIs = [DI_laderdca, DI_erdca, DI_er, DI_mf, DI_plm] # SHOULD HAVE SAME ORDER AS contact_instances!!!!
 	AUCs = []
 
 	#-------------------------- Get PP sequences coordinates ------------------------#            
@@ -362,16 +372,16 @@ def get_score(pfam_id, data_path = '/data/cresswellclayec/hoangd2_data/Pfam-A.fu
 	f.close()
 	"""
 	# got rid of lader and er clean DIs just the og erdca.
-	print('Scores:\n%s %f %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], scores[3], dca_num_seqs))
+	print('Scores:\n%s %f %f %f %f %f %d\n\n' % (pfam_id , scores[0], scores[1], scores[2], scores[3], scores[4], dca_num_seqs))
 	# write results of Pfam to txt file
 	f = open('DI/%s.txt'%pfam_id,'w')
-	f.write('%s %f %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], scores[3], dca_num_seqs) )    
+	f.write('%s %f %f %f %f %f %d' % (pfam_id , scores[0], scores[1], scores[2], scores[3], scores[4], dca_num_seqs) )    
 	f.close()
 
-	print('AUC: %s %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3], dca_num_seqs) )
+	print('AUC: %s %f %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3],AUCs[4], dca_num_seqs) )
 	# write results of Pfam to txt file
 	f = open('DI/%s_auc.txt'%pfam_id,'w')
-	f.write('%s %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3], dca_num_seqs) )    
+	f.write('%s %f %f %f %f %f %d' % (pfam_id , AUCs[0], AUCs[1], AUCs[2], AUCs[3],AUCs[4], dca_num_seqs) )    
 	f.close()
 
 def main():
