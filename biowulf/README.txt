@@ -1,4 +1,42 @@
 
+#---------------------- Biowulf Simulations ----------------------# 
+
+This directory is for the execution and analysis of simulations run
+on Biowulf
+
+
+
+#----- Simulation  -----#
+- Genrate run files
+	- makes list of er runs from list of Pfams: pfam_pdb_list.txt
+  	RUN: python 12make_swarm.py
+
+- Run script for ER, PLM, and MF swarm files
+  	RUN: ./14submit_main_swam_biowulf.script
+	- runs swarms for multiple method types (choose via # commenting) 
+#-----------------------#
+
+#---------------------------------------------------------------------#
+#------------------------- Analysis Drivers --------------------------#
+#---------------------------------------------------------------------#
+
+-- The following is the flow of runs to get to plotting routines once you have completed swarm simulations for various methods
+#-----------------------#
+#----- WORFLOW ---------#
+#----- 12/25/2020 ------#
+#------- simple --------#
+- collect scores by creating swarm file
+	# RUN python 17gen_scores_swarm.py
+- genreate score .txt files in DI directory
+	# RUN ./18_gen_score.script
+- concatenate and print best method from scores:
+	# RUN print_AUTPR_bm.py
+
+#-----------------------#
+
+#---------------------------------------------------------------------------------------------------#
+#---------------------------------------------- SUPPLEMENTARY FILES --------------------------------#
+#---------------------------------------------------------------------------------------------------#
 #---------------------- File Directory ---------------------------# 
 Enty: June 8, 2020
 
@@ -18,57 +56,12 @@ method_axis_plot and pfam_bar_methods created the most up-to-date figures (namel
 #-----------------------------------------------------------------# 
 
 
-#---------------------- Biowulf Simulations ----------------------# 
-
-This directory is for the execution and analysis of simulations run
-on Biowulf
-
-#------ Pre-Sim --------#
-- Set up .fa and .pickle files in pfam_ecc/
-	- .fa files are used for post-sim analysis
-	  and MF and PLM method simulation
-	- .pickle files are used for ER simulations
-  RUN: ./111swarm_generate_input_data.script
-	- This requires files -> [ pfam_pdb_list.swarm, ../dca_er.simg, Pfam-A.full/ ]
-		- pfam_pdb_list.swarm example line (for Pfam PF00001):
-			singularity exec -B /path/to/current/dir,path/to/Pfam-A.full/ path/to/dca_er.simg python gen_1PFAM_input_data.py PF00001
-		- ../dca_er.simg 
-			- see ../README.md section: Generate Singularity Container to Run Code
-#-----------------------#
-
-#----- Simulation  -----#
-- Run script for ER, PLM, and MF swarm files
-  RUN: ./14submit_main_swam_biowulf.script
-	- This requiers files -> [er.swarm, plm.swarm, mf.swarm, dca_er.simg, 1main_ER.py, 1main_PLM.py, 1main_MF.py]
-		- er.swarm exmaple line (for Pfam PF00001):
-			singularity exec -B /path/to/current/dir/ /path/to/dca_er.simg python 1main_ER.py PF00001
-		- plm.swarm exmaple line (for Pfam PF00001):
-			singularity exec -B /path/to/current/dir/ /path/to/dca_er.simg python 1main_PLM.py PF00001
-		- mf.swarm exmaple line (for Pfam PF00001):
-			singularity exec -B /path/to/current/dir/ /path/to/dca_er.simg python 1main_MF.py PF00001
-		- 1main_#METHOD#.py
-			- Python driver to load data from pfam_ecc/ and execute method and save pickle file in DI/#METHOD#/
-		- ../dca_er.simg 
-			- see ../README.md section: Generate Singularity Container to Run Code
-#-----------------------#
-
-#---------------------------------------------------------------------#
-#------------------------- Analysis Drivers --------------------------#
-#---------------------------------------------------------------------#
-
--- The following is the flow of runs to get to plotting routines once you have completed swarm simulations for various methods
-#----- WORFLOW ---------#
-#------- simple --------#
-- collect scores by creating swarm file
-	# RUN python 17gen_scores_swarm.py
-- genreate score .txt files in DI directory
-	# RUN ./18_gen_score.script
-- concatenate and print best method from scores:
-	# RUN print_AUTPR_bm.py
-
-#-----------------------#
 
 
+
+#----------------------------------------------------------------------------------------------------#
+#----------------------------------------- Create DataFrames ----------------------------------------#
+#----------------------------------------------------------------------------------------------------#
 #----- WORKFLOW --------#
 - Collect resulting information from swarm of simulations
   RUN: python 15sim_summary.py job_id method
@@ -103,6 +96,9 @@ on Biowulf
 			- Each df has methods as columns
 #-----------------------#
 
+#----------------------------------------------------------------------------------------------------#
+#----------------------------------------------------------------------------------------------------#
+
 #---------------------------------------------------------------------#
 #---------------------------------------------------------------------#
 #---------------------------------------------------------------------#
@@ -134,3 +130,21 @@ on Biowulf
 #-----------------------------------------------------------------# 
 
 
+# THIS IS NOW DONE IN INDIVIDUAL RUNS
+#------ Pre-Sim --------#
+- Set up .fa and .pickle files in pfam_ecc/
+	- .fa files are used for post-sim analysis
+	  and MF and PLM method simulation
+	- .pickle files are used for ER simulations
+  RUN: ./111swarm_generate_input_data.script
+	- This requires files -> [ pfam_pdb_list.swarm, ../dca_er.simg, Pfam-A.full/ ]
+		- pfam_pdb_list.swarm example line (for Pfam PF00001):
+			singularity exec -B /path/to/current/dir,path/to/Pfam-A.full/ path/to/dca_er.simg python gen_1PFAM_input_data.py PF00001
+		- ../dca_er.simg 
+			- see ../README.md section: Generate Singularity Container to Run Code
+#-----------------------#
+
+
+#---------------------------------------------------------------------------------------------------#
+#---------------------------------------------------------------------------------------------------#
+#---------------------------------------------------------------------------------------------------#
